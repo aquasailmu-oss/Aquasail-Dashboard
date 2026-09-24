@@ -10,11 +10,11 @@ pricing, fleet tracking, and daily reconciliation.
 
 ## Status
 
-| Phase | Scope                                                 | State                  |
-| ----- | ----------------------------------------------------- | ---------------------- |
-| V0    | Foundation: repo, schema, RLS, auth, role-aware shell | WP-01 done, WP-02 next |
-| V1    | Core booking system                                   | Not started            |
-| V2–V4 | Ticketing, accounting, capacity/analytics             | Planned                |
+| Phase | Scope                                                 | State                     |
+| ----- | ----------------------------------------------------- | ------------------------- |
+| V0    | Foundation: repo, schema, RLS, auth, role-aware shell | WP-01–02 done, WP-03 next |
+| V1    | Core booking system                                   | Not started               |
+| V2–V4 | Ticketing, accounting, capacity/analytics             | Planned                   |
 
 ## Running it
 

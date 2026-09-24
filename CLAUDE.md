@@ -102,6 +102,13 @@ on an error. Minimum 44px touch targets (`min-h-11`). No hover-only affordances.
 Write SQL in `supabase/migrations/` → `npm run db:reset` (rebuild local DB from
 scratch) → `npm run db:types` → commit. Deploy with `npm run db:push`.
 
+The repo is linked to the cloud project (ref `zhcxfxrsmmihnnwzfvdc`, eu-west-1).
+Push only after the local reset passes, and ask first: it is production.
+Auth hooks cannot be set in SQL: locally `supabase/config.toml` enables
+`custom_access_token_hook`; on the cloud project it is enabled by hand under
+Authentication > Hooks. Policies call the helpers from `0001_identity.sql` as
+`(select public.has_role(...))`, `(select public.is_admin())`.
+
 ## Commits
 
 Conventional commits tagged with the work package, one WP per commit:

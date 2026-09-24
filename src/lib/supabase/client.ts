@@ -1,4 +1,5 @@
 import { createBrowserClient } from "@supabase/ssr";
+import type { Database } from "@/lib/database.types";
 import { supabaseAnonKey, supabaseUrl } from "./env";
 
 /**
@@ -7,5 +8,5 @@ import { supabaseAnonKey, supabaseUrl } from "./env";
  * goes through Server Actions and Server Components.
  */
 export function createClient() {
-  return createBrowserClient(supabaseUrl(), supabaseAnonKey());
+  return createBrowserClient<Database>(supabaseUrl(), supabaseAnonKey());
 }

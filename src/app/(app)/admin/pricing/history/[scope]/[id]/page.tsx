@@ -2,6 +2,7 @@ import { ArrowLeftIcon } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { WithdrawButton } from "@/components/pricing/withdraw-button";
 import { PageHeader } from "@/components/shell/page-header";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -70,6 +71,11 @@ export default async function PriceHistoryPage({ params }: { params: Promise<{ s
                 <TableHead className="text-right">Net</TableHead>
                 <TableHead className="text-right">Commission</TableHead>
                 <TableHead>Set by</TableHead>
+                {user.role === "admin" && (
+                  <TableHead>
+                    <span className="sr-only">Actions</span>
+                  </TableHead>
+                )}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -108,6 +114,16 @@ export default async function PriceHistoryPage({ params }: { params: Promise<{ s
                       {h.set_by ?? "Setup"}
                       <div className="text-muted-foreground text-sm">{formatDateTime(h.set_at)}</div>
                     </TableCell>
+                    {user.role === "admin" && (
+                      <TableCell>
+                        {h.effective_from > today && (
+                          <WithdrawButton
+                            ruleId={h.id}
+                            summary={`${item.name}, ${TYPE[h.participant_type].toLowerCase()}, ${h.audience === "walk_in" ? "walk-in" : h.operator_name}: ${formatRs(cents(h.retail_cents))} from ${formatDateShort(h.effective_from)}.`}
+                          />
+                        )}
+                      </TableCell>
+                    )}
                   </TableRow>
                 );
               })}

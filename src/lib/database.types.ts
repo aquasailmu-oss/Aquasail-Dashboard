@@ -1015,6 +1015,10 @@ export type Database = {
       }
       set_prices_bulk: { Args: { changes: Json }; Returns: number }
       today_mauritius: { Args: never; Returns: string }
+      withdraw_scheduled_price: {
+        Args: { p_rule_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       app_role: "admin" | "accountant" | "receptionist" | "activity_staff"

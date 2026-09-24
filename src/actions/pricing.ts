@@ -227,3 +227,16 @@ export async function applyBulkChange(input: BulkInput & { fingerprint: string }
   revalidatePath("/admin/pricing", "layout");
   return ok(data ?? computed.data.rows.length);
 }
+
+/** Withdraws a scheduled price that has not started and has no bookings in its dates. */
+export async function withdrawScheduledPrice(ruleId: string): Promise<Result<null>> {
+  const auth = await authorize(ADMIN);
+  if (!auth.ok) return auth;
+  const id = z.uuid().safeParse(ruleId);
+  if (!id.success) return fail("That price no longer exists.");
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("withdraw_scheduled_price", { p_rule_id: id.data });
+  if (error) return fail(friendlyDbError(error, "The price could not be withdrawn. Try again."));
+  revalidatePath("/admin/pricing", "layout");
+  return ok(null);
+}

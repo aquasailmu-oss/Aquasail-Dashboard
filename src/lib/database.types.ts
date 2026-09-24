@@ -917,6 +917,7 @@ export type Database = {
         Args: never
         Returns: Database["public"]["Enums"]["app_role"]
       }
+      build_quote: { Args: { input: Json }; Returns: Json }
       create_booking: { Args: { payload: Json }; Returns: Json }
       custom_access_token_hook: { Args: { event: Json }; Returns: Json }
       find_similar_clients: {
@@ -964,6 +965,37 @@ export type Database = {
           set_at: string
           set_by: string
         }[]
+      }
+      resolve_price_rule: {
+        Args: {
+          p_activity_id: string
+          p_operator_id: string
+          p_package_id: string
+          p_participant_type: Database["public"]["Enums"]["participant_type"]
+          p_service_date: string
+        }
+        Returns: {
+          activity_id: string | null
+          audience: Database["public"]["Enums"]["price_audience"]
+          commission_rate: number | null
+          created_at: string
+          created_by: string | null
+          effective_from: string
+          effective_to: string | null
+          id: string
+          net_cents: number | null
+          operator_id: string | null
+          package_id: string | null
+          participant_type: Database["public"]["Enums"]["participant_type"]
+          retail_cents: number
+          scope: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "price_rules"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       save_package: { Args: { payload: Json }; Returns: string }
       set_price: {

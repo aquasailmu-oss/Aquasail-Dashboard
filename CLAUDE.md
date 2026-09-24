@@ -28,8 +28,11 @@ No ORM. Generated types in `src/lib/database.types.ts`.
 4. Dates and times: everything business-facing is computed in Indian/Mauritius via
    `src/lib/dates.ts` (`businessDate()`, `formatDateShort()`, ...). Never call
    `new Date().toISOString().slice(0,10)`.
-5. Prices are resolved server-side from `price_rules` by `src/lib/pricing/`. The
-   client never computes or submits a price. Bookings store a price snapshot.
+5. Prices are resolved in the database by `build_quote()` (migration
+   `0011_pricing_engine.sql`; `src/lib/pricing/` is its typed wrapper and the
+   `getQuote` action). `create_booking()` calls the same engine and writes its
+   figures; a payload carries choices and the displayed total, never amounts.
+   The client never computes or submits a price. Bookings store a price snapshot.
 6. Prices are effective-dated and never overwritten. Changes go through the
    `set_price()` database function only.
 7. Every Server Action: Zod-validate its input, check the role with
@@ -98,6 +101,11 @@ on an error. Minimum 44px touch targets (`min-h-11`). No hover-only affordances.
   valued at their own resolved price, scaled by the booking's discount and paid
   ratios. Implement the arithmetic as a database view/function so V3's
   reconciliation reuses it.
+- **The pricing engine lives in Postgres, not TypeScript** (approved WP-14
+  change). Reception cannot read `price_rules`, and the owner wanted the
+  database itself to price every booking, so `build_quote()` is the single
+  source of truth for money. The plan's mandatory engine tests are pgTAP
+  (`supabase/tests/pricing_engine.test.sql`).
 - **Local Supabase in Codespaces**: custom Docker bridge networks are dropped by a
   legacy iptables `FORWARD DROP` policy, so `supabase start` fails at "Initialising
   schema". Fix once per Codespace (see README) or work against a cloud project.

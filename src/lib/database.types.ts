@@ -1053,6 +1053,7 @@ export type Database = {
         Returns: boolean
       }
       is_admin: { Args: never; Returns: boolean }
+      mark_ticket_printed: { Args: { p_token: string }; Returns: number }
       next_booking_reference: {
         Args: { p_service_date: string }
         Returns: string

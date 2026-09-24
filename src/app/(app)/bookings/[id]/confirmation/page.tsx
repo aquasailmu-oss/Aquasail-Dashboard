@@ -66,7 +66,7 @@ export default async function ConfirmationPage({ params }: { params: Promise<{ i
           </Button>
           {b.tickets && (
             <Button asChild size="lg" variant="outline">
-              <Link href={`/tickets/${b.tickets.token}`}>Print ticket</Link>
+              <Link href={`/tickets/${b.tickets.token}?print=1`}>Print ticket</Link>
             </Button>
           )}
           <Button asChild size="lg" variant="outline">

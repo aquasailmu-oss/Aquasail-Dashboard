@@ -85,7 +85,7 @@ export default async function BookingPage({ params }: { params: Promise<{ id: st
         <div className="flex flex-wrap gap-2">
           {b.tickets && !cancelled && (
             <Button asChild variant="outline">
-              <Link href={`/tickets/${b.tickets.token}`}>
+              <Link href={`/tickets/${b.tickets.token}?print=1`}>
                 <PrinterIcon /> Print ticket
                 {b.tickets.printed_count > 0 && (
                   <span className="text-muted-foreground text-sm">({b.tickets.printed_count})</span>

@@ -420,6 +420,13 @@ export type Database = {
             foreignKeyName: "bookings_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
+            referencedRelation: "client_summaries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
             referencedRelation: "clients"
             referencedColumns: ["id"]
           },
@@ -872,7 +879,21 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      client_summaries: {
+        Row: {
+          booking_count: number | null
+          country: string | null
+          created_at: string | null
+          email: string | null
+          first_name: string | null
+          id: string | null
+          last_name: string | null
+          last_visit: string | null
+          phone_e164: string | null
+          search_text: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       admin_list_users: {
@@ -888,12 +909,36 @@ export type Database = {
           role: Database["public"]["Enums"]["app_role"]
         }[]
       }
+      append_client_note: {
+        Args: { p_client_id: string; p_note: string }
+        Returns: string
+      }
       auth_role: {
         Args: never
         Returns: Database["public"]["Enums"]["app_role"]
       }
       create_booking: { Args: { payload: Json }; Returns: Json }
       custom_access_token_hook: { Args: { event: Json }; Returns: Json }
+      find_similar_clients: {
+        Args: {
+          p_email?: string
+          p_first_name?: string
+          p_last_name?: string
+          p_phone_e164?: string
+        }
+        Returns: {
+          booking_count: number
+          confidence: string
+          country: string
+          email: string
+          first_name: string
+          id: string
+          last_name: string
+          last_visit: string
+          match_reason: string
+          phone_e164: string
+        }[]
+      }
       has_role: {
         Args: { roles: Database["public"]["Enums"]["app_role"][] }
         Returns: boolean

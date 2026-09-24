@@ -10,11 +10,11 @@ pricing, fleet tracking, and daily reconciliation.
 
 ## Status
 
-| Phase | Scope                                                 | State                        |
-| ----- | ----------------------------------------------------- | ---------------------------- |
-| V0    | Foundation: repo, schema, RLS, auth, role-aware shell | WP-01–09 done (gate V0 → V1) |
-| V1    | Core booking system                                   | Not started                  |
-| V2–V4 | Ticketing, accounting, capacity/analytics             | Planned                      |
+| Phase | Scope                                                 | State                  |
+| ----- | ----------------------------------------------------- | ---------------------- |
+| V0    | Foundation: repo, schema, RLS, auth, role-aware shell | Done (WP-01–09)        |
+| V1    | Core booking system                                   | WP-10 done, WP-11 next |
+| V2–V4 | Ticketing, accounting, capacity/analytics             | Planned                |
 
 ## Running it
 
@@ -26,6 +26,11 @@ cp .env.example .env.local   # then fill in, see below
 npm run db:start             # local Supabase; prints the URL and keys
 npm run dev                  # http://localhost:3000
 ```
+
+`npm run db:reset` rebuilds the local database and seeds four demo accounts,
+all with the password `demo-password-1`: `admin@aquasail.test`,
+`reception@aquasail.test`, `accounts@aquasail.test` and `island@aquasail.test`
+(activity staff). The seed refuses to run on a database that already has users.
 
 For `.env.local`, use the `API URL`, `anon key` and `service_role key` that
 `npm run db:start` prints.

@@ -7,6 +7,7 @@ import { addDays, businessDate } from "@/lib/dates";
 type Client = SupabaseClient<Database>;
 export type Role = Database["public"]["Enums"]["app_role"];
 export type TableName = keyof Database["public"]["Tables"];
+export type ViewName = keyof Database["public"]["Views"];
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
 const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
@@ -157,3 +158,8 @@ const TABLES: Record<TableName, true> = {
   tour_operators: true,
 };
 export const ALL_TABLES = Object.keys(TABLES) as TableName[];
+
+const VIEWS: Record<ViewName, true> = {
+  client_summaries: true,
+};
+export const ALL_VIEWS = Object.keys(VIEWS) as ViewName[];

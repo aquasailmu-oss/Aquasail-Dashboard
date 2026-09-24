@@ -879,12 +879,17 @@ export type Database = {
         Args: never
         Returns: Database["public"]["Enums"]["app_role"]
       }
+      create_booking: { Args: { payload: Json }; Returns: Json }
       custom_access_token_hook: { Args: { event: Json }; Returns: Json }
       has_role: {
         Args: { roles: Database["public"]["Enums"]["app_role"][] }
         Returns: boolean
       }
       is_admin: { Args: never; Returns: boolean }
+      next_booking_reference: {
+        Args: { p_service_date: string }
+        Returns: string
+      }
       set_price: {
         Args: {
           p_activity_id: string

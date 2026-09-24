@@ -1,19 +1,55 @@
 # Aquasail Dashboard
 
-Watersports operations platform for AquaSail Watersports Ltd (Mauritius) — bookings, pricing, fleet tracking, and daily reconciliation.
+Watersports operations platform for AquaSail Watersports Ltd (Mauritius): bookings,
+pricing, fleet tracking, and daily reconciliation.
 
-## What's here right now
+- `src/`: the application (Next.js 15 App Router + Supabase), built phase by phase
+  from the build plan. Conventions and the plan adjustments are in `CLAUDE.md`.
+- `prototype/index.html`: the standalone UI prototype shown to the client. Open it
+  directly in a browser. It is the reference for screens and behaviour.
 
-`prototype/index.html` is a standalone, interactive **UI prototype** built to show the client a tangible preview before the real build starts. It's a single self-contained HTML file (vanilla JS, no build step, no backend) — open it directly in a browser. State persists to that browser's `localStorage` only.
+## Status
 
-It covers, with realistic seeded data and a real (client-side) pricing engine — not hardcoded totals:
+| Phase | Scope                                                 | State                  |
+| ----- | ----------------------------------------------------- | ---------------------- |
+| V0    | Foundation: repo, schema, RLS, auth, role-aware shell | WP-01 done, WP-02 next |
+| V1    | Core booking system                                   | Not started            |
+| V2–V4 | Ticketing, accounting, capacity/analytics             | Planned                |
 
-- **Today** — KPIs, the day's bookings, live fleet headcounts (Catamaran A / B / Cataspeed vs. capacity), and per-activity entitlement counts.
-- **New booking** — the client → source → package → participants → boat assignment → payment wizard, including duplicate-client detection, the operator "do not collect" banner, and discount caps.
-- **Booking detail & printable ticket** — line items, entitlements, the payment-correction pattern (never delete, only correct), and an audit trail.
-- **Pricing** — the effective-dated pricing matrix (prices are never overwritten, only closed and re-opened from an effective date) with per-item history.
-- **Daily register** — a printable, date-scoped end-of-day sheet (Activity / PAX / Amount received) broken down by vessel, individual activity, and tour operator.
+## Running it
 
-## What's not here yet
+Requirements: Node 20+, Docker (for the local Supabase stack).
 
-The actual application — Next.js (App Router) + Supabase, with real auth, RLS, migrations, and persistence — hasn't been started. That build follows the phased plan (V0 foundation → V1 core booking system → V2 ticketing → V3 accounting → V4 capacity/analytics) once the Supabase project and this repo are wired up for real development.
+```bash
+npm install
+cp .env.example .env.local   # then fill in, see below
+npm run db:start             # local Supabase; prints the URL and keys
+npm run dev                  # http://localhost:3000
+```
+
+For `.env.local`, use the `API URL`, `anon key` and `service_role key` that
+`npm run db:start` prints.
+
+### Codespaces: Docker networking fix
+
+In this Codespace a leftover legacy iptables table drops traffic on custom Docker
+networks, so `supabase start` fails at "Initialising schema". Run this once per
+Codespace (it resets when the Codespace is rebuilt):
+
+```bash
+sudo iptables-legacy -I DOCKER-USER -j ACCEPT
+```
+
+## Scripts
+
+| Script                         | What it does                                        |
+| ------------------------------ | --------------------------------------------------- |
+| `npm run dev`                  | Development server                                  |
+| `npm test`                     | Unit tests (Vitest)                                 |
+| `npm run typecheck` / `lint`   | TypeScript and ESLint                               |
+| `npm run format`               | Prettier                                            |
+| `npm run db:start` / `db:stop` | Start/stop the local Supabase stack                 |
+| `npm run db:reset`             | Rebuild the local database from migrations + seed   |
+| `npm run db:types`             | Regenerate `src/lib/database.types.ts`              |
+| `npm run db:diff`              | Diff the local database against migrations          |
+| `npm run db:push`              | Apply migrations to the linked (production) project |

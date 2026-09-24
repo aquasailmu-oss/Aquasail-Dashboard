@@ -49,12 +49,10 @@ set local role authenticated;
 select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000a1","role":"authenticated"}', true);
 
 select lives_ok(
-  $$select public.set_price('activity', '00000000-0000-0000-0000-00000000ac01', null, 'walk_in', null, 'infant',
-    0, null, null, public.today_mauritius())$$,
+  $$select public.set_price(p_scope => 'activity', p_audience => 'walk_in', p_participant_type => 'infant', p_retail_cents => 0, p_effective_from => public.today_mauritius(), p_activity_id => '00000000-0000-0000-0000-00000000ac01')$$,
   'admin sets a first price');
 
-select public.set_price('activity', '00000000-0000-0000-0000-00000000ac01', null, 'walk_in', null, 'infant',
-  5000, null, null, public.today_mauritius() + 10);
+select public.set_price(p_scope => 'activity', p_audience => 'walk_in', p_participant_type => 'infant', p_retail_cents => 5000, p_effective_from => public.today_mauritius() + 10, p_activity_id => '00000000-0000-0000-0000-00000000ac01');
 
 select results_eq(
   $$select retail_cents, effective_from, effective_to from public.price_rules
@@ -64,29 +62,26 @@ select results_eq(
   'set_price closes the previous rule and inserts a new one, never updating the amount');
 
 select throws_ok(
-  $$select public.set_price('activity', '00000000-0000-0000-0000-00000000ac01', null, 'walk_in', null, 'infant',
-    6000, null, null, public.today_mauritius() + 10)$$,
+  $$select public.set_price(p_scope => 'activity', p_audience => 'walk_in', p_participant_type => 'infant', p_retail_cents => 6000, p_effective_from => public.today_mauritius() + 10, p_activity_id => '00000000-0000-0000-0000-00000000ac01')$$,
   'P0001', null, 'a new price must start after the current one');
 
 select throws_ok(
-  $$select public.set_price('activity', '00000000-0000-0000-0000-00000000ac01', null, 'walk_in', null, 'infant',
-    1, null, null, public.today_mauritius() - 1)$$,
+  $$select public.set_price(p_scope => 'activity', p_audience => 'walk_in', p_participant_type => 'infant', p_retail_cents => 1, p_effective_from => public.today_mauritius() - 1, p_activity_id => '00000000-0000-0000-0000-00000000ac01')$$,
   'P0001', null, 'a price cannot be backdated');
 
 select throws_ok(
-  $$select public.set_price('package', null, '00000000-0000-0000-0000-00000000fa01', 'walk_in', null, 'adult',
-    1, null, null, public.today_mauritius())$$,
+  $$select public.set_price(p_scope => 'package', p_audience => 'walk_in', p_participant_type => 'adult', p_retail_cents => 1, p_effective_from => public.today_mauritius(), p_package_id => '00000000-0000-0000-0000-00000000fa01')$$,
   'P0001', 'This package is priced as the sum of its activities. Set the activity prices instead.',
   'a components package cannot be given its own price');
 
-select is((select count(*) from public.price_rules)::int, 5, 'admin reads price rules');
+select is((select count(*) from public.price_rules where activity_id = '00000000-0000-0000-0000-00000000ac01')::int, 5,
+  'admin reads price rules');
 
 -- As the receptionist.
 select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000b2","role":"authenticated"}', true);
 
 select throws_ok(
-  $$select public.set_price('activity', '00000000-0000-0000-0000-00000000ac01', null, 'walk_in', null, 'infant',
-    1, null, null, public.today_mauritius() + 30)$$,
+  $$select public.set_price(p_scope => 'activity', p_audience => 'walk_in', p_participant_type => 'infant', p_retail_cents => 1, p_effective_from => public.today_mauritius() + 30, p_activity_id => '00000000-0000-0000-0000-00000000ac01')$$,
   'P0001', 'Only an admin can change prices.', 'a non-admin calling set_price is rejected');
 
 select is((select count(*) from public.price_rules)::int, 0, 'a receptionist reads no price rules');

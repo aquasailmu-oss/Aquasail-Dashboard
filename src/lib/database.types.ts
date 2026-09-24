@@ -892,13 +892,13 @@ export type Database = {
       }
       set_price: {
         Args: {
-          p_activity_id: string
+          p_activity_id?: string
           p_audience: Database["public"]["Enums"]["price_audience"]
-          p_commission_rate: number
+          p_commission_rate?: number
           p_effective_from: string
-          p_net_cents: number
-          p_operator_id: string
-          p_package_id: string
+          p_net_cents?: number
+          p_operator_id?: string
+          p_package_id?: string
           p_participant_type: Database["public"]["Enums"]["participant_type"]
           p_retail_cents: number
           p_scope: string

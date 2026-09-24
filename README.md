@@ -12,7 +12,7 @@ pricing, fleet tracking, and daily reconciliation.
 
 | Phase | Scope                                                 | State                     |
 | ----- | ----------------------------------------------------- | ------------------------- |
-| V0    | Foundation: repo, schema, RLS, auth, role-aware shell | WP-01–06 done, WP-07 next |
+| V0    | Foundation: repo, schema, RLS, auth, role-aware shell | WP-01–07 done, WP-08 next |
 | V1    | Core booking system                                   | Not started               |
 | V2–V4 | Ticketing, accounting, capacity/analytics             | Planned                   |
 
@@ -42,15 +42,16 @@ sudo iptables-legacy -I DOCKER-USER -j ACCEPT
 
 ## Scripts
 
-| Script                         | What it does                                        |
-| ------------------------------ | --------------------------------------------------- |
-| `npm run dev`                  | Development server                                  |
-| `npm test`                     | Unit tests (Vitest)                                 |
-| `npm run test:db`              | Database tests (pgTAP, `supabase/tests/`)           |
-| `npm run typecheck` / `lint`   | TypeScript and ESLint                               |
-| `npm run format`               | Prettier                                            |
-| `npm run db:start` / `db:stop` | Start/stop the local Supabase stack                 |
-| `npm run db:reset`             | Rebuild the local database from migrations + seed   |
-| `npm run db:types`             | Regenerate `src/lib/database.types.ts`              |
-| `npm run db:diff`              | Diff the local database against migrations          |
-| `npm run db:push`              | Apply migrations to the linked (production) project |
+| Script                         | What it does                                                               |
+| ------------------------------ | -------------------------------------------------------------------------- |
+| `npm run dev`                  | Development server                                                         |
+| `npm test`                     | Unit tests (Vitest)                                                        |
+| `npm run test:db`              | Database tests (pgTAP, `supabase/tests/`)                                  |
+| `npm run test:rls`             | RLS attack suite (`tests/rls/`, local stack) — must pass before any deploy |
+| `npm run typecheck` / `lint`   | TypeScript and ESLint                                                      |
+| `npm run format`               | Prettier                                                                   |
+| `npm run db:start` / `db:stop` | Start/stop the local Supabase stack                                        |
+| `npm run db:reset`             | Rebuild the local database from migrations + seed                          |
+| `npm run db:types`             | Regenerate `src/lib/database.types.ts`                                     |
+| `npm run db:diff`              | Diff the local database against migrations                                 |
+| `npm run db:push`              | Apply migrations to the linked (production) project                        |

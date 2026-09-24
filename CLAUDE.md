@@ -100,7 +100,10 @@ on an error. Minimum 44px touch targets (`min-h-11`). No hover-only affordances.
 ## Database workflow (from WP-02)
 
 Write SQL in `supabase/migrations/` → `npm run db:reset` (rebuild local DB from
-scratch) → `npm run db:types` → commit. Deploy with `npm run db:push`.
+scratch) → `npm run db:types` → `npm run test:db` (pgTAP, `supabase/tests/`) and
+`npm run test:rls` (attack suite, `tests/rls/`) → commit. Deploy with `npm run db:push`.
+A new table must be added to `TABLES` in `tests/rls/harness.ts` (the type
+checker enforces it) and get its own attacks in `tests/rls/`.
 
 The repo is linked to the cloud project (ref `zhcxfxrsmmihnnwzfvdc`, eu-west-1).
 Push only after the local reset passes, and ask first: it is production.

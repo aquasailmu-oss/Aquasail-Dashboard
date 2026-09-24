@@ -68,17 +68,19 @@ create trigger price_rules_audit after insert or update or delete on public.pric
 -- set_price(): the only sanctioned way to change a price.
 -- ---------------------------------------------------------------------------
 
+-- Call with named arguments; the target, operator and settlement fields
+-- default to null so callers pass only what applies.
 create function public.set_price(
   p_scope text,
-  p_activity_id uuid,
-  p_package_id uuid,
   p_audience public.price_audience,
-  p_operator_id uuid,
   p_participant_type public.participant_type,
   p_retail_cents bigint,
-  p_net_cents bigint,
-  p_commission_rate numeric,
-  p_effective_from date
+  p_effective_from date,
+  p_activity_id uuid default null,
+  p_package_id uuid default null,
+  p_operator_id uuid default null,
+  p_net_cents bigint default null,
+  p_commission_rate numeric default null
 )
 returns uuid
 language plpgsql

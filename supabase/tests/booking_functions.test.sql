@@ -36,7 +36,7 @@ insert into p values ('walk_in', jsonb_build_object(
   'idempotency_key', 'key-1',
   'client', jsonb_build_object('first_name', 'Priya', 'last_name', 'Ramgoolam', 'phone_e164', '+23057001234'),
   'source_type', 'walk_in', 'payer', 'client',
-  'service_date', public.today_mauritius(), 'departure_time', '09:00',
+  'service_date', '2098-06-01', 'departure_time', '09:00',
   'resource_id', '00000000-0000-0000-0000-0000000000f1',
   'totals', jsonb_build_object('retail_total_cents', 1000000, 'charged_total_cents', 950000,
     'discount_total_cents', 50000, 'operator_net_total_cents', 0, 'commission_total_cents', 0),
@@ -54,23 +54,27 @@ select is(
   'reception creates a booking');
 select results_eq(
   $$select reference ~ '^WS-\d{8}-0001$', charged_total_cents, client_id is not null, created_by
-    from public.bookings$$,
+    from public.bookings where idempotency_key = 'key-1'$$,
   $$values (true, 950000::bigint, true, '00000000-0000-0000-0000-0000000000b2'::uuid)$$,
   'the booking header carries the reference, totals, new client and creator');
 select results_eq(
-  $$select a.code, ba.quantity from public.booking_activities ba join public.activities a on a.id = ba.activity_id order by a.code$$,
+  $$select a.code, ba.quantity from public.booking_activities ba join public.activities a on a.id = ba.activity_id
+    join public.bookings b on b.id = ba.booking_id where b.idempotency_key = 'key-1' order by a.code$$,
   $$values ('CATAMARAN'::text, 4), ('LUNCH'::text, 4)$$,
   'a package line expands into one entitlement per activity, times the quantity');
-select is((select count(*) from public.tickets)::int, 1, 'a ticket is issued');
+select is((select count(*) from public.tickets t join public.bookings b on b.id = t.booking_id
+  where b.idempotency_key = 'key-1')::int, 1, 'a ticket is issued');
 select results_eq(
-  $$select amount_cents, recorded_by from public.payments$$,
+  $$select p.amount_cents, p.recorded_by from public.payments p join public.bookings b on b.id = p.booking_id
+    where b.idempotency_key = 'key-1'$$,
   $$values (950000::bigint, '00000000-0000-0000-0000-0000000000b2'::uuid)$$,
   'the payment is recorded in the receptionist''s name');
 
 select is(
   (select public.create_booking(body) ->> 'created' from p where name = 'walk_in'), 'false',
   'the same idempotency key returns the existing booking');
-select is((select count(*) from public.bookings)::int, 1, 'a repeated submit creates no second booking');
+select is((select count(*) from public.bookings where created_by = '00000000-0000-0000-0000-0000000000b2')::int, 1,
+  'a repeated submit creates no second booking');
 
 -- Validation, each on a fresh key
 select throws_ok(
@@ -95,8 +99,10 @@ select throws_ok(
       '{items,0,package_id}', '"00000000-0000-0000-0000-00000000fa02"')) from p where name = 'walk_in'$$,
   'P0001', 'This package has no activities configured. Ask an admin to fix it.', 'a failure part-way raises');
 select results_eq(
-  $$select (select count(*) from public.bookings)::int, (select count(*) from public.clients)::int,
-           (select count(*) from public.booking_items)::int$$,
+  $$select (select count(*) from public.bookings where created_by = '00000000-0000-0000-0000-0000000000b2')::int,
+           (select count(*) from public.clients where first_name in ('Priya', 'Orphan'))::int,
+           (select count(*) from public.booking_items i join public.bookings b on b.id = i.booking_id
+             where b.created_by = '00000000-0000-0000-0000-0000000000b2')::int$$,
   $$values (1, 1, 1)$$,
   'a failed booking leaves no orphan rows');
 
@@ -109,7 +115,7 @@ select throws_ok($$select public.next_booking_reference(current_date)$$, '42501'
   'the reference counter cannot be called directly');
 
 reset role;
-select is((select last_number from public.booking_sequences where service_date = public.today_mauritius()), 1,
+select is((select last_number from public.booking_sequences where service_date = '2098-06-01'), 1,
   'failed bookings consume no reference number');
 
 select * from finish();

@@ -193,6 +193,86 @@ export type Database = {
         }
         Relationships: []
       }
+      price_rules: {
+        Row: {
+          activity_id: string | null
+          audience: Database["public"]["Enums"]["price_audience"]
+          commission_rate: number | null
+          created_at: string
+          created_by: string | null
+          effective_from: string
+          effective_to: string | null
+          id: string
+          net_cents: number | null
+          operator_id: string | null
+          package_id: string | null
+          participant_type: Database["public"]["Enums"]["participant_type"]
+          retail_cents: number
+          scope: string
+        }
+        Insert: {
+          activity_id?: string | null
+          audience: Database["public"]["Enums"]["price_audience"]
+          commission_rate?: number | null
+          created_at?: string
+          created_by?: string | null
+          effective_from: string
+          effective_to?: string | null
+          id?: string
+          net_cents?: number | null
+          operator_id?: string | null
+          package_id?: string | null
+          participant_type: Database["public"]["Enums"]["participant_type"]
+          retail_cents: number
+          scope: string
+        }
+        Update: {
+          activity_id?: string | null
+          audience?: Database["public"]["Enums"]["price_audience"]
+          commission_rate?: number | null
+          created_at?: string
+          created_by?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          net_cents?: number | null
+          operator_id?: string | null
+          package_id?: string | null
+          participant_type?: Database["public"]["Enums"]["participant_type"]
+          retail_cents?: number
+          scope?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "price_rules_activity_id_fkey"
+            columns: ["activity_id"]
+            isOneToOne: false
+            referencedRelation: "activities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "price_rules_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "price_rules_operator_id_fkey"
+            columns: ["operator_id"]
+            isOneToOne: false
+            referencedRelation: "tour_operators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "price_rules_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "packages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -283,9 +363,27 @@ export type Database = {
         Returns: boolean
       }
       is_admin: { Args: never; Returns: boolean }
+      set_price: {
+        Args: {
+          p_activity_id: string
+          p_audience: Database["public"]["Enums"]["price_audience"]
+          p_commission_rate: number
+          p_effective_from: string
+          p_net_cents: number
+          p_operator_id: string
+          p_package_id: string
+          p_participant_type: Database["public"]["Enums"]["participant_type"]
+          p_retail_cents: number
+          p_scope: string
+        }
+        Returns: string
+      }
+      today_mauritius: { Args: never; Returns: string }
     }
     Enums: {
       app_role: "admin" | "accountant" | "receptionist" | "activity_staff"
+      participant_type: "adult" | "child" | "infant"
+      price_audience: "walk_in" | "operator"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -417,6 +515,8 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "accountant", "receptionist", "activity_staff"],
+      participant_type: ["adult", "child", "infant"],
+      price_audience: ["walk_in", "operator"],
     },
   },
 } as const

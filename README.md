@@ -12,7 +12,7 @@ pricing, fleet tracking, and daily reconciliation.
 
 | Phase | Scope                                                 | State                     |
 | ----- | ----------------------------------------------------- | ------------------------- |
-| V0    | Foundation: repo, schema, RLS, auth, role-aware shell | WP-01–03 done, WP-04 next |
+| V0    | Foundation: repo, schema, RLS, auth, role-aware shell | WP-01–04 done, WP-05 next |
 | V1    | Core booking system                                   | Not started               |
 | V2–V4 | Ticketing, accounting, capacity/analytics             | Planned                   |
 
@@ -46,6 +46,7 @@ sudo iptables-legacy -I DOCKER-USER -j ACCEPT
 | ------------------------------ | --------------------------------------------------- |
 | `npm run dev`                  | Development server                                  |
 | `npm test`                     | Unit tests (Vitest)                                 |
+| `npm run test:db`              | Database tests (pgTAP, `supabase/tests/`)           |
 | `npm run typecheck` / `lint`   | TypeScript and ESLint                               |
 | `npm run format`               | Prettier                                            |
 | `npm run db:start` / `db:stop` | Start/stop the local Supabase stack                 |

@@ -114,7 +114,7 @@ select throws_ok(
   'P0001', 'Misconfigured has no activities configured. Ask an admin to fix it.', 'a failure part-way raises');
 select results_eq(
   $$select (select count(*) from public.bookings where created_by = '00000000-0000-0000-0000-0000000000b2')::int,
-           (select count(*) from public.clients where first_name in ('Priya', 'Orphan'))::int$$,
+           (select count(*) from public.clients where created_by = '00000000-0000-0000-0000-0000000000b2')::int$$,
   $$values (1, 1)$$,
   'a failed booking leaves no orphan rows');
 

@@ -101,6 +101,11 @@ export default async function BookingPage({ params }: { params: Promise<{ id: st
             </Button>
           )}
           {canAmend && <CancelBookingDialog bookingId={b.id} paid={cents(Math.max(0, paid))} />}
+          {seesMoneyBehind && (
+            <Button asChild variant="ghost">
+              <Link href={`/bookings/${b.id}/history`}>View audit trail</Link>
+            </Button>
+          )}
         </div>
       </div>
 

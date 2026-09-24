@@ -19,7 +19,8 @@
     "db:diff": "supabase db diff",
     "db:types": "supabase gen types typescript --local > src/lib/database.types.ts",
     "test:db": "supabase test db",
-    "test:rls": "vitest run --config vitest.rls.config.ts"
+    "test:rls": "vitest run --config vitest.rls.config.ts",
+    "db:demo": "supabase db reset"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.23",

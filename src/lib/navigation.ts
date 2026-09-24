@@ -13,13 +13,14 @@ const NAV_ITEMS: readonly NavItem[] = [
   { href: "/register", label: "Daily register", roles: OFFICE },
   { href: "/reports", label: "Reports", roles: ["admin", "accountant"] },
   { href: "/export", label: "Export", roles: ["admin", "accountant"] },
+  { href: "/admin/audit", label: "Audit log", roles: ["admin", "accountant"] },
   { href: "/scan", label: "Scan", roles: ["activity_staff"] },
   { href: "/admin/activities", label: "Activities", roles: ["admin"], section: "Admin" },
   { href: "/admin/packages", label: "Packages", roles: ["admin"], section: "Admin" },
   { href: "/admin/operators", label: "Operators", roles: ["admin"], section: "Admin" },
   { href: "/admin/pricing", label: "Pricing", roles: ["admin"], section: "Admin" },
   { href: "/admin/users", label: "Users", roles: ["admin"], section: "Admin" },
-  { href: "/admin/audit", label: "Audit log", roles: ["admin"], section: "Admin" },
+
   { href: "/admin/settings", label: "Settings", roles: ["admin"], section: "Admin" },
 ];
 

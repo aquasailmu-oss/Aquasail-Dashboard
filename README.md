@@ -13,7 +13,7 @@ pricing, fleet tracking, and daily reconciliation.
 | Phase | Scope                                                 | State                             |
 | ----- | ----------------------------------------------------- | --------------------------------- |
 | V0    | Foundation: repo, schema, RLS, auth, role-aware shell | Done (WP-01–09)                   |
-| V1    | Core booking system                                   | WP-10–18 and 17b done, WP-19 next |
+| V1    | Core booking system                                   | WP-10–19 and 17b done, WP-20 next |
 | V2–V4 | Ticketing, accounting, capacity/analytics             | Planned                           |
 
 ## Running it
@@ -27,7 +27,8 @@ npm run db:start             # local Supabase; prints the URL and keys
 npm run dev                  # http://localhost:3000
 ```
 
-`npm run db:reset` rebuilds the local database and seeds four demo accounts,
+`npm run db:reset` (or `npm run db:demo`) rebuilds the local database and seeds the
+prototype catalogue, prices and about 60 demo bookings, plus four demo accounts,
 all with the password `demo-password-1`: `admin@aquasail.test`,
 `reception@aquasail.test`, `accounts@aquasail.test` and `island@aquasail.test`
 (activity staff). The seed refuses to run on a database that already has users.

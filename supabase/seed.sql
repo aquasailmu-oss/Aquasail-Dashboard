@@ -132,3 +132,128 @@ left join public.activities a on a.code = x.target_code
 left join public.packages p on p.code = x.target_code
 cross join lateral (values ('adult'::public.participant_type, x.adult_retail, x.adult_net),
                            ('child', x.child_retail, x.child_net), ('infant', 0, 0)) as t(participant_type, retail, net);
+
+-- ---------------------------------------------------------------------------
+-- Demo bookings (WP-19): ~60 over the last 30 days plus today and tomorrow,
+-- created through create_booking() as the demo receptionist, so every
+-- amount comes from the pricing engine exactly as in real use. Deterministic:
+-- the same choices on every reset (dates are relative to today).
+-- ---------------------------------------------------------------------------
+
+do $$
+declare
+  v_first text[] := array['Priya','Jean','Aurélie','Tom','Sofia','Rahul','Emma','Luc','Ana','Kevin','Marie','Oliver','Nadia','Yusuf','Chloé','Daniel','Leila','Hugo','Mia','Arjun'];
+  v_last text[] := array['Ramgoolam','Dupont','Martin','Smith','Rossi','Patel','Müller','Bernard','Silva','Wong','Laurent','Brown','Joomun','Khan','Moreau','Schmidt','Hassan','Petit','Jones','Nair'];
+  v_country text[] := array['Mauritius','France','Réunion','United Kingdom','Italy','India','Germany','South Africa'];
+  v_i int;
+  v_date date;
+  v_op text;
+  v_target record;
+  v_adults int;
+  v_children int;
+  v_lines jsonb;
+  v_quote jsonb;
+  v_booking jsonb;
+  v_client uuid;
+  v_boat uuid;
+  v_paid bigint;
+  v_discount jsonb;
+  v_method text;
+  v_catalogue text[] := array['ISLANDEXP','ADRENALINE','SUNSET','PARASAIL','UNDERSEAPKG','SPEEDBOAT','ISLANDEXP','UNDERSEAPHOTO','TUBE','SNORKEL'];
+begin
+  perform set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-8000-00000000d002","role":"authenticated"}', false);
+
+  for v_i in 1..66 loop
+    v_date := case when v_i <= 60 then public.today_mauritius() - (v_i % 30) else public.today_mauritius() + (v_i % 2) end;
+    v_op := case
+      when v_i % 5 = 0 then 'BEACHCOMB'
+      when v_i % 7 = 0 then 'VERANDA'
+      when v_i % 11 = 0 then 'MERVILLE'
+      when v_i % 13 = 0 then 'HERITAGE'
+    end;
+
+    -- What they bought: Beachcomber sends sunset cruises, Heritage private charters.
+    select case when p.id is not null then 'package' else 'activity' end as kind, coalesce(p.id, a.id) as id
+      into v_target
+      from (select case v_op when 'BEACHCOMB' then 'SUNSET' when 'HERITAGE' then 'PRIVATEBOAT'
+                             else v_catalogue[1 + v_i % array_length(v_catalogue, 1)] end as code) c
+      left join public.packages p on p.code = c.code
+      left join public.activities a on a.code = c.code;
+    v_adults := 1 + v_i % 4;
+    v_children := case when v_i % 3 = 0 then 1 + v_i % 2 else 0 end;
+    v_lines := jsonb_build_array(jsonb_build_object('target_type', v_target.kind, 'target_id', v_target.id, 'participant_type', 'adult', 'quantity', v_adults));
+    if v_children > 0 then
+      v_lines := v_lines || jsonb_build_array(jsonb_build_object('target_type', v_target.kind, 'target_id', v_target.id, 'participant_type', 'child', 'quantity', v_children));
+    end if;
+
+    v_discount := case when v_i % 8 = 0 and v_op is null then '{"type":"percent","value":1000,"reason":"Returning guest"}'::jsonb end;
+    v_quote := public.build_quote(jsonb_strip_nulls(jsonb_build_object(
+      'service_date', v_date, 'operator_id', (select id from public.tour_operators where code = v_op), 'lines', v_lines, 'discount', v_discount)));
+
+    -- A returning customer every so often (the same person again).
+    select id into v_client from public.clients where first_name = v_first[1 + v_i % 20] and last_name = v_last[1 + (v_i * 7) % 20];
+
+    v_boat := case when exists (
+        select 1 from jsonb_array_elements(v_quote -> 'lines') l
+        left join public.package_activities pa on pa.package_id = (l ->> 'package_id')::uuid
+        join public.activities a on a.id = coalesce(pa.activity_id, (l ->> 'activity_id')::uuid)
+        where a.code = 'CATAMARAN')
+      then (select id from public.resources where code = case when v_i % 2 = 0 then 'CAT_A' else 'CAT_B' end) end;
+
+    v_method := (array['cash','cash','card','bank_transfer'])[1 + v_i % 4];
+    v_paid := case
+      when v_quote ->> 'payer' = 'operator' then 0
+      when v_i % 17 = 0 then 0                                                  -- unpaid
+      when v_i % 9 = 0 then ((v_quote ->> 'charged_total_cents')::bigint / 2)   -- deposit
+      else (v_quote ->> 'charged_total_cents')::bigint
+    end;
+
+    v_booking := public.create_booking(jsonb_strip_nulls(jsonb_build_object(
+      'idempotency_key', 'demo-' || v_i,
+      'client_id', v_client,
+      'client', case when v_client is null then jsonb_build_object(
+        'first_name', v_first[1 + v_i % 20], 'last_name', v_last[1 + (v_i * 7) % 20],
+        'phone_e164', '+2305' || lpad((7000000 + v_i * 1379)::text, 7, '0'),
+        'email', lower(v_first[1 + v_i % 20]) || '.' || v_i || '@example.com',
+        'country', v_country[1 + v_i % 8]) end,
+      'service_date', v_date,
+      'operator_id', (select id from public.tour_operators where code = v_op),
+      'departure_time', (array['08:30','09:00','10:00','13:30','16:00'])[1 + v_i % 5],
+      'resource_id', v_boat,
+      'lines', v_lines,
+      'discount', v_discount,
+      'participants', jsonb_strip_nulls(jsonb_build_array(
+        jsonb_build_object('participant_type', 'adult', 'count', v_adults),
+        case when v_children > 0 then jsonb_build_object('participant_type', 'child', 'count', v_children) end)) - 'null',
+      'payment', case when v_paid > 0 then jsonb_build_object('amount_cents', v_paid, 'method', v_method,
+        'reference', case when v_method <> 'cash' then 'DEMO-' || v_i end) end,
+      'expected_total_cents', (v_quote ->> 'charged_total_cents')::bigint)));
+  end loop;
+
+  -- One payment corrected (charged twice at the till), one booking cancelled with a refund.
+  insert into public.payments (booking_id, amount_cents, method, received_from, is_correction, corrects_payment_id, note, recorded_by)
+  select p.booking_id, -50000, p.method, 'client', true, p.id, 'Charged Rs 500 too much at the till', '00000000-0000-4000-8000-00000000d002'
+  from public.payments p join public.bookings b on b.id = p.booking_id where b.idempotency_key = 'demo-2';
+
+  update public.bookings set status = 'cancelled', cancellation_reason = 'Guest unwell; refunded in full'
+  where idempotency_key = 'demo-4';
+  insert into public.payments (booking_id, amount_cents, method, received_from, is_correction, corrects_payment_id, note, recorded_by)
+  select p.booking_id, -p.amount_cents, p.method, 'client', true, p.id, 'Refund: booking cancelled', '00000000-0000-4000-8000-00000000d002'
+  from public.payments p join public.bookings b on b.id = p.booking_id where b.idempotency_key = 'demo-4';
+
+  perform set_config('request.jwt.claims', '', false);
+
+  -- Place each booking and payment at its own service date (they were all
+  -- created "now"), and drop the backdated-entry notes seeding added.
+  -- Triggers are off for this fix-up only, so the audit log is not flooded.
+  set local session_replication_role = replica;
+  update public.bookings set
+    notes = null,
+    created_at = (service_date::timestamp + time '07:45' + (abs(hashtext(reference)) % 40) * interval '1 minute') at time zone 'Indian/Mauritius'
+  where idempotency_key like 'demo-%' and service_date <= public.today_mauritius();
+  update public.payments p set received_at = b.created_at + interval '5 minutes', created_at = b.created_at + interval '5 minutes'
+  from public.bookings b where b.id = p.booking_id and b.idempotency_key like 'demo-%' and b.service_date <= public.today_mauritius()
+    and not p.is_correction;
+  set local session_replication_role = origin;
+end;
+$$;

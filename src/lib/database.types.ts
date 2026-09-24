@@ -948,6 +948,7 @@ export type Database = {
         Args: { p_service_date: string }
         Returns: string
       }
+      save_package: { Args: { payload: Json }; Returns: string }
       set_price: {
         Args: {
           p_activity_id?: string

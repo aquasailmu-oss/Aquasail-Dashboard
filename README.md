@@ -12,7 +12,7 @@ pricing, fleet tracking, and daily reconciliation.
 
 | Phase | Scope                                                 | State                     |
 | ----- | ----------------------------------------------------- | ------------------------- |
-| V0    | Foundation: repo, schema, RLS, auth, role-aware shell | WP-01–07 done, WP-08 next |
+| V0    | Foundation: repo, schema, RLS, auth, role-aware shell | WP-01–08 done, WP-09 next |
 | V1    | Core booking system                                   | Not started               |
 | V2–V4 | Ticketing, accounting, capacity/analytics             | Planned                   |
 
@@ -39,6 +39,19 @@ Codespace (it resets when the Codespace is rebuilt):
 ```bash
 sudo iptables-legacy -I DOCKER-USER -j ACCEPT
 ```
+
+The rule is also lost whenever Docker restarts (for example after the disk fills
+up). If `supabase start` stalls with `PGRST000` connection errors, run it again.
+
+### Codespaces: disk space
+
+The default Codespace has a single 32 GB disk shared by the OS, Docker images
+and the repo. To fit, `supabase/config.toml` switches off the local services the
+project does not use yet: Studio, analytics, Edge Functions (needed from V2) and
+Realtime. Turn one back on by setting its `enabled = true`; its image downloads
+on the next `npm run db:start`. Check space with `df -h /`; a 64 GB machine type
+removes the constraint. When the disk is full, file writes fail silently and
+leave empty files, so check `git status` after freeing space.
 
 ## Scripts
 

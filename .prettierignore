@@ -1,0 +1,4 @@
+prototype/
+supabase/.temp/
+src/lib/database.types.ts
+.next/

@@ -1,1 +1,31 @@
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+
+# testing
+/coverage
+/test-results/
+/playwright-report/
+
+# next.js
+/.next/
+/out/
+/build
+next-env.d.ts
+*.tsbuildinfo
+
+# env files — secrets live in .env.local and in Vercel, never in git
+.env*
+!.env.example
+
+# supabase local state
+supabase/.temp/
+supabase/.branches/
+
+# misc
 .DS_Store
+*.pem
+npm-debug.log*
+.vercel

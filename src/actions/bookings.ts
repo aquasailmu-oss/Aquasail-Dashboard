@@ -6,7 +6,7 @@ import { authorize } from "@/lib/auth";
 import type { Json } from "@/lib/database.types";
 import { parseDateInput } from "@/lib/dates";
 import { friendlyDbError } from "@/lib/db-errors";
-import { cents, toCents, type Cents } from "@/lib/money";
+import { cents, formatRs, toCents, type Cents } from "@/lib/money";
 import { normalizePhone } from "@/lib/phone";
 import { parseDiscount } from "@/lib/pricing/discount";
 import { fetchQuote } from "@/lib/pricing/quote";
@@ -195,4 +195,199 @@ export async function createBooking(input: CreateBookingInput): Promise<Result<{
   revalidatePath("/today");
   revalidatePath("/bookings");
   return ok({ id: result.booking_id, reference: result.reference });
+}
+
+// ---------------------------------------------------------------------------
+// Amend, cancel, payments (WP-16)
+// ---------------------------------------------------------------------------
+
+const lineSchema = z.object({
+  target_type: z.enum(["package", "activity"]),
+  target_id: z.uuid(),
+  participant_type: z.enum(["adult", "child", "infant"]),
+  quantity: z.number().int().min(1).max(500),
+});
+
+const amendSchema = z.object({
+  booking_id: z.uuid(),
+  lines: z.array(lineSchema).min(1, "Choose a package or add an activity."),
+  participants: createSchema.shape.participants,
+  discount: createSchema.shape.discount,
+  departure_time: createSchema.shape.departure_time,
+  meeting_point: createSchema.shape.meeting_point,
+  notes: createSchema.shape.notes,
+  resource_id: z.uuid().nullable(),
+  expected_total_cents: z.number().int().min(0),
+});
+
+export type AmendBookingInput = z.input<typeof amendSchema>;
+
+export async function amendBooking(
+  input: AmendBookingInput,
+): Promise<Result<{ previous: Cents; total: Cents; paid: Cents }>> {
+  const auth = await authorize(WRITERS);
+  if (!auth.ok) return auth;
+  const parsed = amendSchema.safeParse(input);
+  if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Check the booking and try again.");
+  const d = parsed.data;
+  const discount = d.discount ? parseDiscount(d.discount) : { ok: true as const, data: null };
+  if (!discount.ok) return discount;
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("amend_booking", {
+    p_booking_id: d.booking_id,
+    payload: {
+      lines: d.lines,
+      discount: discount.data,
+      participants: (["adult", "child", "infant"] as const)
+        .filter((t) => d.participants[t] > 0)
+        .map((t) => ({ participant_type: t, count: d.participants[t] })),
+      departure_time: d.departure_time || null,
+      meeting_point: d.meeting_point || null,
+      notes: d.notes || null,
+      resource_id: d.resource_id,
+      expected_total_cents: d.expected_total_cents,
+    } as unknown as Json,
+  });
+  if (error) return fail(friendlyDbError(error, "The changes could not be saved. Nothing was changed; try again."));
+  const r = data as { previous_total_cents: number; charged_total_cents: number; paid_cents: number };
+  revalidatePath(`/bookings/${d.booking_id}`);
+  revalidatePath("/today");
+  revalidatePath("/bookings");
+  return ok({
+    previous: cents(r.previous_total_cents),
+    total: cents(r.charged_total_cents),
+    paid: cents(r.paid_cents),
+  });
+}
+
+const cancelSchema = z.object({
+  booking_id: z.uuid(),
+  reason: z.string().trim().min(3, "Give a reason for cancelling.").max(500, "Keep the reason under 500 characters."),
+});
+
+/** Cancels (never deletes). Who and when are stamped by the database. */
+export async function cancelBooking(formData: FormData): Promise<Result<null>> {
+  const auth = await authorize(WRITERS);
+  if (!auth.ok) return auth;
+  const parsed = cancelSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Give a reason for cancelling.");
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("bookings")
+    .update({ status: "cancelled", cancellation_reason: parsed.data.reason })
+    .eq("id", parsed.data.booking_id)
+    .neq("status", "cancelled")
+    .select("id");
+  if (error) return fail(friendlyDbError(error, "The booking could not be cancelled. Try again."));
+  if (!data?.length) {
+    return fail(
+      auth.data.role === "receptionist"
+        ? "This booking's date has passed or it is already cancelled. Only an admin can cancel a past booking."
+        : "This booking is already cancelled.",
+    );
+  }
+  revalidatePath(`/bookings/${parsed.data.booking_id}`);
+  revalidatePath("/today");
+  revalidatePath("/bookings");
+  return ok(null);
+}
+
+const paymentSchema = z.object({
+  booking_id: z.uuid(),
+  amount: z.string(),
+  method: z.enum(["cash", "card", "bank_transfer", "operator_account", "other"], { error: "Choose how it was paid." }),
+  reference: z.string().trim().max(100),
+  note: z.string().trim().max(500),
+});
+
+async function balanceDue(bookingId: string): Promise<Result<{ due: number; payer: string }>> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("bookings")
+    .select("charged_total_cents, payer, status, payments(amount_cents)")
+    .eq("id", bookingId)
+    .maybeSingle();
+  if (!data) return fail("That booking could not be found.");
+  const paid = data.payments.reduce((sum, p) => sum + p.amount_cents, 0);
+  return ok({ due: data.charged_total_cents - paid, payer: data.payer });
+}
+
+export async function recordPayment(formData: FormData): Promise<Result<null>> {
+  const auth = await authorize(WRITERS);
+  if (!auth.ok) return auth;
+  const parsed = paymentSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Check the payment and try again.");
+  let amount: Cents;
+  try {
+    amount = toCents(parsed.data.amount);
+  } catch {
+    return fail("Enter the amount in rupees, e.g. 1500.");
+  }
+  if (amount <= 0) return fail("Enter an amount above zero.");
+  const balance = await balanceDue(parsed.data.booking_id);
+  if (!balance.ok) return balance;
+  if (amount > balance.data.due) {
+    return fail(
+      `That is more than the balance due (${formatRs(cents(Math.max(0, balance.data.due)))}). Give the rest back as change.`,
+    );
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("payments").insert({
+    booking_id: parsed.data.booking_id,
+    amount_cents: amount,
+    method: parsed.data.method,
+    received_from: parsed.data.method === "operator_account" ? "operator" : "client",
+    reference: parsed.data.reference || null,
+    note: parsed.data.note || null,
+  });
+  if (error) return fail(friendlyDbError(error, "The payment could not be recorded. Try again."));
+  revalidatePath(`/bookings/${parsed.data.booking_id}`);
+  revalidatePath("/today");
+  return ok(null);
+}
+
+const correctionSchema = z.object({
+  payment_id: z.uuid(),
+  amount: z.string(),
+  note: z.string().trim().min(3, "Explain the correction (at least a few words).").max(500),
+});
+
+/** Reverses all or part of a payment with a negative row. The original stays visible forever. */
+export async function correctPayment(formData: FormData): Promise<Result<null>> {
+  const auth = await authorize(WRITERS);
+  if (!auth.ok) return auth;
+  const parsed = correctionSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Check the correction and try again.");
+  let amount: Cents;
+  try {
+    amount = toCents(parsed.data.amount);
+  } catch {
+    return fail("Enter the amount to reverse in rupees, e.g. 1500.");
+  }
+  if (amount <= 0) return fail("Enter the amount to reverse, above zero.");
+
+  const supabase = await createClient();
+  const { data: original } = await supabase
+    .from("payments")
+    .select("id, booking_id, method, received_from, is_correction")
+    .eq("id", parsed.data.payment_id)
+    .maybeSingle();
+  if (!original || original.is_correction) return fail("Choose the original payment to correct.");
+
+  const { error } = await supabase.from("payments").insert({
+    booking_id: original.booking_id,
+    amount_cents: -amount,
+    method: original.method,
+    received_from: original.received_from,
+    is_correction: true,
+    corrects_payment_id: original.id,
+    note: parsed.data.note,
+  });
+  if (error) return fail(friendlyDbError(error, "The correction could not be recorded. Try again."));
+  revalidatePath(`/bookings/${original.booking_id}`);
+  revalidatePath("/today");
+  return ok(null);
 }

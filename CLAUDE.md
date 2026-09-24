@@ -46,7 +46,9 @@ No ORM. Generated types in `src/lib/database.types.ts`.
    not a catalogue row; audited). Bookings are unaffected — each keeps its own
    expanded entitlements in `booking_activities`. And `withdraw_scheduled_price()`
    deletes a price that has not started and that no booking falls under
-   (owner-approved; audited), extending the previous price over the gap.
+   (owner-approved; audited), extending the previous price over the gap. And
+   `amend_booking()` deletes the lines an amendment removes (audited, like
+   every line change); the booking itself is only ever cancelled.
 9. RLS is enabled on every table and `npm run test:rls` must pass before any deploy.
 10. No `any`. No unused exports. No dead code left behind.
 

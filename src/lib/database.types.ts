@@ -909,6 +909,10 @@ export type Database = {
           role: Database["public"]["Enums"]["app_role"]
         }[]
       }
+      amend_booking: {
+        Args: { p_booking_id: string; payload: Json }
+        Returns: Json
+      }
       append_client_note: {
         Args: { p_client_id: string; p_note: string }
         Returns: string
@@ -1014,6 +1018,13 @@ export type Database = {
         Returns: string
       }
       set_prices_bulk: { Args: { changes: Json }; Returns: number }
+      staff_names: {
+        Args: { p_ids: string[] }
+        Returns: {
+          full_name: string
+          id: string
+        }[]
+      }
       today_mauritius: { Args: never; Returns: string }
       withdraw_scheduled_price: {
         Args: { p_rule_id: string }

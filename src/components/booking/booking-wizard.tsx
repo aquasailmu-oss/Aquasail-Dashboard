@@ -1,6 +1,6 @@
 "use client";
 
-import { PlusIcon, UserCheckIcon, XIcon } from "lucide-react";
+import { UserCheckIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { bookingContext, createBooking, type BookingContext } from "@/actions/bookings";
@@ -8,7 +8,15 @@ import { findSimilarClients, type ClientMatch } from "@/actions/clients";
 import { getQuote } from "@/actions/quotes";
 import { BoatPicker, type Boat } from "@/components/booking/boat-picker";
 import { QuotePanel } from "@/components/booking/quote-panel";
-import { Stepper } from "@/components/booking/stepper";
+import {
+  PurchasePicker,
+  partySize,
+  purchaseLines,
+  purchaseNeedsBoat,
+  type Purchase,
+  type WizardActivity,
+  type WizardPackage,
+} from "@/components/booking/purchase-picker";
 import { ClientMatchBanner } from "@/components/clients/client-match-banner";
 import { PayerBanner } from "@/components/shared/payer-banner";
 import { Alert } from "@/components/ui/alert";
@@ -19,20 +27,11 @@ import { Label } from "@/components/ui/label";
 import { formatDateShort } from "@/lib/dates";
 import { cents, formatRs, toCents, type Cents } from "@/lib/money";
 import { formatPhone } from "@/lib/phone";
-import type { Quote, QuoteLineInput } from "@/lib/pricing/types";
+import type { Quote } from "@/lib/pricing/types";
 import { cn } from "@/lib/utils";
 
-export type WizardPackage = {
-  id: string;
-  name: string;
-  description: string | null;
-  includes: string[];
-  codes: string[];
-};
-export type WizardActivity = { id: string; name: string; code: string };
-export type WizardOperator = { id: string; name: string; payer: "client" | "operator" };
+type WizardOperator = { id: string; name: string; payer: "client" | "operator" };
 
-type Participants = { adult: number; child: number; infant: number };
 type PaymentMethod = "cash" | "card" | "bank_transfer" | "other";
 
 const PAYMENT_METHODS: { value: PaymentMethod; label: string }[] = [
@@ -104,10 +103,11 @@ export function BookingWizard({
   // 2. Source
   const [operatorId, setOperatorId] = useState<string | null>(null);
   // 3. What they bought
-  const [packageIds, setPackageIds] = useState<string[]>([]);
-  const [activityIds, setActivityIds] = useState<string[]>([]);
-  const [addingActivity, setAddingActivity] = useState("");
-  const [participants, setParticipants] = useState<Participants>({ adult: 1, child: 0, infant: 0 });
+  const [purchase, setPurchase] = useState<Purchase>({
+    packageIds: [],
+    activityIds: [],
+    participants: { adult: 1, child: 0, infant: 0 },
+  });
   const [serviceDate, setServiceDate] = useState(today);
   const [departureTime, setDepartureTime] = useState("");
   const [meetingPoint, setMeetingPoint] = useState(defaultMeetingPoint);
@@ -132,34 +132,9 @@ export function BookingWizard({
   const matchCall = useRef(0);
 
   const operator = operators.find((o) => o.id === operatorId) ?? null;
-  const partySize = participants.adult + participants.child + participants.infant;
-  const byActivity = useMemo(() => new Map(activities.map((a) => [a.id, a])), [activities]);
-
-  const lines = useMemo<QuoteLineInput[]>(() => {
-    const types = (["adult", "child", "infant"] as const).filter((t) => participants[t] > 0);
-    return [
-      ...packageIds.flatMap((id) =>
-        types.map((t) => ({
-          target_type: "package" as const,
-          target_id: id,
-          participant_type: t,
-          quantity: participants[t],
-        })),
-      ),
-      ...activityIds.flatMap((id) =>
-        types.map((t) => ({
-          target_type: "activity" as const,
-          target_id: id,
-          participant_type: t,
-          quantity: participants[t],
-        })),
-      ),
-    ];
-  }, [packageIds, activityIds, participants]);
-
-  const needsBoat =
-    packageIds.some((id) => packages.find((p) => p.id === id)?.codes.includes("CATAMARAN")) ||
-    activityIds.some((id) => byActivity.get(id)?.code === "CATAMARAN");
+  const size = partySize(purchase.participants);
+  const lines = useMemo(() => purchaseLines(purchase), [purchase]);
+  const needsBoat = purchaseNeedsBoat(purchase, packages, activities);
   const discountActive = discount.value.trim() !== "";
 
   // Quote: re-priced on every change, keeping the last one on screen meanwhile.
@@ -231,13 +206,17 @@ export function BookingWizard({
   const payerIsOperator = operator?.payer === "operator";
 
   const togglePackage = useCallback(
-    (id: string) => setPackageIds((ids) => (ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id])),
+    (id: string) =>
+      setPurchase((p) => ({
+        ...p,
+        packageIds: p.packageIds.includes(id) ? p.packageIds.filter((x) => x !== id) : [...p.packageIds, id],
+      })),
     [],
   );
 
   const blocker = (() => {
     if (!chosenClient && !client.first_name.trim()) return "Enter the client's first name.";
-    if (lines.length === 0) return partySize === 0 ? "Add at least one participant." : "Choose a package or activity.";
+    if (lines.length === 0) return size === 0 ? "Add at least one participant." : "Choose a package or activity.";
     if (quoteError) return quoteError;
     if (!quote || quoteStale) return "Working out the price…";
     if (discountActive && !discount.reason.trim()) return "Give a reason for the discount.";
@@ -256,7 +235,7 @@ export function BookingWizard({
         service_date: serviceDate,
         operator_id: operatorId,
         lines,
-        participants,
+        participants: purchase.participants,
         discount: discountActive ? discount : null,
         departure_time: departureTime,
         meeting_point: meetingPoint,
@@ -281,7 +260,7 @@ export function BookingWizard({
     serviceDate,
     operatorId,
     lines,
-    participants,
+    purchase.participants,
     discountActive,
     discount,
     departureTime,
@@ -450,109 +429,13 @@ export function BookingWizard({
 
         {/* 3. WHAT THEY BOUGHT */}
         <Section n={3} title="What they bought">
-          <fieldset className="grid gap-3 sm:grid-cols-2">
-            <legend className="sr-only">Packages</legend>
-            {packages.map((p, i) => {
-              const selected = packageIds.includes(p.id);
-              const price = context.tilePrices[p.id];
-              return (
-                <label
-                  key={p.id}
-                  className={cn(
-                    "has-focus-visible:outline-ring relative flex cursor-pointer flex-col gap-1 rounded-md border-2 p-3 pr-10 has-focus-visible:outline-3 has-focus-visible:outline-offset-2",
-                    selected ? "border-primary bg-accent" : "border-border",
-                  )}
-                >
-                  <input type="checkbox" className="sr-only" checked={selected} onChange={() => togglePackage(p.id)} />
-                  {i < 9 && (
-                    <kbd className="bg-secondary text-muted-foreground absolute top-2 right-2 rounded px-2 py-0.5 text-sm font-semibold">
-                      {i + 1}
-                    </kbd>
-                  )}
-                  <span className="font-semibold">{p.name}</span>
-                  {p.includes.length > 0 && (
-                    <span className="text-muted-foreground text-sm">{p.includes.join(" · ")}</span>
-                  )}
-                  <span className={cn("text-sm font-semibold", price === null ? "text-warning" : "text-primary")}>
-                    {price === undefined ? " " : price === null ? "Price not set" : `${formatRs(price)} / adult`}
-                  </span>
-                </label>
-              );
-            })}
-          </fieldset>
-
-          {activityIds.length > 0 && (
-            <ul className="flex flex-col gap-2">
-              {activityIds.map((id) => (
-                <li key={id} className="flex items-center justify-between rounded-md border px-3 py-1">
-                  <span className="font-semibold">{byActivity.get(id)?.name}</span>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    aria-label={`Remove ${byActivity.get(id)?.name}`}
-                    onClick={() => setActivityIds((ids) => ids.filter((x) => x !== id))}
-                  >
-                    <XIcon />
-                  </Button>
-                </li>
-              ))}
-            </ul>
-          )}
-          <div className="flex items-end gap-2">
-            <div className="flex flex-1 flex-col gap-2">
-              <Label htmlFor="add-activity">Add a standalone activity</Label>
-              <select
-                id="add-activity"
-                className="border-input bg-card min-h-11 rounded-md border px-3"
-                value={addingActivity}
-                onChange={(e) => setAddingActivity(e.target.value)}
-              >
-                <option value="">Choose an activity…</option>
-                {activities
-                  .filter((a) => !activityIds.includes(a.id))
-                  .map((a) => (
-                    <option key={a.id} value={a.id}>
-                      {a.name}
-                    </option>
-                  ))}
-              </select>
-            </div>
-            <Button
-              type="button"
-              variant="outline"
-              disabled={!addingActivity}
-              onClick={() => {
-                setActivityIds((ids) => [...ids, addingActivity]);
-                setAddingActivity("");
-              }}
-            >
-              <PlusIcon /> Add
-            </Button>
-          </div>
-
-          <div className="border-t pt-3">
-            <Stepper
-              id="adults"
-              label="Adults"
-              value={participants.adult}
-              onChange={(v) => setParticipants((p) => ({ ...p, adult: v }))}
-            />
-            <Stepper
-              id="children"
-              label="Children"
-              hint="(2–11)"
-              value={participants.child}
-              onChange={(v) => setParticipants((p) => ({ ...p, child: v }))}
-            />
-            <Stepper
-              id="infants"
-              label="Infants"
-              hint="(under 2)"
-              value={participants.infant}
-              onChange={(v) => setParticipants((p) => ({ ...p, infant: v }))}
-            />
-          </div>
+          <PurchasePicker
+            packages={packages}
+            activities={activities}
+            tilePrices={context.tilePrices}
+            value={purchase}
+            onChange={setPurchase}
+          />
 
           <div className="grid gap-4 sm:grid-cols-3">
             <div className="flex flex-col gap-2">
@@ -598,13 +481,7 @@ export function BookingWizard({
             <p className="text-muted-foreground">
               This booking includes the catamaran. Pick the vessel that carries the group.
             </p>
-            <BoatPicker
-              boats={boats}
-              load={context.fleetLoad}
-              partySize={partySize}
-              value={boatId}
-              onChange={setBoatId}
-            />
+            <BoatPicker boats={boats} load={context.fleetLoad} partySize={size} value={boatId} onChange={setBoatId} />
           </Section>
         )}
 

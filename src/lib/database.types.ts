@@ -1028,6 +1028,7 @@ export type Database = {
       build_quote: { Args: { input: Json }; Returns: Json }
       create_booking: { Args: { payload: Json }; Returns: Json }
       custom_access_token_hook: { Args: { event: Json }; Returns: Json }
+      daily_register: { Args: { p_date: string }; Returns: Json }
       find_similar_clients: {
         Args: {
           p_email?: string

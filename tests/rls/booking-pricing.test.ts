@@ -69,3 +69,15 @@ describe("create_booking called directly through the API", () => {
     );
   });
 });
+
+describe("daily_register", () => {
+  it("is for office staff only", async () => {
+    const ok = await receptionist.client.rpc("daily_register", { p_date: fx.today });
+    expect(ok.error).toBeNull();
+    expectRaised(
+      await staff.client.rpc("daily_register", { p_date: fx.today }),
+      "Only office staff can see the daily register.",
+    );
+    expectRefused(await anon.rpc("daily_register", { p_date: fx.today }));
+  });
+});

@@ -13,7 +13,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <AppSidebar items={navFor(user.role)} />
       <div className="flex min-w-0 flex-1 flex-col">
         <TopBar user={user} companyName={settings.company_name} />
-        <main id="main-content" className="mx-auto w-full max-w-[1360px] flex-1 p-4 md:p-6">
+        <main id="main-content" className="mx-auto w-full max-w-[1360px] flex-1 p-4 md:p-6 print:p-0">
           {children}
         </main>
       </div>

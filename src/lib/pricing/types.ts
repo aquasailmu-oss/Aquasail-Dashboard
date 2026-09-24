@@ -32,7 +32,8 @@ export type QuoteLine = {
   unit_charged_cents: Cents;
   unit_operator_net_cents: Cents | null;
   commission_rate: number | null;
-  commission_cents: Cents;
+  /** Null when hidden from the viewer's role (reception never sees commission). */
+  commission_cents: Cents | null;
   discount_cents: Cents;
   discount_reason: string | null;
   price_rule_id: string | null;
@@ -54,7 +55,8 @@ export type Quote = {
   retail_total_cents: Cents;
   charged_total_cents: Cents;
   discount_total_cents: Cents;
-  operator_net_total_cents: Cents;
-  commission_total_cents: Cents;
+  /** Null when hidden from the viewer's role (reception never sees net or commission). */
+  operator_net_total_cents: Cents | null;
+  commission_total_cents: Cents | null;
   warnings: string[];
 };

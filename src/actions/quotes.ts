@@ -6,7 +6,7 @@ import { parseDateInput } from "@/lib/dates";
 import { parseDiscount } from "@/lib/pricing/discount";
 import { fetchQuote } from "@/lib/pricing/quote";
 import type { Quote } from "@/lib/pricing/types";
-import { fail, type Result } from "@/lib/result";
+import { fail, ok, type Result } from "@/lib/result";
 import { createClient } from "@/lib/supabase/server";
 
 const quoteSchema = z.object({
@@ -40,10 +40,29 @@ export async function getQuote(input: QuoteRequest): Promise<Result<Quote>> {
   if (!discount.ok) return discount;
 
   const supabase = await createClient();
-  return fetchQuote(supabase, {
+  const quote = await fetchQuote(supabase, {
     service_date: date,
     operator_id: parsed.data.operator_id,
     lines: parsed.data.lines,
     discount: discount.data,
   });
+  return quote.ok && auth.data.role === "receptionist" ? ok(forReception(quote.data)) : quote;
+}
+
+/**
+ * Reception never sees what AquaSail earns from an operator: net prices and
+ * commission are removed before the quote leaves the server (build plan §8).
+ */
+function forReception(quote: Quote): Quote {
+  return {
+    ...quote,
+    lines: quote.lines.map((l) => ({
+      ...l,
+      unit_operator_net_cents: null,
+      commission_rate: null,
+      commission_cents: null,
+    })),
+    operator_net_total_cents: null,
+    commission_total_cents: null,
+  };
 }

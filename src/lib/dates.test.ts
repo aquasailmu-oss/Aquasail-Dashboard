@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   addDays,
+  businessDayBounds,
   businessDate,
   formatDateLong,
   formatDateShort,
@@ -65,5 +66,14 @@ describe("formatting", () => {
     expect(formatTime("08:30:00")).toBe("08:30");
     expect(formatTime(new Date("2026-09-17T04:30:00Z"))).toBe("08:30");
     expect(formatDateTime("2026-09-17T04:30:00Z")).toBe("17 Sep 2026, 08:30");
+  });
+});
+
+describe("businessDayBounds", () => {
+  it("is midnight to midnight in Mauritius (UTC+4)", () => {
+    expect(businessDayBounds("2026-09-17")).toEqual({
+      start: "2026-09-16T20:00:00.000Z",
+      end: "2026-09-17T20:00:00.000Z",
+    });
   });
 });

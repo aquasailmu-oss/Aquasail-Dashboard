@@ -391,3 +391,32 @@ export async function correctPayment(formData: FormData): Promise<Result<null>> 
   revalidatePath("/today");
   return ok(null);
 }
+
+// ---------------------------------------------------------------------------
+// Search (WP-17): reference (digits are enough), client name or phone.
+// ---------------------------------------------------------------------------
+
+export type BookingHit = { id: string; reference: string; client_name: string; service_date: string; status: string };
+
+export async function searchBookings(query: string): Promise<Result<BookingHit[]>> {
+  const auth = await authorize(["admin", "accountant", "receptionist"]);
+  if (!auth.ok) return auth;
+  const q = z.string().trim().min(2).max(60).safeParse(query);
+  if (!q.success) return ok([]);
+  const term = q.data.replace(/[\\%_,()]/g, "");
+  const digits = term.replace(/\D/g, "");
+
+  const supabase = await createClient();
+  const filters = [`reference.ilike.%${term}%`, `client_name.ilike.%${term}%`];
+  // "48291" or "20260917-0042" or "WS-20260917-0042": references match on their digits alone.
+  if (digits.length >= 3) filters.push(`reference_digits.ilike.%${digits}%`, `client_phone.ilike.%${digits}%`);
+  const { data, error } = await supabase
+    .from("booking_register")
+    .select("id, reference, client_name, service_date, status")
+    .or(filters.join(","))
+    .order("service_date", { ascending: false })
+    .limit(8)
+    .overrideTypes<BookingHit[], { merge: false }>();
+  if (error) return fail("Search is not available right now. Try again.");
+  return ok(data ?? []);
+}

@@ -160,6 +160,7 @@ const TABLES: Record<TableName, true> = {
 export const ALL_TABLES = Object.keys(TABLES) as TableName[];
 
 const VIEWS: Record<ViewName, true> = {
+  booking_register: true,
   client_summaries: true,
 };
 export const ALL_VIEWS = Object.keys(VIEWS) as ViewName[];

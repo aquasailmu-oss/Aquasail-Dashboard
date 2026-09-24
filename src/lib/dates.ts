@@ -6,7 +6,7 @@
  * Never use new Date().toISOString().slice(0,10) — it gives the UTC date,
  * which is yesterday in Mauritius between 00:00 and 04:00.
  */
-import { formatInTimeZone } from "date-fns-tz";
+import { formatInTimeZone, fromZonedTime } from "date-fns-tz";
 
 export const BUSINESS_TZ = "Indian/Mauritius";
 
@@ -72,4 +72,16 @@ export function formatTime(value: string | Date): string {
 export function formatDateTime(value: Date | string): string {
   const dt = typeof value === "string" ? new Date(value) : value;
   return `${formatDateShort(dt)}, ${formatTime(dt)}`;
+}
+
+/**
+ * The instants a Mauritius business day starts and ends, as ISO timestamps,
+ * for filtering timestamptz columns ("cash received today"): end is exclusive.
+ */
+export function businessDayBounds(value: IsoDate): { start: string; end: string } {
+  requireDate(value);
+  return {
+    start: fromZonedTime(`${value}T00:00:00`, BUSINESS_TZ).toISOString(),
+    end: fromZonedTime(`${addDays(value, 1)}T00:00:00`, BUSINESS_TZ).toISOString(),
+  };
 }

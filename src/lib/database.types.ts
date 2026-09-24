@@ -175,6 +175,13 @@ export type Database = {
             foreignKeyName: "booking_activities_booking_id_fkey"
             columns: ["booking_id"]
             isOneToOne: false
+            referencedRelation: "booking_register"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_activities_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
             referencedRelation: "bookings"
             referencedColumns: ["id"]
           },
@@ -260,6 +267,13 @@ export type Database = {
             foreignKeyName: "booking_items_booking_id_fkey"
             columns: ["booking_id"]
             isOneToOne: false
+            referencedRelation: "booking_register"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_items_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
             referencedRelation: "bookings"
             referencedColumns: ["id"]
           },
@@ -305,6 +319,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "booking_participants_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "booking_register"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "booking_participants_booking_id_fkey"
             columns: ["booking_id"]
@@ -635,6 +656,13 @@ export type Database = {
             foreignKeyName: "payments_booking_id_fkey"
             columns: ["booking_id"]
             isOneToOne: false
+            referencedRelation: "booking_register"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
             referencedRelation: "bookings"
             referencedColumns: ["id"]
           },
@@ -824,6 +852,13 @@ export type Database = {
             foreignKeyName: "tickets_booking_id_fkey"
             columns: ["booking_id"]
             isOneToOne: true
+            referencedRelation: "booking_register"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tickets_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: true
             referencedRelation: "bookings"
             referencedColumns: ["id"]
           },
@@ -879,6 +914,75 @@ export type Database = {
       }
     }
     Views: {
+      booking_register: {
+        Row: {
+          activity_ids: string[] | null
+          balance_cents: number | null
+          charged_total_cents: number | null
+          client_id: string | null
+          client_name: string | null
+          client_phone: string | null
+          commission_total_cents: number | null
+          created_at: string | null
+          created_by: string | null
+          departure_time: string | null
+          discount_total_cents: number | null
+          id: string | null
+          operator_id: string | null
+          operator_name: string | null
+          operator_net_total_cents: number | null
+          package_ids: string[] | null
+          paid_cents: number | null
+          payer: string | null
+          payment_status: string | null
+          people: number | null
+          reference: string | null
+          reference_digits: string | null
+          resource_id: string | null
+          retail_total_cents: number | null
+          service_date: string | null
+          source_type: string | null
+          status: Database["public"]["Enums"]["booking_status"] | null
+          summary: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bookings_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_summaries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_operator_id_fkey"
+            columns: ["operator_id"]
+            isOneToOne: false
+            referencedRelation: "tour_operators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_resource_id_fkey"
+            columns: ["resource_id"]
+            isOneToOne: false
+            referencedRelation: "resources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_summaries: {
         Row: {
           booking_count: number | null

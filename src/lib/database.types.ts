@@ -948,6 +948,23 @@ export type Database = {
         Args: { p_service_date: string }
         Returns: string
       }
+      price_rule_history: {
+        Args: { p_activity_id?: string; p_package_id?: string }
+        Returns: {
+          audience: Database["public"]["Enums"]["price_audience"]
+          commission_rate: number
+          effective_from: string
+          effective_to: string
+          id: string
+          net_cents: number
+          operator_id: string
+          operator_name: string
+          participant_type: Database["public"]["Enums"]["participant_type"]
+          retail_cents: number
+          set_at: string
+          set_by: string
+        }[]
+      }
       save_package: { Args: { payload: Json }; Returns: string }
       set_price: {
         Args: {
@@ -964,6 +981,7 @@ export type Database = {
         }
         Returns: string
       }
+      set_prices_bulk: { Args: { changes: Json }; Returns: number }
       today_mauritius: { Args: never; Returns: string }
     }
     Enums: {

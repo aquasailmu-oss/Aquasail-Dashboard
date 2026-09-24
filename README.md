@@ -10,11 +10,11 @@ pricing, fleet tracking, and daily reconciliation.
 
 ## Status
 
-| Phase | Scope                                                 | State                     |
-| ----- | ----------------------------------------------------- | ------------------------- |
-| V0    | Foundation: repo, schema, RLS, auth, role-aware shell | WP-01–08 done, WP-09 next |
-| V1    | Core booking system                                   | Not started               |
-| V2–V4 | Ticketing, accounting, capacity/analytics             | Planned                   |
+| Phase | Scope                                                 | State                        |
+| ----- | ----------------------------------------------------- | ---------------------------- |
+| V0    | Foundation: repo, schema, RLS, auth, role-aware shell | WP-01–09 done (gate V0 → V1) |
+| V1    | Core booking system                                   | Not started                  |
+| V2–V4 | Ticketing, accounting, capacity/analytics             | Planned                      |
 
 ## Running it
 
@@ -52,6 +52,22 @@ Realtime. Turn one back on by setting its `enabled = true`; its image downloads
 on the next `npm run db:start`. Check space with `df -h /`; a 64 GB machine type
 removes the constraint. When the disk is full, file writes fail silently and
 leave empty files, so check `git status` after freeing space.
+
+## Cloud project setup (by hand, once)
+
+Migrations reach the cloud with `npm run db:push`. These settings cannot be set
+by SQL and live in the Supabase dashboard of project `zhcxfxrsmmihnnwzfvdc`:
+
+1. **Authentication > Hooks**: enable "Customize Access Token (JWT) Claims",
+   Postgres, schema `public`, function `custom_access_token_hook`.
+2. **Authentication > Sign In / Providers**: turn off "Allow new users to sign up".
+   Accounts are created by an admin's invite.
+3. **Authentication > URL Configuration**: Site URL = the production app URL;
+   add `<production URL>/**` to the redirect URLs.
+4. **Authentication > Emails**: set the Invite and Reset Password templates to
+   `supabase/templates/invite.html` and `recovery.html` (links must go to the
+   app's `/auth/callback`, not the auth server). Configure custom SMTP before
+   go-live: the built-in sender is rate-limited to a few emails an hour.
 
 ## Scripts
 

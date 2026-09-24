@@ -1,4 +1,4 @@
-import type { Role } from "@/lib/auth";
+import type { Role } from "@/lib/roles";
 
 export type NavItem = { href: string; label: string; roles: readonly Role[]; section?: "Admin" };
 

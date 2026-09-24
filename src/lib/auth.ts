@@ -1,19 +1,11 @@
 import "server-only";
 import { forbidden, redirect } from "next/navigation";
 import { cache } from "react";
-import type { Database } from "@/lib/database.types";
+import { fail, ok, type Result } from "@/lib/result";
+import type { Role } from "@/lib/roles";
 import { createClient } from "@/lib/supabase/server";
 
-export type Role = Database["public"]["Enums"]["app_role"];
-
 export type SessionUser = { userId: string; role: Role; fullName: string };
-
-export const ROLE_LABELS: Record<Role, string> = {
-  admin: "Admin",
-  accountant: "Accountant",
-  receptionist: "Receptionist",
-  activity_staff: "Activity staff",
-};
 
 /**
  * The signed-in user and their profile, once per request. The profile, not
@@ -50,4 +42,17 @@ export async function requireRole(roles: readonly Role[]): Promise<SessionUser> 
   const user = await requireUser();
   if (!roles.includes(user.role)) forbidden();
   return user;
+}
+
+/**
+ * For Server Actions: the current user if their role is allowed, otherwise a
+ * readable failure the form can show. An action never assumes that because
+ * its page rendered, the caller is authorised.
+ */
+export async function authorize(roles: readonly Role[]): Promise<Result<SessionUser>> {
+  const session = await loadSession();
+  if (session === "signed_out") return fail("Your session has ended. Sign in again.");
+  if (session === "inactive") return fail("Your account has been deactivated. Ask an admin to reactivate it.");
+  if (!roles.includes(session.role)) return fail("Your role does not allow this.");
+  return ok(session);
 }

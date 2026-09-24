@@ -33,8 +33,10 @@ No ORM. Generated types in `src/lib/database.types.ts`.
 6. Prices are effective-dated and never overwritten. Changes go through the
    `set_price()` database function only.
 7. Every Server Action: Zod-validate its input, check the role with
-   `requireRole()`, return `Result<T>` (`src/lib/result.ts`). Errors are
-   human-readable strings — a receptionist never sees "PGRST116".
+   `authorize()` (pages use `requireRole()`; both in `src/lib/auth.ts`), return
+   `Result<T>` (`src/lib/result.ts`). Errors are human-readable strings — a
+   receptionist never sees "PGRST116" (`friendlyDbError()` in `src/lib/db-errors.ts`).
+   Client forms submit through `useServerForm()` so nothing typed is lost.
 8. Nothing is ever hard-deleted. Bookings are cancelled; catalogue rows are
    deactivated; payments are corrected with a negative row.
 9. RLS is enabled on every table and `npm run test:rls` must pass before any deploy.

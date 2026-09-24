@@ -246,10 +246,17 @@ otp_expiry = 3600
 # admin_email = "admin@email.com"
 # sender_name = "Admin"
 
-# Uncomment to customize email template
-# [auth.email.template.invite]
-# subject = "You have been invited"
-# content_path = "./supabase/templates/invite.html"
+# Auth emails link straight back to the app's /auth/callback with a token hash
+# (verified server-side), rather than to the auth server, which a browser
+# outside the Codespace cannot reach. On the cloud project, paste the same
+# templates into Authentication > Emails.
+[auth.email.template.invite]
+subject = "Your AquaSail Ops account"
+content_path = "./supabase/templates/invite.html"
+
+[auth.email.template.recovery]
+subject = "Reset your AquaSail Ops password"
+content_path = "./supabase/templates/recovery.html"
 
 # Uncomment to customize notification email template
 # [auth.email.notification.password_changed]

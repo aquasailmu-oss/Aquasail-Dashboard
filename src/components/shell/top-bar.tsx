@@ -1,6 +1,7 @@
 import { signOut } from "@/actions/auth";
 import { Button } from "@/components/ui/button";
-import { ROLE_LABELS, type SessionUser } from "@/lib/auth";
+import type { SessionUser } from "@/lib/auth";
+import { ROLE_LABELS } from "@/lib/roles";
 import { businessDate, formatDateLong } from "@/lib/dates";
 
 function initials(name: string): string {

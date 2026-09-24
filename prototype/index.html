@@ -1,0 +1,1384 @@
+<title>AquaSail Ops</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@500;600&family=Source+Sans+3:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --brand-cyan:#00adef; --brand-blue:#2c3792; --brand-mid:#1673c0; --brand-blue-hover:#232c76;
+    --accent-ink:#036695;
+    --surface:#ffffff; --surface-sunken:#f1f7fb; --surface-inset:#e2edf6;
+    --ink:#12224a; --ink-muted:#566481; --ink-placeholder:#6b7894;
+    --on-brand:#ffffff; --on-accent:#12224a;
+    --border:#cfe1ee; --border-strong:#7690a8; --focus-ring:#036695;
+    --success:#0b7a56; --success-surface:#e6f4ee;
+    --warning:#9a5b00; --warning-surface:#fbf0df;
+    --danger:#b4271f; --danger-surface:#fdeceb;
+    --info-surface:#e4f4fd;
+    --font-display:"Jost","Futura","Century Gothic",system-ui,sans-serif;
+    --font-sans:"Source Sans 3",system-ui,-apple-system,"Segoe UI",sans-serif;
+    --font-mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    --space-1:4px; --space-2:8px; --space-3:12px; --space-4:16px; --space-5:24px; --space-6:32px; --space-7:48px; --space-8:64px;
+    --radius-sm:4px; --radius-md:8px; --radius-lg:16px; --radius-xl:24px; --radius-pill:999px;
+    --shadow-sm:0 1px 2px rgba(18,34,74,.08);
+    --shadow-md:0 4px 12px rgba(18,34,74,.10);
+    --shadow-lg:0 16px 40px rgba(18,34,74,.14);
+  }
+  /* This is a single, deliberately light brand system (the brand's own tokens define no dark theme) — redeclared under both guards so the page never inherits an unreadable host ground. */
+  @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){ color-scheme: light; } }
+  :root[data-theme="dark"]{ color-scheme: light; }
+
+  *{box-sizing:border-box;}
+  body{background:var(--surface-sunken); color:var(--ink); font-family:var(--font-sans); margin:0;}
+  h1,h2,h3,h4{margin:0; font-family:var(--font-display); font-weight:600; text-wrap:balance;}
+  p{margin:0;}
+  button{font-family:inherit;}
+  a{color:var(--accent-ink);}
+  ::selection{ background:var(--brand-cyan); color:var(--on-accent); }
+  :focus-visible{ outline:2px solid var(--focus-ring); outline-offset:2px; border-radius:var(--radius-sm); }
+
+  .display-xl{font-family:var(--font-display); font-size:40px; line-height:44px; font-weight:600; letter-spacing:-.005em;}
+  .display-lg{font-family:var(--font-display); font-size:32px; line-height:36px; font-weight:600;}
+  .display-md{font-family:var(--font-display); font-size:24px; line-height:30px; font-weight:500;}
+  .eyebrow{font-family:var(--font-sans); font-size:12px; line-height:16px; font-weight:500; letter-spacing:.22em; text-transform:uppercase; color:var(--accent-ink);}
+  .heading-sm{font-size:20px; line-height:28px; font-weight:600;}
+  .body-lg{font-size:18px; line-height:28px;}
+  .body{font-size:16px; line-height:24px;}
+  .body-sm{font-size:14px; line-height:20px;}
+  .caption{font-size:12px; line-height:18px; color:var(--ink-muted);}
+  .label{font-size:13px; line-height:16px; font-weight:600; letter-spacing:.04em;}
+  .btn-text{font-size:15px; line-height:20px; font-weight:600;}
+  .code{font-family:var(--font-mono); font-size:14px; line-height:20px;}
+  .muted{color:var(--ink-muted);}
+  .num{font-variant-numeric:tabular-nums;}
+
+  /* ---------- app shell ---------- */
+  #app{display:flex; min-height:100vh;}
+  .sidebar{width:232px; flex:none; background:var(--brand-blue); color:var(--on-brand); display:flex; flex-direction:column; padding:var(--space-5) var(--space-3);}
+  .sidebar .brandmark{display:flex; align-items:center; gap:var(--space-2); padding:0 var(--space-2) var(--space-6);}
+  .sidebar .brandmark img{width:36px; height:auto; display:block;}
+  .sidebar .brandmark span{font-family:var(--font-display); font-weight:600; font-size:15px; letter-spacing:.01em; line-height:1.2;}
+  .navlink{display:flex; align-items:center; gap:var(--space-3); padding:11px var(--space-3); border-radius:var(--radius-md); color:rgba(255,255,255,.78); text-decoration:none; font-size:15px; font-weight:500; cursor:pointer; border:none; background:none; width:100%; text-align:left; min-height:44px;}
+  .navlink:hover{background:rgba(255,255,255,.08); color:#fff;}
+  .navlink.active{background:rgba(255,255,255,.16); color:#fff;}
+  .navlink .dot{width:6px; height:6px; border-radius:50%; background:var(--brand-cyan); flex:none; opacity:0;}
+  .navlink.active .dot{opacity:1;}
+  .nav-section{margin-top:var(--space-6); padding:0 var(--space-3); font-size:11px; text-transform:uppercase; letter-spacing:.12em; color:rgba(255,255,255,.5); font-weight:600;}
+  .sidebar-foot{margin-top:auto; padding:var(--space-3); font-size:12px; color:rgba(255,255,255,.55); line-height:1.5;}
+
+  .main-col{flex:1; min-width:0; display:flex; flex-direction:column;}
+  .topbar{display:flex; align-items:center; justify-content:space-between; gap:var(--space-4); background:var(--surface); border-bottom:1px solid var(--border); padding:var(--space-3) var(--space-6); min-height:64px;}
+  .topbar-left{display:flex; flex-direction:column;}
+  .topbar-right{display:flex; align-items:center; gap:var(--space-4);}
+  .avatar{width:36px; height:36px; border-radius:50%; background:var(--surface-inset); color:var(--brand-blue); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:14px; font-family:var(--font-display);}
+  .user-block{text-align:right; line-height:1.25;}
+  .signout{background:none; border:1px solid var(--border-strong); border-radius:var(--radius-md); padding:8px 14px; color:var(--ink); font-size:14px; font-weight:600; cursor:pointer; min-height:40px;}
+  .signout:hover{background:var(--surface-sunken);}
+
+  main{flex:1; padding:var(--space-6); max-width:1360px; width:100%; margin:0 auto;}
+  @media (max-width:900px){ main{padding:var(--space-4);} .topbar{padding:var(--space-3) var(--space-4);} }
+  @media (max-width:760px){
+    #app{flex-direction:column;}
+    .sidebar{width:100%; flex-direction:row; align-items:center; padding:var(--space-3) var(--space-4); overflow-x:auto; gap:var(--space-2);}
+    .sidebar .brandmark{padding:0 var(--space-2) 0 0; margin-right:var(--space-2);}
+    .sidebar .brandmark span{display:none;}
+    .navlink{white-space:nowrap; width:auto;}
+    .nav-section, .sidebar-foot{display:none;}
+  }
+
+  /* ---------- primitives ---------- */
+  .btn{display:inline-flex; align-items:center; justify-content:center; gap:8px; font-size:15px; font-weight:600; border-radius:var(--radius-md); padding:0 18px; min-height:44px; cursor:pointer; border:1px solid transparent; transition:background .12s ease;}
+  .btn-primary{background:var(--brand-blue); color:var(--on-brand); box-shadow:var(--shadow-sm);}
+  .btn-primary:hover{background:var(--brand-blue-hover);}
+  .btn-primary:disabled{background:var(--surface-inset); color:var(--ink-placeholder); cursor:not-allowed;}
+  .btn-secondary{background:var(--surface); color:var(--ink); border-color:var(--border-strong);}
+  .btn-secondary:hover{background:var(--surface-sunken);}
+  .btn-ghost{background:none; color:var(--accent-ink); border-color:transparent; padding:0 8px; min-height:36px;}
+  .btn-ghost:hover{background:var(--info-surface);}
+  .btn-danger{background:var(--surface); color:var(--danger); border-color:var(--danger);}
+  .btn-danger:hover{background:var(--danger-surface);}
+  .btn-sm{min-height:36px; padding:0 12px; font-size:14px;}
+  .btn-block{width:100%;}
+
+  label.field{display:flex; flex-direction:column; gap:6px;}
+  .input, select.input, textarea.input{font-family:inherit; font-size:16px; color:var(--ink); background:var(--surface); border:1.5px solid var(--border-strong); border-radius:var(--radius-md); padding:11px var(--space-3); min-height:44px; width:100%;}
+  .input::placeholder{color:var(--ink-placeholder);}
+  .input:focus{outline:2px solid var(--focus-ring); outline-offset:1px; border-color:var(--focus-ring);}
+  .input.invalid{border-color:var(--danger); background:var(--danger-surface);}
+
+  .card{background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); box-shadow:var(--shadow-sm);}
+  .card-pad{padding:var(--space-5);}
+
+  .badge{display:inline-flex; align-items:center; gap:5px; font-size:12px; font-weight:600; letter-spacing:.03em; text-transform:uppercase; padding:4px 10px; border-radius:var(--radius-pill); white-space:nowrap;}
+  .badge-success{background:var(--success-surface); color:var(--success);}
+  .badge-warning{background:var(--warning-surface); color:var(--warning);}
+  .badge-danger{background:var(--danger-surface); color:var(--danger);}
+  .badge-info{background:var(--info-surface); color:var(--accent-ink);}
+  .badge-neutral{background:var(--surface-inset); color:var(--ink-muted);}
+
+  .alert{border-radius:var(--radius-lg); padding:var(--space-4) var(--space-5); display:flex; gap:var(--space-3); align-items:flex-start;}
+  .alert-danger{background:var(--danger-surface); color:var(--danger);}
+  .alert-warning{background:var(--warning-surface); color:var(--warning);}
+  .alert-info{background:var(--info-surface); color:var(--accent-ink);}
+  .alert b{color:var(--ink);}
+
+  table{width:100%; border-collapse:collapse;}
+  th{text-align:left; font-size:12px; font-weight:600; letter-spacing:.04em; text-transform:uppercase; color:var(--ink-muted); padding:10px var(--space-3); border-bottom:1px solid var(--border); background:var(--surface-sunken);}
+  td{padding:13px var(--space-3); border-bottom:1px solid var(--border); font-size:14px; vertical-align:middle;}
+  tr.row-link{cursor:pointer;}
+  tr.row-link:hover td{background:var(--surface-sunken);}
+  tr.row-cancelled td{color:var(--ink-placeholder); text-decoration:line-through;}
+  .table-wrap{overflow-x:auto; border-radius:var(--radius-lg); border:1px solid var(--border);}
+  .table-wrap table{border-radius:var(--radius-lg); overflow:hidden;}
+
+  .kpi-grid{display:grid; grid-template-columns:repeat(6,1fr); gap:var(--space-4); margin-bottom:var(--space-6);}
+  @media (max-width:1100px){ .kpi-grid{grid-template-columns:repeat(3,1fr);} }
+  @media (max-width:600px){ .kpi-grid{grid-template-columns:repeat(2,1fr);} }
+  .kpi{background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:var(--space-4); box-shadow:var(--shadow-sm); display:flex; flex-direction:column; gap:4px;}
+  .kpi .kpi-label{font-size:12px; font-weight:600; letter-spacing:.04em; text-transform:uppercase; color:var(--ink-muted);}
+  .kpi .kpi-value{font-family:var(--font-display); font-size:26px; font-weight:600; color:var(--ink);}
+  .kpi.warn .kpi-value{color:var(--warning);}
+  .kpi.accent .kpi-value{color:var(--brand-mid);}
+
+  .page-head{display:flex; align-items:flex-start; justify-content:space-between; gap:var(--space-4); margin-bottom:var(--space-5); flex-wrap:wrap;}
+
+  .grad-rule{height:3px; border-radius:var(--radius-pill); background:linear-gradient(90deg,var(--brand-cyan),var(--brand-blue)); border:none; margin:0;}
+
+  /* wizard */
+  .wizard-grid{display:grid; grid-template-columns:1fr 380px; gap:var(--space-5); align-items:start;}
+  @media (max-width:980px){ .wizard-grid{grid-template-columns:1fr;} }
+  .wiz-section{margin-bottom:var(--space-5);}
+  .wiz-section .num-badge{display:inline-flex; align-items:center; justify-content:center; width:24px; height:24px; border-radius:50%; background:var(--brand-blue); color:var(--on-brand); font-size:12px; font-weight:700; margin-right:8px;}
+  .field-row{display:grid; grid-template-columns:1fr 1fr; gap:var(--space-3);}
+  @media (max-width:520px){ .field-row{grid-template-columns:1fr;} }
+  .source-cards{display:grid; grid-template-columns:1fr 1fr; gap:var(--space-3);}
+  @media (max-width:600px){ .source-cards{grid-template-columns:1fr;} }
+  .boat-cards{display:grid; grid-template-columns:repeat(3,1fr); gap:var(--space-3);}
+  @media (max-width:700px){ .boat-cards{grid-template-columns:1fr;} }
+  .radio-card{border:1.5px solid var(--border-strong); border-radius:var(--radius-lg); padding:var(--space-4); cursor:pointer; display:flex; flex-direction:column; gap:4px; min-height:44px;}
+  .radio-card.selected{border-color:var(--brand-blue); background:var(--info-surface); box-shadow:0 0 0 1px var(--brand-blue) inset;}
+  .package-tiles{display:grid; grid-template-columns:repeat(2,1fr); gap:var(--space-3);}
+  @media (max-width:640px){ .package-tiles{grid-template-columns:1fr;} }
+  .pkg-tile{border:1.5px solid var(--border); border-radius:var(--radius-lg); padding:var(--space-4); cursor:pointer; text-align:left; background:var(--surface); display:flex; flex-direction:column; gap:6px; min-height:44px; position:relative;}
+  .pkg-tile:hover{border-color:var(--border-strong);}
+  .pkg-tile.selected{border-color:var(--brand-blue); box-shadow:0 0 0 1.5px var(--brand-blue) inset; background:var(--info-surface);}
+  .pkg-tile .key{position:absolute; top:10px; right:12px; font-size:11px; color:var(--ink-placeholder); font-family:var(--font-mono);}
+  .stepper{display:flex; align-items:center; gap:10px;}
+  .stepper button{width:36px; height:36px; border-radius:var(--radius-md); border:1.5px solid var(--border-strong); background:var(--surface); font-size:18px; font-weight:600; cursor:pointer; color:var(--ink);}
+  .stepper button:hover{background:var(--surface-sunken);}
+  .stepper .count{width:28px; text-align:center; font-weight:700; font-variant-numeric:tabular-nums;}
+  .part-row{display:flex; align-items:center; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--border);}
+  .part-row:last-child{border-bottom:none;}
+
+  .banner-nocollect{background:var(--danger-surface); border:1.5px solid var(--danger); border-radius:var(--radius-lg); padding:var(--space-4); display:flex; gap:var(--space-3); align-items:center; margin-top:var(--space-3);}
+  .banner-nocollect b{color:var(--danger); font-size:16px;}
+
+  .match-banner{background:var(--info-surface); border:1px solid var(--brand-mid); border-radius:var(--radius-lg); padding:var(--space-3) var(--space-4); display:flex; justify-content:space-between; align-items:center; gap:var(--space-3); margin-top:var(--space-2);}
+
+  .quote-panel{position:sticky; top:var(--space-4);}
+  .quote-line{display:flex; justify-content:space-between; gap:var(--space-2); padding:9px 0; border-bottom:1px solid var(--border); font-size:14px;}
+  .quote-line .ln-name{color:var(--ink);}
+  .quote-line .ln-sub{color:var(--ink-muted); font-size:12px;}
+  .quote-total-row{display:flex; justify-content:space-between; padding-top:var(--space-3); font-size:14px;}
+  .quote-total-row.grand{font-size:20px; font-weight:700; font-family:var(--font-display); padding-top:var(--space-3); border-top:1.5px solid var(--ink); margin-top:var(--space-2);}
+
+  .divider{height:1px; background:var(--border); border:none; margin:var(--space-5) 0;}
+
+  /* ticket */
+  .ticket-wrap{max-width:460px; margin:0 auto;}
+  .ticket{border:1.5px dashed var(--border-strong); border-radius:var(--radius-lg); padding:var(--space-6); background:var(--surface); position:relative;}
+  .ticket .tk-logo{display:flex; align-items:center; gap:10px; margin-bottom:var(--space-5);}
+  .ticket .tk-logo img{height:26px; width:auto;}
+  .ticket .qr-box{width:96px; height:96px; border:1.5px dashed var(--border-strong); border-radius:var(--radius-md); display:flex; align-items:center; justify-content:center; flex-direction:column; gap:4px; float:right; margin-left:var(--space-3);}
+  .tk-ref{font-family:var(--font-mono); font-size:22px; font-weight:700; letter-spacing:.03em; color:var(--brand-blue);}
+  .tk-row{display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px dotted var(--border); font-size:14px;}
+  @media print{
+    body *{visibility:hidden;}
+    #print-area, #print-area *{visibility:visible;}
+    #print-area{position:absolute; left:0; top:0; width:100%;}
+    .no-print{display:none !important;}
+    .ticket{border:none;}
+  }
+
+  /* pricing matrix */
+  .pmatrix{width:100%; border-collapse:collapse;}
+  .pmatrix th, .pmatrix td{border:1px solid var(--border); padding:10px; text-align:center; font-size:14px;}
+  .pmatrix th{background:var(--surface-sunken); font-size:12px; text-transform:uppercase; letter-spacing:.03em; color:var(--ink-muted);}
+  .pmatrix td.rowhead{text-align:left; font-weight:600; color:var(--ink); background:var(--surface-sunken);}
+  .pcell{cursor:pointer; border-radius:var(--radius-sm); padding:6px; font-variant-numeric:tabular-nums; font-weight:600;}
+  .pcell:hover{background:var(--info-surface);}
+  .pcell.missing{color:var(--danger); font-weight:600; font-size:12px; background:var(--danger-surface); text-transform:uppercase; letter-spacing:.02em;}
+  .pcell.future::after{content:"→"; color:var(--brand-mid); margin-left:4px; font-size:11px;}
+  .tabs{display:inline-flex; background:var(--surface-inset); border-radius:var(--radius-md); padding:3px; gap:2px;}
+  .tab{border:none; background:none; padding:8px 16px; border-radius:6px; font-size:14px; font-weight:600; color:var(--ink-muted); cursor:pointer; min-height:36px;}
+  .tab.active{background:var(--surface); color:var(--brand-blue); box-shadow:var(--shadow-sm);}
+
+  /* modal */
+  .modal-backdrop{position:fixed; inset:0; background:rgba(18,34,74,.45); display:flex; align-items:center; justify-content:center; z-index:50; padding:var(--space-4);}
+  .modal{background:var(--surface); border-radius:var(--radius-lg); box-shadow:var(--shadow-lg); max-width:460px; width:100%; padding:var(--space-5); max-height:90vh; overflow-y:auto;}
+  .modal h3{margin-bottom:var(--space-4);}
+
+  .empty-state{text-align:center; padding:var(--space-8) var(--space-4); color:var(--ink-muted);}
+  .toast-host{position:fixed; bottom:var(--space-5); right:var(--space-5); display:flex; flex-direction:column; gap:8px; z-index:80;}
+  .toast{background:var(--ink); color:#fff; padding:12px 18px; border-radius:var(--radius-md); font-size:14px; box-shadow:var(--shadow-lg); display:flex; align-items:center; gap:8px;}
+  .toast.success{background:var(--success);}
+  .toast.danger{background:var(--danger);}
+
+  .kbd{font-family:var(--font-mono); font-size:11px; background:var(--surface-inset); border:1px solid var(--border-strong); border-radius:4px; padding:1px 6px;}
+</style>
+
+<div id="app"></div>
+<div id="modal-root"></div>
+<div class="toast-host" id="toast-host"></div>
+
+<script>
+/* =========================================================================
+   AquaSail Ops — interactive prototype
+   Vanilla JS SPA. Mock data + a real effective-dated pricing engine, so the
+   numbers on screen are computed the same way the build plan specifies,
+   not hand-typed. State persists to localStorage for this browser only.
+   ========================================================================= */
+
+const LOGO_SVG_DATA_URI = "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIj8+PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiB3aWR0aD0iNTIwLjMyIiBoZWlnaHQ9IjE3Mi44IiB2aWV3Qm94PSIxNzAuODggMTkzLjY4IDUyMC4zMiAxNzIuOCI+CjxkZWZzPgo8Zz4KPGcgaWQ9ImdseXBoLTAtMCI+CjxwYXRoIGQ9Ik0gMC4yNSAtMTUuODkwNjI1IEwgMi43OTY4NzUgLTE1Ljg5MDYyNSBMIDUuMjgxMjUgLTQuNTkzNzUgTCA1LjMyODEyNSAtNC41OTM3NSBMIDguNDA2MjUgLTE1Ljg5MDYyNSBMIDEwLjE1NjI1IC0xNS44OTA2MjUgTCAxMy4yMTg3NSAtNC41OTM3NSBMIDEzLjI2NTYyNSAtNC41OTM3NSBMIDE1Ljc4MTI1IC0xNS44OTA2MjUgTCAxOC4zMTI1IC0xNS44OTA2MjUgTCAxNC4zNDM3NSAwIEwgMTIuMzI4MTI1IDAgTCA5LjI5Njg3NSAtMTEuNDUzMTI1IEwgOS4yNjU2MjUgLTExLjQ1MzEyNSBMIDYuMjE4NzUgMCBMIDQuMjE4NzUgMCBaIE0gMC4yNSAtMTUuODkwNjI1ICI+PC9wYXRoPgo8L2c+CjxnIGlkPSJnbHlwaC0wLTEiPgo8cGF0aCBkPSJNIDkuMTI1IC01LjY4NzUgTCA2LjgyODEyNSAtMTIuNjI1IEwgNi43ODEyNSAtMTIuNjI1IEwgNC40ODQzNzUgLTUuNjg3NSBaIE0gOS44MTI1IC0zLjU0Njg3NSBMIDMuNzk2ODc1IC0zLjU0Njg3NSBMIDIuNTc4MTI1IDAgTCAwLjAxNTYyNSAwIEwgNS43OTY4NzUgLTE1Ljg5MDYyNSBMIDcuODEyNSAtMTUuODkwNjI1IEwgMTMuNTc4MTI1IDAgTCAxMS4wNDY4NzUgMCBaIE0gOS44MTI1IC0zLjU0Njg3NSAiPjwvcGF0aD4KPC9nPgo8ZyBpZD0iZ2x5cGgtMC0yIj4KPHBhdGggZD0iTSA0LjM3NSAtMTMuNzM0Mzc1IEwgMC4wMTU2MjUgLTEzLjczNDM3NSBMIDAuMDE1NjI1IC0xNS44OTA2MjUgTCAxMS4xNDA2MjUgLTE1Ljg5MDYyNSBMIDExLjE0MDYyNSAtMTMuNzM0Mzc1IEwgNi43ODEyNSAtMTMuNzM0Mzc1IEwgNi43ODEyNSAwIEwgNC4zNzUgMCBaIE0gNC4zNzUgLTEzLjczNDM3NSAiPjwvcGF0aD4KPC9nPgo8ZyBpZD0iZ2x5cGgtMC0zIj4KPHBhdGggZD0iTSAxLjY3MTg3NSAtMTUuODkwNjI1IEwgMTEuODI4MTI1IC0xNS44OTA2MjUgTCAxMS44MjgxMjUgLTEzLjYwOTM3NSBMIDQuMDc4MTI1IC0xMy42MDkzNzUgTCA0LjA3ODEyNSAtOS4wNzgxMjUgTCAxMC42ODc1IC05LjA3ODEyNSBMIDEwLjY4NzUgLTYuOTM3NSBMIDQuMDc4MTI1IC02LjkzNzUgTCA0LjA3ODEyNSAtMi4yODEyNSBMIDExLjgyODEyNSAtMi4yODEyNSBMIDExLjgyODEyNSAwIEwgMS42NzE4NzUgMCBaIE0gMS42NzE4NzUgLTE1Ljg5MDYyNSAiPjwvcGF0aD4KPC9nPgo8ZyBpZD0iZ2x5cGgtMC00Ij4KPHBhdGggZD0iTSA0LjA3ODEyNSAtOC45MjE4NzUgTCA3LjcxODc1IC04LjkyMTg3NSBDIDguNjI1IC04LjkyOTY4OCA5LjMwMDc4MSAtOS4xOTE0MDYgOS43NSAtOS43MDMxMjUgQyAxMC4xOTUzMTIgLTEwLjE3OTY4OCAxMC40MjE4NzUgLTEwLjc2NTYyNSAxMC40MjE4NzUgLTExLjQ1MzEyNSBDIDEwLjM5ODQzOCAtMTIuMjczNDM4IDEwLjEzMjgxMiAtMTIuODc1IDkuNjI1IC0xMy4yNSBDIDkuMjE4NzUgLTEzLjU3MDMxMiA4LjYyODkwNiAtMTMuNzM0Mzc1IDcuODU5Mzc1IC0xMy43MzQzNzUgTCA0LjA3ODEyNSAtMTMuNzM0Mzc1IFogTSAxLjY3MTg3NSAtMTUuODkwNjI1IEwgNy44NzUgLTE1Ljg5MDYyNSBDIDkuMTk1MzEyIC0xNS44OTA2MjUgMTAuMjczNDM4IC0xNS41MzkwNjIgMTEuMTA5Mzc1IC0xNC44NDM3NSBDIDEyLjExNzE4OCAtMTQuMDUwNzgxIDEyLjY0NDUzMSAtMTIuOTIxODc1IDEyLjY4NzUgLTExLjQ1MzEyNSBDIDEyLjY2NDA2MiAtOS4yOTY4NzUgMTEuNjQ0NTMxIC03LjgyODEyNSA5LjYyNSAtNy4wNDY4NzUgTCAxMy4yOTY4NzUgMCBMIDEwLjQzNzUgMCBMIDcuMTU2MjUgLTYuNzgxMjUgTCA0LjA3ODEyNSAtNi43ODEyNSBMIDQuMDc4MTI1IDAgTCAxLjY3MTg3NSAwIFogTSAxLjY3MTg3NSAtMTUuODkwNjI1ICI+PC9wYXRoPgo8L2c+CjxnIGlkPSJnbHlwaC0wLTUiPgo8cGF0aCBkPSJNIDEuODc1IC0zLjg1OTM3NSBDIDMuMTMyODEyIC0yLjgxNjQwNiA0LjY0MDYyNSAtMi4yODkwNjIgNi4zOTA2MjUgLTIuMjgxMjUgQyA4LjQ1MzEyNSAtMi4zMTI1IDkuNDkyMTg4IC0zLjA0Njg3NSA5LjUxNTYyNSAtNC40ODQzNzUgQyA5LjUzNTE1NiAtNS42NzE4NzUgOC44NDc2NTYgLTYuMzgyODEyIDcuNDUzMTI1IC02LjYyNSBDIDYuODE2NDA2IC02LjcwNzAzMSA2LjExMzI4MSAtNi44MDQ2ODggNS4zNDM3NSAtNi45MjE4NzUgQyAzLjk3NjU2MiAtNy4xNDA2MjUgMi45NDE0MDYgLTcuNjQ0NTMxIDIuMjM0Mzc1IC04LjQzNzUgQyAxLjUwMzkwNiAtOS4yMzgyODEgMS4xNDA2MjUgLTEwLjIxODc1IDEuMTQwNjI1IC0xMS4zNzUgQyAxLjE0MDYyNSAtMTIuNzU3ODEyIDEuNTk3NjU2IC0xMy44Nzg5MDYgMi41MTU2MjUgLTE0LjczNDM3NSBDIDMuNDEwMTU2IC0xNS41NzgxMjUgNC42NzU3ODEgLTE2LjAwMzkwNiA2LjMxMjUgLTE2LjAxNTYyNSBDIDguMjg5MDYyIC0xNS45NzI2NTYgMTAuMDA3ODEyIC0xNS40MjU3ODEgMTEuNDY4NzUgLTE0LjM3NSBMIDEwLjEyNSAtMTIuMzkwNjI1IEMgOC45Mzc1IC0xMy4xNzE4NzUgNy42Mjg5MDYgLTEzLjU3ODEyNSA2LjIwMzEyNSAtMTMuNjA5Mzc1IEMgNS40NjA5MzggLTEzLjYwOTM3NSA0Ljg0Mzc1IC0xMy40MjE4NzUgNC4zNDM3NSAtMTMuMDQ2ODc1IEMgMy44MzIwMzEgLTEyLjY2MDE1NiAzLjU2NjQwNiAtMTIuMDg1OTM4IDMuNTQ2ODc1IC0xMS4zMjgxMjUgQyAzLjU0Njg3NSAtMTAuODY3MTg4IDMuNzIyNjU2IC0xMC40NTcwMzEgNC4wNzgxMjUgLTEwLjA5Mzc1IEMgNC40NDE0MDYgLTkuNzA3MDMxIDUuMDE1NjI1IC05LjQ0MTQwNiA1Ljc5Njg3NSAtOS4yOTY4NzUgQyA2LjIzNDM3NSAtOS4yMjI2NTYgNi44MjgxMjUgLTkuMTQwNjI1IDcuNTc4MTI1IC05LjA0Njg3NSBDIDkuMDY2NDA2IC04Ljg0NzY1NiAxMC4xNzE4NzUgLTguMzE2NDA2IDEwLjg5MDYyNSAtNy40NTMxMjUgQyAxMS41ODU5MzggLTYuNTk3NjU2IDExLjkzNzUgLTUuNjA5Mzc1IDExLjkzNzUgLTQuNDg0Mzc1IEMgMTEuODYzMjgxIC0xLjQ1MzEyNSAxMC4wMDM5MDYgMC4wODIwMzEyIDYuMzU5Mzc1IDAuMTI1IEMgNC4wMDM5MDYgMC4xMjUgMS45ODQzNzUgLTAuNTk3NjU2IDAuMjk2ODc1IC0yLjA0Njg3NSBaIE0gMS44NzUgLTMuODU5Mzc1ICI+PC9wYXRoPgo8L2c+CjxnIGlkPSJnbHlwaC0wLTYiPgo8cGF0aCBkPSJNIDQuMDc4MTI1IC04LjQ2ODc1IEwgNy42NDA2MjUgLTguNDY4NzUgQyA4LjUzNTE1NiAtOC40ODgyODEgOS4yMDcwMzEgLTguNzY1NjI1IDkuNjU2MjUgLTkuMjk2ODc1IEMgMTAuMDkzNzUgLTkuODI4MTI1IDEwLjMxMjUgLTEwLjQxMDE1NiAxMC4zMTI1IC0xMS4wNDY4NzUgQyAxMC4zMTI1IC0xMS41NzgxMjUgMTAuMjIyNjU2IC0xMi4wMjM0MzggMTAuMDQ2ODc1IC0xMi4zOTA2MjUgQyA5Ljg1OTM3NSAtMTIuNzEwOTM4IDkuNjAxNTYyIC0xMi45Njg3NSA5LjI4MTI1IC0xMy4xNTYyNSBDIDguNzg5MDYyIC0xMy40Njg3NSA4LjIxODc1IC0xMy42MTcxODggNy41NjI1IC0xMy42MDkzNzUgTCA0LjA3ODEyNSAtMTMuNjA5Mzc1IFogTSAxLjY3MTg3NSAtMTUuODkwNjI1IEwgNy40Mzc1IC0xNS44OTA2MjUgQyA4LjA2MjUgLTE1Ljg5MDYyNSA4LjY2MDE1NiAtMTUuODI4MTI1IDkuMjM0Mzc1IC0xNS43MDMxMjUgQyA5LjgxNjQwNiAtMTUuNTU0Njg4IDEwLjQwNjI1IC0xNS4yNDIxODggMTEgLTE0Ljc2NTYyNSBDIDExLjUgLTE0LjQxMDE1NiAxMS45MDYyNSAtMTMuOTA2MjUgMTIuMjE4NzUgLTEzLjI1IEMgMTIuNTUwNzgxIC0xMi42MTMyODEgMTIuNzE4NzUgLTExLjg1OTM3NSAxMi43MTg3NSAtMTAuOTg0Mzc1IEMgMTIuNzE4NzUgLTkuODA0Njg4IDEyLjMwMDc4MSAtOC43MzQzNzUgMTEuNDY4NzUgLTcuNzY1NjI1IEMgMTAuNjI1IC02Ljc1MzkwNiA5LjM4MjgxMiAtNi4yMzQzNzUgNy43NSAtNi4yMDMxMjUgTCA0LjA3ODEyNSAtNi4yMDMxMjUgTCA0LjA3ODEyNSAwIEwgMS42NzE4NzUgMCBaIE0gMS42NzE4NzUgLTE1Ljg5MDYyNSAiPjwvcGF0aD4KPC9nPgo8ZyBpZD0iZ2x5cGgtMC03Ij4KPHBhdGggZD0iTSAxLjE0MDYyNSAtNy45Mzc1IEMgMS4xNDA2MjUgLTkuNzgxMjUgMS4xOTE0MDYgLTExLjAxNTYyNSAxLjI5Njg3NSAtMTEuNjQwNjI1IEMgMS40MTAxNTYgLTEyLjI2NTYyNSAxLjU4NTkzOCAtMTIuNzY5NTMxIDEuODI4MTI1IC0xMy4xNTYyNSBDIDIuMjEwOTM4IC0xMy44OTQ1MzEgMi44MzIwMzEgLTE0LjU1MDc4MSAzLjY4NzUgLTE1LjEyNSBDIDQuNTE5NTMxIC0xNS43MDcwMzEgNS41NjI1IC0xNi4wMDM5MDYgNi44MTI1IC0xNi4wMTU2MjUgQyA4LjA3MDMxMiAtMTYuMDAzOTA2IDkuMTI1IC0xNS43MDcwMzEgOS45Njg3NSAtMTUuMTI1IEMgMTAuODAwNzgxIC0xNC41NTA3ODEgMTEuNDA2MjUgLTEzLjg5NDUzMSAxMS43ODEyNSAtMTMuMTU2MjUgQyAxMi4wNTA3ODEgLTEyLjc2OTUzMSAxMi4yMzQzNzUgLTEyLjI2NTYyNSAxMi4zMjgxMjUgLTExLjY0MDYyNSBDIDEyLjQyMTg3NSAtMTEuMDE1NjI1IDEyLjQ2ODc1IC05Ljc4MTI1IDEyLjQ2ODc1IC03LjkzNzUgQyAxMi40Njg3NSAtNi4xMjUgMTIuNDIxODc1IC00Ljg5ODQzOCAxMi4zMjgxMjUgLTQuMjY1NjI1IEMgMTIuMjM0Mzc1IC0zLjYxNzE4OCAxMi4wNTA3ODEgLTMuMTAxNTYyIDExLjc4MTI1IC0yLjcxODc1IEMgMTEuNDA2MjUgLTEuOTg4MjgxIDEwLjgwMDc4MSAtMS4zNDM3NSA5Ljk2ODc1IC0wLjc4MTI1IEMgOS4xMjUgLTAuMTk1MzEyIDguMDcwMzEyIDAuMTAxNTYyIDYuODEyNSAwLjEyNSBDIDUuNTYyNSAwLjEwMTU2MiA0LjUxOTUzMSAtMC4xOTUzMTIgMy42ODc1IC0wLjc4MTI1IEMgMi44MzIwMzEgLTEuMzQzNzUgMi4yMTA5MzggLTEuOTg4MjgxIDEuODI4MTI1IC0yLjcxODc1IEMgMS43MTA5MzggLTIuOTU3MDMxIDEuNjA5Mzc1IC0zLjE4NzUgMS41MTU2MjUgLTMuNDA2MjUgQyAxLjQyOTY4OCAtMy42MzI4MTIgMS4zNTkzNzUgLTMuOTIxODc1IDEuMjk2ODc1IC00LjI2NTYyNSBDIDEuMTkxNDA2IC00Ljg5ODQzOCAxLjE0MDYyNSAtNi4xMjUgMS4xNDA2MjUgLTcuOTM3NSBaIE0gMy41NDY4NzUgLTcuOTM3NSBDIDMuNTQ2ODc1IC02LjM3NSAzLjYwMTU2MiAtNS4zMTY0MDYgMy43MTg3NSAtNC43NjU2MjUgQyAzLjgyMDMxMiAtNC4yMTA5MzggNC4wMzEyNSAtMy43Njk1MzEgNC4zNDM3NSAtMy40Mzc1IEMgNC42MDE1NjIgLTMuMTAxNTYyIDQuOTM3NSAtMi44MzU5MzggNS4zNDM3NSAtMi42NDA2MjUgQyA1Ljc1IC0yLjM5ODQzOCA2LjIzODI4MSAtMi4yODEyNSA2LjgxMjUgLTIuMjgxMjUgQyA3LjM4MjgxMiAtMi4yODEyNSA3Ljg3ODkwNiAtMi4zOTg0MzggOC4yOTY4NzUgLTIuNjQwNjI1IEMgOC43MDMxMjUgLTIuODM1OTM4IDkuMDIzNDM4IC0zLjEwMTU2MiA5LjI2NTYyNSAtMy40Mzc1IEMgOS41NzgxMjUgLTMuNzY5NTMxIDkuNzg5MDYyIC00LjIxMDkzOCA5LjkwNjI1IC00Ljc2NTYyNSBDIDEwLjAwNzgxMiAtNS4zMTY0MDYgMTAuMDYyNSAtNi4zNzUgMTAuMDYyNSAtNy45Mzc1IEMgMTAuMDYyNSAtOS41IDEwLjAwNzgxMiAtMTAuNTY2NDA2IDkuOTA2MjUgLTExLjE0MDYyNSBDIDkuNzg5MDYyIC0xMS42NzE4NzUgOS41NzgxMjUgLTEyLjEwOTM3NSA5LjI2NTYyNSAtMTIuNDUzMTI1IEMgOS4wMjM0MzggLTEyLjc3MzQzOCA4LjcwMzEyNSAtMTMuMDQ2ODc1IDguMjk2ODc1IC0xMy4yNjU2MjUgQyA3Ljg3ODkwNiAtMTMuNDcyNjU2IDcuMzgyODEyIC0xMy41ODU5MzggNi44MTI1IC0xMy42MDkzNzUgQyA2LjIzODI4MSAtMTMuNTg1OTM4IDUuNzUgLTEzLjQ3MjY1NiA1LjM0Mzc1IC0xMy4yNjU2MjUgQyA0LjkzNzUgLTEzLjA0Njg3NSA0LjYwMTU2MiAtMTIuNzczNDM4IDQuMzQzNzUgLTEyLjQ1MzEyNSBDIDQuMDMxMjUgLTEyLjEwOTM3NSAzLjgyMDMxMiAtMTEuNjcxODc1IDMuNzE4NzUgLTExLjE0MDYyNSBDIDMuNjAxNTYyIC0xMC41NjY0MDYgMy41NDY4NzUgLTkuNSAzLjU0Njg3NSAtNy45Mzc1IFogTSAzLjU0Njg3NSAtNy45Mzc1ICI+PC9wYXRoPgo8L2c+CjxnIGlkPSJnbHlwaC0wLTgiPgo8L2c+CjxnIGlkPSJnbHlwaC0wLTkiPgo8cGF0aCBkPSJNIDEuNjcxODc1IC0xNS44OTA2MjUgTCA0LjA3ODEyNSAtMTUuODkwNjI1IEwgNC4wNzgxMjUgLTIuMjgxMjUgTCAxMS44MjgxMjUgLTIuMjgxMjUgTCAxMS44MjgxMjUgMCBMIDEuNjcxODc1IDAgWiBNIDEuNjcxODc1IC0xNS44OTA2MjUgIj48L3BhdGg+CjwvZz4KPGcgaWQ9ImdseXBoLTAtMTAiPgo8cGF0aCBkPSJNIDEuNjcxODc1IC0xNS44OTA2MjUgTCA3LjIzNDM3NSAtMTUuODkwNjI1IEMgOS4zNzg5MDYgLTE1Ljg2NzE4OCAxMC45OTIxODggLTE0Ljk3MjY1NiAxMi4wNzgxMjUgLTEzLjIwMzEyNSBDIDEyLjQ2MDkzOCAtMTIuNjA5Mzc1IDEyLjcwMzEyNSAtMTEuOTg0Mzc1IDEyLjc5Njg3NSAtMTEuMzI4MTI1IEMgMTIuODc4OTA2IC0xMC42NzE4NzUgMTIuOTIxODc1IC05LjUzOTA2MiAxMi45MjE4NzUgLTcuOTM3NSBDIDEyLjkyMTg3NSAtNi4yMjY1NjIgMTIuODU5Mzc1IC01LjAzOTA2MiAxMi43MzQzNzUgLTQuMzc1IEMgMTIuNjc5Njg4IC00LjAzMTI1IDEyLjU5Mzc1IC0zLjcyMjY1NiAxMi40Njg3NSAtMy40NTMxMjUgQyAxMi4zNTE1NjIgLTMuMTkxNDA2IDEyLjIwNzAzMSAtMi45MjE4NzUgMTIuMDMxMjUgLTIuNjQwNjI1IEMgMTEuNTYyNSAtMS44OTA2MjUgMTAuOTE0MDYyIC0xLjI2OTUzMSAxMC4wOTM3NSAtMC43ODEyNSBDIDkuMjY5NTMxIC0wLjI1NzgxMiA4LjI2NTYyNSAwIDcuMDc4MTI1IDAgTCAxLjY3MTg3NSAwIFogTSA0LjA3ODEyNSAtMi4yODEyNSBMIDYuOTY4NzUgLTIuMjgxMjUgQyA4LjMxMjUgLTIuMjgxMjUgOS4yODkwNjIgLTIuNzM4MjgxIDkuOTA2MjUgLTMuNjU2MjUgQyAxMC4xNzU3ODEgLTQgMTAuMzQ3NjU2IC00LjQyOTY4OCAxMC40MjE4NzUgLTQuOTUzMTI1IEMgMTAuNDg0Mzc1IC01LjQ3MjY1NiAxMC41MTU2MjUgLTYuNDQxNDA2IDEwLjUxNTYyNSAtNy44NTkzNzUgQyAxMC41MTU2MjUgLTkuMjM0Mzc1IDEwLjQ4NDM3NSAtMTAuMjE4NzUgMTAuNDIxODc1IC0xMC44MTI1IEMgMTAuMzI4MTI1IC0xMS40MTQwNjIgMTAuMTE3MTg4IC0xMS44OTg0MzggOS43OTY4NzUgLTEyLjI2NTYyNSBDIDkuMTI4OTA2IC0xMy4xOTE0MDYgOC4xODc1IC0xMy42NDA2MjUgNi45Njg3NSAtMTMuNjA5Mzc1IEwgNC4wNzgxMjUgLTEzLjYwOTM3NSBaIE0gNC4wNzgxMjUgLTIuMjgxMjUgIj48L3BhdGg+CjwvZz4KPC9nPgo8Y2xpcFBhdGggaWQ9ImNsaXAtMCI+CjxwYXRoIGNsaXAtcnVsZT0ibm9uemVybyIgZD0iTSAxNzcgMjkyIEwgNjg1IDI5MiBMIDY4NSAzMjMgTCAxNzcgMzIzIFogTSAxNzcgMjkyICI+PC9wYXRoPgo8L2NsaXBQYXRoPgo8Y2xpcFBhdGggaWQ9ImNsaXAtMSI+CjxwYXRoIGNsaXAtcnVsZT0ibm9uemVybyIgZD0iTSAyNDIuOTAyMzQ0IDI5OS41MzkwNjIgQyAyNzIuNjYwMTU2IDI5OC40NDUzMTIgMzE1Ljc5Njg3NSAzMDEuMTc5Njg4IDM3OC4yMTQ4NDQgMzExLjc4NTE1NiBDIDU2Ny4yMDcwMzEgMzQzLjg5ODQzOCA2ODQuNjY3OTY5IDI5My44NTE1NjIgNjg0LjY2Nzk2OSAyOTMuODUxNTYyIEMgNTg4LjM1OTM3NSAzMjQuMjEwOTM4IDUxMi4xNDg0MzggMzEwLjIzNDM3NSAzNzguNTU0Njg4IDI5Ni4xMjEwOTQgQyAzNTcuNDkyMTg4IDI5My44OTg0MzggMzM4LjA3MDMxMiAyOTIuOTYwOTM4IDMyMC4yODkwNjIgMjkyLjk2MDkzOCBDIDI4OS41NzgxMjUgMjkyLjk2MDkzOCAyNjMuNzY5NTMxIDI5NS43NTM5MDYgMjQyLjkwMjM0NCAyOTkuNTM5MDYyIE0gMTc3LjE4NzUgMzE5LjcxMDkzOCBDIDE3Ny4xODc1IDMxOS43MTA5MzggMTk5LjIxNDg0NCAzMDcuNDU3MDMxIDI0Mi45MDIzNDQgMjk5LjUzOTA2MiBDIDE4Mi41NjI1IDMwMS43NTM5MDYgMTc3LjE4NzUgMzE5LjcxMDkzOCAxNzcuMTg3NSAzMTkuNzEwOTM4ICI+PC9wYXRoPgo8L2NsaXBQYXRoPgo8bGluZWFyR3JhZGllbnQgaWQ9ImxpbmVhci1wYXR0ZXJuLTAiIGdyYWRpZW50VW5pdHM9InVzZXJTcGFjZU9uVXNlIiB4MT0iLTAuMDExMTk0MiIgeTE9IjAiIHgyPSIxLjAwMDQxMyIgeTI9IjAiIGdyYWRpZW50VHJhbnNmb3JtPSJtYXRyaXgoNTAwLjk0MzA2OSwgLTUzLjM2MDY4NywgODMuODYzNDMzLCAzNTIuNzg3OTM1LCAxODAuMzIxNDg4LCAzMzIuODk4NzYzKSI+PHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjMDBhZGVmIj48L3N0b3A+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMmMzNzkyIj48L3N0b3A+PC9saW5lYXJHcmFkaWVudD4KPGNsaXBQYXRoIGlkPSJjbGlwLTIiPgo8cGF0aCBjbGlwLXJ1bGU9Im5vbnplcm8iIGQ9Ik0gMjAyIDE5OSBMIDI1MiAxOTkgTCAyNTIgMjY2IEwgMjAyIDI2NiBaIE0gMjAyIDE5OSAiPjwvcGF0aD4KPC9jbGlwUGF0aD4KPGNsaXBQYXRoIGlkPSJjbGlwLTMiPgo8cGF0aCBjbGlwLXJ1bGU9Im5vbnplcm8iIGQ9Ik0gMjAyLjk5MjE4OCAyNjIuNDkyMTg4IEMgMjAyLjk5MjE4OCAyNjIuNDkyMTg4IDIxMy4wNDI5NjkgMjYxLjMzNTkzOCAyMjQuMzgyODEyIDI0OS45MDYyNSBDIDIzOC44NTkzNzUgMjM1LjMxNjQwNiAyNDkuOTE3OTY5IDI2NS4wNTA3ODEgMjQ5LjkxNzk2OSAyNjUuMDUwNzgxIEMgMjU4LjEwMTU2MiAyMjEuODk4NDM4IDIyMC44MDg1OTQgMTk5LjQ1MzEyNSAyMjAuODA4NTk0IDE5OS40NTMxMjUgQyAyMzEuMDIzNDM4IDIxOS43ODUxNTYgMjAyLjk5MjE4OCAyNjIuNDkyMTg4IDIwMi45OTIxODggMjYyLjQ5MjE4OCBNIDIyNi42Njc5NjkgMjA4LjQyOTY4OCBDIDIzNS4zNzg5MDYgMjExLjY2MDE1NiAyNDcuNjI1IDI1MS43MDcwMzEgMjQ0LjIwNzAzMSAyNDMuMDc4MTI1IEMgMjM5LjAwNzgxMiAyMjkuOTI5Njg4IDIxNy41MzEyNSAyNDQuMTg3NSAyMTcuNTMxMjUgMjQ0LjE4NzUgQyAyMzIuNjQwNjI1IDIyMy4yNzM0MzggMjI2LjY2Nzk2OSAyMDguNDI5Njg4IDIyNi42Njc5NjkgMjA4LjQyOTY4OCAiPjwvcGF0aD4KPC9jbGlwUGF0aD4KPGxpbmVhckdyYWRpZW50IGlkPSJsaW5lYXItcGF0dGVybi0xIiBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgeDE9Ii0wLjE0NzA1IiB5MT0iMCIgeDI9IjEuMTY4MjI4IiB5Mj0iMCIgZ3JhZGllbnRUcmFuc2Zvcm09Im1hdHJpeCg0Ni44NDM4ODIsIDUuMTgxOTY4LCAtNS4xODE5NjgsIDQ2Ljg0Mzg4MiwgMjA2LjU0NDYsIDIzMC4zNzkxMDQpIj48c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiMwMGFkZWYiPjwvc3RvcD48c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMyYzM3OTIiPjwvc3RvcD48L2xpbmVhckdyYWRpZW50Pgo8Y2xpcFBhdGggaWQ9ImNsaXAtNCI+CjxwYXRoIGNsaXAtcnVsZT0ibm9uemVybyIgZD0iTSA0MDYgMTk5IEwgNDU1IDE5OSBMIDQ1NSAyNjYgTCA0MDYgMjY2IFogTSA0MDYgMTk5ICI+PC9wYXRoPgo8L2NsaXBQYXRoPgo8Y2xpcFBhdGggaWQ9ImNsaXAtNSI+CjxwYXRoIGNsaXAtcnVsZT0ibm9uemVybyIgZD0iTSA0MDYuODc1IDI2Mi43MjI2NTYgQyA0MDYuODc1IDI2Mi43MjI2NTYgNDE2LjkyNTc4MSAyNjEuNTcwMzEyIDQyOC4yNjk1MzEgMjUwLjE0MDYyNSBDIDQ0Mi43NDIxODggMjM1LjU0Njg3NSA0NTMuODAwNzgxIDI2NS4yODUxNTYgNDUzLjgwMDc4MSAyNjUuMjg1MTU2IEMgNDYxLjk4NDM3NSAyMjIuMTI4OTA2IDQyNC42OTE0MDYgMTk5LjY4NzUgNDI0LjY5MTQwNiAxOTkuNjg3NSBDIDQzNC45MTAxNTYgMjIwLjAxNTYyNSA0MDYuODc1IDI2Mi43MjI2NTYgNDA2Ljg3NSAyNjIuNzIyNjU2IE0gNDMwLjU1MDc4MSAyMDguNjY0MDYyIEMgNDM5LjI2MTcxOSAyMTEuODk0NTMxIDQ1MS41MDc4MTIgMjUxLjk0MTQwNiA0NDguMDg5ODQ0IDI0My4zMDg1OTQgQyA0NDIuODkwNjI1IDIzMC4xNjQwNjIgNDIxLjQxNDA2MiAyNDQuNDIxODc1IDQyMS40MTQwNjIgMjQ0LjQyMTg3NSBDIDQzNi41MjczNDQgMjIzLjUwNzgxMiA0MzAuNTUwNzgxIDIwOC42NjQwNjIgNDMwLjU1MDc4MSAyMDguNjY0MDYyICI+PC9wYXRoPgo8L2NsaXBQYXRoPgo8bGluZWFyR3JhZGllbnQgaWQ9ImxpbmVhci1wYXR0ZXJuLTIiIGdyYWRpZW50VW5pdHM9InVzZXJTcGFjZU9uVXNlIiB4MT0iLTAuMTQ3MDczIiB5MT0iMCIgeDI9IjEuMTY4MjA0IiB5Mj0iMCIgZ3JhZGllbnRUcmFuc2Zvcm09Im1hdHJpeCg0Ni44NDM4ODIsIDUuMTgxOTY4LCAtNS4xODE5NjgsIDQ2Ljg0Mzg4MiwgNDEwLjQyODcwNywgMjMwLjYxMzEwMykiPjxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzAwYWRlZiI+PC9zdG9wPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzJjMzc5MiI+PC9zdG9wPjwvbGluZWFyR3JhZGllbnQ+CjxjbGlwUGF0aCBpZD0iY2xpcC02Ij4KPHBhdGggY2xpcC1ydWxlPSJub256ZXJvIiBkPSJNIDUyMyAxOTkgTCA1NzIgMTk5IEwgNTcyIDI2NiBMIDUyMyAyNjYgWiBNIDUyMyAxOTkgIj48L3BhdGg+CjwvY2xpcFBhdGg+CjxjbGlwUGF0aCBpZD0iY2xpcC03Ij4KPHBhdGggY2xpcC1ydWxlPSJub256ZXJvIiBkPSJNIDUyMy4wMzkwNjIgMjYyLjcyMjY1NiBDIDUyMy4wMzkwNjIgMjYyLjcyMjY1NiA1MzMuMDg1OTM4IDI2MS41NzAzMTIgNTQ0LjQyOTY4OCAyNTAuMTQwNjI1IEMgNTU4LjkwMjM0NCAyMzUuNTQ2ODc1IDU2OS45NjQ4NDQgMjY1LjI4NTE1NiA1NjkuOTY0ODQ0IDI2NS4yODUxNTYgQyA1NzguMTQ4NDM4IDIyMi4xMjg5MDYgNTQwLjg1NTQ2OSAxOTkuNjg3NSA1NDAuODU1NDY5IDE5OS42ODc1IEMgNTUxLjA3MDMxMiAyMjAuMDE1NjI1IDUyMy4wMzkwNjIgMjYyLjcyMjY1NiA1MjMuMDM5MDYyIDI2Mi43MjI2NTYgTSA1NDYuNzE0ODQ0IDIwOC42NjQwNjIgQyA1NTUuNDIxODc1IDIxMS44OTQ1MzEgNTY3LjY2Nzk2OSAyNTEuOTQxNDA2IDU2NC4yNTM5MDYgMjQzLjMwODU5NCBDIDU1OS4wNTA3ODEgMjMwLjE2NDA2MiA1MzcuNTc0MjE5IDI0NC40MjE4NzUgNTM3LjU3NDIxOSAyNDQuNDIxODc1IEMgNTUyLjY4NzUgMjIzLjUwNzgxMiA1NDYuNzE0ODQ0IDIwOC42NjQwNjIgNTQ2LjcxNDg0NCAyMDguNjY0MDYyICI+PC9wYXRoPgo8L2NsaXBQYXRoPgo8bGluZWFyR3JhZGllbnQgaWQ9ImxpbmVhci1wYXR0ZXJuLTMiIGdyYWRpZW50VW5pdHM9InVzZXJTcGFjZU9uVXNlIiB4MT0iLTAuMTQ3MDYiIHkxPSIwIiB4Mj0iMS4xNjgyMzkiIHkyPSIwIiBncmFkaWVudFRyYW5zZm9ybT0ibWF0cml4KDQ2Ljg0Mzg4MiwgNS4xODE5NjgsIC01LjE4MTk2OCwgNDYuODQzODgyLCA1MjYuNTg5NzY1LCAyMzAuNjEzMTAzKSI+PHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjMDBhZGVmIj48L3N0b3A+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMmMzNzkyIj48L3N0b3A+PC9saW5lYXJHcmFkaWVudD4KPGNsaXBQYXRoIGlkPSJjbGlwLTgiPgo8cGF0aCBjbGlwLXJ1bGU9Im5vbnplcm8iIGQ9Ik0gMjYyIDE5OSBMIDMzMSAxOTkgTCAzMzEgMjgzIEwgMjYyIDI4MyBaIE0gMjYyIDE5OSAiPjwvcGF0aD4KPC9jbGlwUGF0aD4KPGNsaXBQYXRoIGlkPSJjbGlwLTkiPgo8cGF0aCBjbGlwLXJ1bGU9Im5vbnplcm8iIGQ9Ik0gMjg3LjUzMTI1IDIwMC45MTc5NjkgQyAyODQuNjA1NDY5IDIwMS42OTE0MDYgMjgxLjg4NjcxOSAyMDIuNzY1NjI1IDI3OS4zNzUgMjA0LjE0ODQzOCBDIDI3Ni44NjMyODEgMjA1LjUyNzM0NCAyNzQuNTk3NjU2IDIwNy4xOTkyMTkgMjcyLjU3ODEyNSAyMDkuMTY0MDYyIEMgMjcwLjU1NDY4OCAyMTEuMTI1IDI2OC44MjQyMTkgMjEzLjI5Mjk2OSAyNjcuMzgyODEyIDIxNS42Njc5NjkgQyAyNjUuOTQxNDA2IDIxOC4wNDY4NzUgMjY0LjgzNTkzOCAyMjAuNjA1NDY5IDI2NC4wNjI1IDIyMy4zMzU5MzggQyAyNjMuMjg5MDYyIDIyNi4wNzAzMTIgMjYyLjkwMjM0NCAyMjguOTEwMTU2IDI2Mi45MDIzNDQgMjMxLjg1MTU2MiBDIDI2Mi45MDIzNDQgMjM1LjI2OTUzMSAyNjMuNSAyMzguNjcxODc1IDI2NC42ODc1IDI0Mi4wNTg1OTQgQyAyNjUuODc1IDI0NS40NDUzMTIgMjY3LjUzMTI1IDI0OC41ODIwMzEgMjY5LjY1NjI1IDI1MS40NjQ4NDQgQyAyNzEuNzgxMjUgMjU0LjM0Mzc1IDI3NC4zMTY0MDYgMjU2Ljg0NzY1NiAyNzcuMjU3ODEyIDI1OC45NzY1NjIgQyAyODAuMTk5MjE5IDI2MS4wOTc2NTYgMjgzLjQzNzUgMjYyLjU4OTg0NCAyODYuOTcyNjU2IDI2My40NTMxMjUgQyAyODguMTAxNTYyIDI2NC44MjAzMTIgMjg5LjUzOTA2MiAyNjYuMjQ2MDk0IDI5MS4yNzM0MzggMjY3LjczNDM3NSBDIDI5My4wMTU2MjUgMjY5LjIxODc1IDI5NC45NzY1NjIgMjcwLjY3NTc4MSAyOTcuMTYwMTU2IDI3Mi4xMDE1NjIgQyAyOTkuMzQzNzUgMjczLjUyNzM0NCAzMDEuNzIyNjU2IDI3NC44Nzg5MDYgMzA0LjI4OTA2MiAyNzYuMTU2MjUgQyAzMDYuODYzMjgxIDI3Ny40MzM1OTQgMzA5LjU1MDc4MSAyNzguNTY2NDA2IDMxMi4zNTkzNzUgMjc5LjU0Njg3NSBDIDMxNS4xNjc5NjkgMjgwLjUyNzM0NCAzMTguMDgyMDMxIDI4MS4yOTY4NzUgMzIxLjA5Mzc1IDI4MS44NjMyODEgQyAzMjQuMTEzMjgxIDI4Mi40MjU3ODEgMzI3LjEzNjcxOSAyODIuNzEwOTM4IDMzMC4xNjc5NjkgMjgyLjcxMDkzOCBMIDMzMC4xNjc5NjkgMjgxLjA1ODU5NCBDIDMyNy4xNjQwNjIgMjgxLjA1ODU5NCAzMjQuMjk2ODc1IDI4MC41NDY4NzUgMzIxLjU2NjQwNiAyNzkuNTIzNDM4IEMgMzE4LjgyODEyNSAyNzguNSAzMTYuMzQzNzUgMjc3LjE2Nzk2OSAzMTQuMDk3NjU2IDI3NS41MzUxNTYgQyAzMTEuODU1NDY5IDI3My44OTg0MzggMzA5LjkyOTY4OCAyNzIuMDUwNzgxIDMwOC4zMjQyMTkgMjY5Ljk4NDM3NSBDIDMwNi43MTg3NSAyNjcuOTE3OTY5IDMwNS41NzgxMjUgMjY1Ljg1OTM3NSAzMDQuODk0NTMxIDI2My44MTI1IEMgMzA3LjM5MDYyNSAyNjMuMzA0Njg4IDMwOS43NSAyNjIuNDk2MDk0IDMxMS45ODA0NjkgMjYxLjM4MjgxMiBDIDMxNC4yMTA5MzggMjYwLjI2NTYyNSAzMTYuMjczNDM4IDI1OC45MjE4NzUgMzE4LjE3NTc4MSAyNTcuMzQ3NjU2IEMgMzIwLjA3ODEyNSAyNTUuNzczNDM4IDMyMS43OTI5NjkgMjU0LjAxMTcxOSAzMjMuMzI0MjE5IDI1Mi4wNjY0MDYgQyAzMjQuODU1NDY5IDI1MC4xMTcxODggMzI2LjE1MjM0NCAyNDguMDQ2ODc1IDMyNy4yMjY1NjIgMjQ1Ljg0NzY1NiBDIDMyOC4yOTI5NjkgMjQzLjY0ODQzOCAzMjkuMTIxMDk0IDI0MS4zNjcxODggMzI5LjY5OTIxOSAyMzkuMDAzOTA2IEMgMzMwLjI3NzM0NCAyMzYuNjQwNjI1IDMzMC41NjY0MDYgMjM0LjI1NzgxMiAzMzAuNTY2NDA2IDIzMS44NTE1NjIgQyAzMzAuNTY2NDA2IDIyOC45MTAxNTYgMzMwLjE3OTY4OCAyMjYuMDcwMzEyIDMyOS40MTAxNTYgMjIzLjMzNTkzOCBDIDMyOC42MzY3MTkgMjIwLjYwNTQ2OSAzMjcuNTI3MzQ0IDIxOC4wNDY4NzUgMzI2LjA4OTg0NCAyMTUuNjY3OTY5IEMgMzI0LjY0ODQzOCAyMTMuMjkyOTY5IDMyMi45MTAxNTYgMjExLjEyNSAzMjAuODc1IDIwOS4xNjQwNjIgQyAzMTguODM1OTM4IDIwNy4xOTkyMTkgMzE2LjU2MjUgMjA1LjUyNzM0NCAzMTQuMDU0Njg4IDIwNC4xNDg0MzggQyAzMTEuNTQyOTY5IDIwMi43NjU2MjUgMzA4LjgzMjAzMSAyMDEuNjkxNDA2IDMwNS45MTc5NjkgMjAwLjkxNzk2OSBDIDMwMy4wMDM5MDYgMjAwLjE0NDUzMSAyOTkuOTQ1MzEyIDE5OS43NTc4MTIgMjk2LjczODI4MSAxOTkuNzU3ODEyIEMgMjkzLjUyNzM0NCAxOTkuNzU3ODEyIDI5MC40NTcwMzEgMjAwLjE0NDUzMSAyODcuNTMxMjUgMjAwLjkxNzk2OSBNIDI4Ny4xNzU3ODEgMjU5LjM5ODQzOCBDIDI4NC40MjU3ODEgMjU3LjkxNDA2MiAyODIuMTI4OTA2IDI1NS44NDc2NTYgMjgwLjI4OTA2MiAyNTMuMjAzMTI1IEMgMjc4LjQ0NTMxMiAyNTAuNTU4NTk0IDI3Ny4wNTg1OTQgMjQ3LjQxNDA2MiAyNzYuMTIxMDk0IDI0My43NzM0MzggQyAyNzUuMTgzNTk0IDI0MC4xMzY3MTkgMjc0LjcxODc1IDIzNi4xNjAxNTYgMjc0LjcxODc1IDIzMS44NTE1NjIgQyAyNzQuNzE4NzUgMjI3LjYwMTU2MiAyNzUuMTgzNTk0IDIyMy43MDMxMjUgMjc2LjEyMTA5NCAyMjAuMTQ4NDM4IEMgMjc3LjA1ODU5NCAyMTYuNTk3NjU2IDI3OC40NDUzMTIgMjEzLjUzOTA2MiAyODAuMjg5MDYyIDIxMC45Njg3NSBDIDI4Mi4xMjg5MDYgMjA4LjM5ODQzOCAyODQuNDI1NzgxIDIwNi4zOTg0MzggMjg3LjE3NTc4MSAyMDQuOTcyNjU2IEMgMjg5LjkyMTg3NSAyMDMuNTQ2ODc1IDI5My4xMDkzNzUgMjAyLjgzMjAzMSAyOTYuNzM4MjgxIDIwMi44MzIwMzEgQyAzMDAuMjczNDM4IDIwMi44MzIwMzEgMzAzLjQwNjI1IDIwMy41NDY4NzUgMzA2LjE0MDYyNSAyMDQuOTcyNjU2IEMgMzA4Ljg3NSAyMDYuMzk4NDM4IDMxMS4xNzE4NzUgMjA4LjM5ODQzOCAzMTMuMDI3MzQ0IDIxMC45Njg3NSBDIDMxNC44ODI4MTIgMjEzLjUzOTA2MiAzMTYuMjk2ODc1IDIxNi41OTc2NTYgMzE3LjI2MTcxOSAyMjAuMTQ4NDM4IEMgMzE4LjIzMDQ2OSAyMjMuNzAzMTI1IDMxOC43MTA5MzggMjI3LjYwMTU2MiAzMTguNzEwOTM4IDIzMS44NTE1NjIgQyAzMTguNzEwOTM4IDIzNi4xNjAxNTYgMzE4LjIzMDQ2OSAyNDAuMDYyNSAzMTcuMjYxNzE5IDI0My41NTA3ODEgQyAzMTYuMjk2ODc1IDI0Ny4wNDI5NjkgMzE0Ljg3ODkwNiAyNTAuMDU4NTk0IDMxMy4wMDM5MDYgMjUyLjYwMTU2MiBDIDMxMS4xMzI4MTIgMjU1LjE0MDYyNSAzMDguODMyMDMxIDI1Ny4xODM1OTQgMzA2LjA5NzY1NiAyNTguNzMwNDY5IEMgMzAzLjM2MzI4MSAyNjAuMjczNDM4IDMwMC4yNDIxODggMjYxLjI0MjE4OCAyOTYuNzM4MjgxIDI2MS42MjUgQyAyOTMuMTA5Mzc1IDI2MS42MjUgMjg5LjkyMTg3NSAyNjAuODgyODEyIDI4Ny4xNzU3ODEgMjU5LjM5ODQzOCAiPjwvcGF0aD4KPC9jbGlwUGF0aD4KPGxpbmVhckdyYWRpZW50IGlkPSJsaW5lYXItcGF0dGVybi00IiBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgeDE9Ii0wLjAwMDAwNDAyODMxIiB5MT0iMCIgeDI9IjAuOTk5OTg3IiB5Mj0iMCIgZ3JhZGllbnRUcmFuc2Zvcm09Im1hdHJpeCg2Ny42NjMzMTgsIDAsIDAsIDY3LjY2MzMxOCwgMjYyLjkwNDQ4OCwgMjQxLjIzMzkxMykiPjxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzAwYWRlZiI+PC9zdG9wPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzJjMzc5MiI+PC9zdG9wPjwvbGluZWFyR3JhZGllbnQ+CjxjbGlwUGF0aCBpZD0iY2xpcC0xMCI+CjxwYXRoIGNsaXAtcnVsZT0ibm9uemVybyIgZD0iTSAzNDIgMjAxIEwgMzk2IDIwMSBMIDM5NiAyNjUgTCAzNDIgMjY1IFogTSAzNDIgMjAxICI+PC9wYXRoPgo8L2NsaXBQYXRoPgo8Y2xpcFBhdGggaWQ9ImNsaXAtMTEiPgo8cGF0aCBjbGlwLXJ1bGU9Im5vbnplcm8iIGQ9Ik0gMzkxLjQxMDE1NiAyMDEuMTgzNTk0IEwgMzkxLjQxMDE1NiAyNDEuNDc2NTYyIEMgMzkxLjQxMDE1NiAyNDQuMTI1IDM5MC45NjQ4NDQgMjQ2LjYxMzI4MSAzOTAuMDc0MjE5IDI0OC45NDUzMTIgQyAzODkuMTgzNTk0IDI1MS4yNzczNDQgMzg3LjkwNjI1IDI1My4zMjAzMTIgMzg2LjI0MjE4OCAyNTUuMDc0MjE5IEMgMzg0LjU3ODEyNSAyNTYuODI4MTI1IDM4Mi41NTQ2ODggMjU4LjIwNzAzMSAzODAuMTc1NzgxIDI1OS4yMTg3NSBDIDM3Ny44MDA3ODEgMjYwLjIzMDQ2OSAzNzUuMTI1IDI2MC43MzQzNzUgMzcyLjE1NjI1IDI2MC43MzQzNzUgQyAzNjkuMjE0ODQ0IDI2MC43MzQzNzUgMzY2LjU1MDc4MSAyNjAuMjMwNDY5IDM2NC4xNzk2ODggMjU5LjIxODc1IEMgMzYxLjgwMDc4MSAyNTguMjA3MDMxIDM1OS43NjU2MjUgMjU2LjgyODEyNSAzNTguMDcwMzEyIDI1NS4wNzQyMTkgQyAzNTYuMzc1IDI1My4zMjAzMTIgMzU1LjA3NDIxOSAyNTEuMjc3MzQ0IDM1NC4xNzE4NzUgMjQ4Ljk0NTMxMiBDIDM1My4yNjE3MTkgMjQ2LjYxMzI4MSAzNTIuODEyNSAyNDQuMTI1IDM1Mi44MTI1IDI0MS40NzY1NjIgTCAzNTIuODEyNSAyMDQuOTA2MjUgQyAzNTIuODEyNSAyMDIuODUxNTYyIDM1MS4xNDQ1MzEgMjAxLjE4MzU5NCAzNDkuMDg5ODQ0IDIwMS4xODM1OTQgTCAzNDIuMzc4OTA2IDIwMS4xODM1OTQgTCAzNDIuMzc4OTA2IDI0MS4yNTc4MTIgQyAzNDIuMzc4OTA2IDI0NC40NjQ4NDQgMzQyLjk1MzEyNSAyNDcuNDk2MDk0IDM0NC4wOTM3NSAyNTAuMzQ3NjU2IEMgMzQ1LjIzODI4MSAyNTMuMjAzMTI1IDM0Ni45MjU3ODEgMjU1LjY5OTIxOSAzNDkuMTU2MjUgMjU3LjgzNTkzOCBDIDM1MS4zODI4MTIgMjU5Ljk3NjU2MiAzNTQuMTQ0NTMxIDI2MS42NjQwNjIgMzU3LjQ0NTMxMiAyNjIuODk4NDM4IEMgMzYwLjc0NjA5NCAyNjQuMTI4OTA2IDM2NC41MzUxNTYgMjY0Ljc0NjA5NCAzNjguODEyNSAyNjQuNzQ2MDk0IEMgMzczLjYyNSAyNjQuNzQ2MDk0IDM3Ny43NSAyNjQuMTI4OTA2IDM4MS4xNzk2ODggMjYyLjg5ODQzOCBDIDM4NC42MTMyODEgMjYxLjY2NDA2MiAzODcuNDI5Njg4IDI1OS45ODQzNzUgMzg5LjYyODkwNiAyNTcuODU5Mzc1IEMgMzkxLjgyODEyNSAyNTUuNzM0Mzc1IDM5My40Mzc1IDI1My4yNjk1MzEgMzk0LjQ2NDg0NCAyNTAuNDYwOTM4IEMgMzk1LjQ5MjE4OCAyNDcuNjUyMzQ0IDM5NiAyNDQuNjYwMTU2IDM5NiAyNDEuNDc2NTYyIEwgMzk2IDIwMS4xODM1OTQgWiBNIDM5MS40MTAxNTYgMjAxLjE4MzU5NCAiPjwvcGF0aD4KPC9jbGlwUGF0aD4KPGxpbmVhckdyYWRpZW50IGlkPSJsaW5lYXItcGF0dGVybi01IiBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgeDE9Ii0wLjAwMDAwMTUwNTAxIiB5MT0iMCIgeDI9IjAuOTk5OTkzIiB5Mj0iMCIgZ3JhZGllbnRUcmFuc2Zvcm09Im1hdHJpeCg1My42MjIwNzMsIDAsIDAsIDUzLjYyMjA3MywgMzQyLjM3OTYzNSwgMjMyLjk2NDk0OCkiPjxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzAwYWRlZiI+PC9zdG9wPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzJjMzc5MiI+PC9zdG9wPjwvbGluZWFyR3JhZGllbnQ+CjxjbGlwUGF0aCBpZD0iY2xpcC0xMiI+CjxwYXRoIGNsaXAtcnVsZT0ibm9uemVybyIgZD0iTSA0NjUgMTk5IEwgNTExIDE5OSBMIDUxMSAyNjUgTCA0NjUgMjY1IFogTSA0NjUgMTk5ICI+PC9wYXRoPgo8L2NsaXBQYXRoPgo8Y2xpcFBhdGggaWQ9ImNsaXAtMTMiPgo8cGF0aCBjbGlwLXJ1bGU9Im5vbnplcm8iIGQ9Ik0gNDc4LjU3ODEyNSAyMDEuMDI3MzQ0IEMgNDc2LjA2NjQwNiAyMDEuODc1IDQ3My45NDkyMTkgMjAzLjA0Mjk2OSA0NzIuMjI2NTYyIDIwNC41MjczNDQgQyA0NzAuNSAyMDYuMDExNzE5IDQ2OS4xOTUzMTIgMjA3Ljc3MzQzOCA0NjguMzAwNzgxIDIwOS44MDg1OTQgQyA0NjcuNDEwMTU2IDIxMS44NDM3NSA0NjYuOTY4NzUgMjE0LjA1MDc4MSA0NjYuOTY4NzUgMjE2LjQyOTY4OCBDIDQ2Ni45Njg3NSAyMTguODA0Njg4IDQ2Ny40NTcwMzEgMjIwLjkxMDE1NiA0NjguNDM3NSAyMjIuNzM0Mzc1IEMgNDY5LjQxNzk2OSAyMjQuNTYyNSA0NzAuNzAzMTI1IDIyNi4yMTA5MzggNDcyLjI5Mjk2OSAyMjcuNjgzNTk0IEMgNDczLjg4MjgxMiAyMjkuMTUyMzQ0IDQ3NS43MDMxMjUgMjMwLjQ5MjE4OCA0NzcuNzUzOTA2IDIzMS42OTUzMTIgQyA0NzkuODA0Njg4IDIzMi44OTg0MzggNDgxLjg5MDYyNSAyMzQuMDUwNzgxIDQ4NC4wMTU2MjUgMjM1LjE0ODQzOCBDIDQ4Ni4xNDA2MjUgMjM2LjI1IDQ4OC4yMjY1NjIgMjM3LjMzOTg0NCA0OTAuMjc3MzQ0IDIzOC40MjU3ODEgQyA0OTIuMzI4MTI1IDIzOS41MTE3MTkgNDk0LjE0ODQzOCAyNDAuNjc1NzgxIDQ5NS43MzgyODEgMjQxLjkyNTc4MSBDIDQ5Ny4zMjgxMjUgMjQzLjE3MTg3NSA0OTguNjEzMjgxIDI0NC41MzEyNSA0OTkuNTkzNzUgMjQ2LjAwMzkwNiBDIDUwMC41NzQyMTkgMjQ3LjQ3MjY1NiA1MDEuMDY2NDA2IDI0OS4xNjAxNTYgNTAxLjA2NjQwNiAyNTEuMDYyNSBDIDUwMS4wNjY0MDYgMjUyLjYzNjcxOSA1MDAuNzEwOTM4IDI1NC4wMjczNDQgNDk5Ljk5MjE4OCAyNTUuMjMwNDY5IEMgNDk5LjI4MTI1IDI1Ni40MzM1OTQgNDk4LjMzNTkzOCAyNTcuNDQ5MjE5IDQ5Ny4xNjQwNjIgMjU4LjI4MTI1IEMgNDk1Ljk5MjE4OCAyNTkuMTEzMjgxIDQ5NC42NTIzNDQgMjU5LjczODI4MSA0OTMuMTUyMzQ0IDI2MC4xNTYyNSBDIDQ5MS42NTIzNDQgMjYwLjU3MDMxMiA0OTAuMTI4OTA2IDI2MC43ODEyNSA0ODguNTg1OTM4IDI2MC43ODEyNSBDIDQ4Ni41NjI1IDI2MC43ODEyNSA0ODQuNjU2MjUgMjYwLjQ4ODI4MSA0ODIuODU1NDY5IDI1OS45MTAxNTYgQyA0ODEuMDU4NTk0IDI1OS4zMzIwMzEgNDc5LjQyNTc4MSAyNTguNDg0Mzc1IDQ3Ny45NTMxMjUgMjU3LjM2NzE4OCBDIDQ3Ni40ODQzNzUgMjU2LjI1MzkwNiA0NzUuMTk1MzEyIDI1NC44OTQ1MzEgNDc0LjA5NzY1NiAyNTMuMjg5MDYyIEMgNDczLjczNDM3NSAyNTIuNzU3ODEyIDQ3My4zOTQ1MzEgMjUyLjIwMzEyNSA0NzMuMDc4MTI1IDI1MS42MjUgQyA0NzEuOTU3MDMxIDI0OS41NzgxMjUgNDY5LjUxMTcxOSAyNDguNjYwMTU2IDQ2Ny4zNTU0NjkgMjQ5LjU1MDc4MSBMIDQ2NS44NTE1NjIgMjUwLjE2Nzk2OSBDIDQ2Ni42ODM1OTQgMjUyLjQ1NzAzMSA0NjcuNzM4MjgxIDI1NC41MDc4MTIgNDY5LjAxNTYyNSAyNTYuMzIwMzEyIEMgNDcwLjI5Mjk2OSAyNTguMTM2NzE5IDQ3MS44MzIwMzEgMjU5LjY2NDA2MiA0NzMuNjI4OTA2IDI2MC45MTQwNjIgQyA0NzUuNDI5Njg4IDI2Mi4xNjAxNTYgNDc3LjUgMjYzLjExMzI4MSA0NzkuODQ3NjU2IDI2My43NjU2MjUgQyA0ODIuMTk1MzEyIDI2NC40MTc5NjkgNDg0Ljg1NTQ2OSAyNjQuNzQ2MDk0IDQ4Ny44MjgxMjUgMjY0Ljc0NjA5NCBDIDQ5MS41MTE3MTkgMjY0Ljc0NjA5NCA0OTQuNzQyMTg4IDI2NC4yNzczNDQgNDk3LjUxOTUzMSAyNjMuMzQzNzUgQyA1MDAuMzAwNzgxIDI2Mi40MDYyNSA1MDIuNjI1IDI2MS4xMjg5MDYgNTA0LjQ5NjA5NCAyNTkuNTA3ODEyIEMgNTA2LjM3MTA5NCAyNTcuODkwNjI1IDUwNy43NzM0MzggMjU2LjAwMzkwNiA1MDguNzEwOTM4IDI1My44NDc2NTYgQyA1MDkuNjQ0NTMxIDI1MS42OTUzMTIgNTEwLjExMzI4MSAyNDkuMzgyODEyIDUxMC4xMTMyODEgMjQ2LjkxNzk2OSBDIDUxMC4xMTMyODEgMjQ0Ljc1IDUwOS42MDkzNzUgMjQyLjc3NzM0NCA1MDguNTk3NjU2IDI0MS4wMTE3MTkgQyA1MDcuNTg5ODQ0IDIzOS4yNDIxODggNTA2LjI2NTYyNSAyMzcuNjE3MTg4IDUwNC42MzI4MTIgMjM2LjEyODkwNiBDIDUwMi45OTYwOTQgMjM0LjY0NDUzMSA1MDEuMTI1IDIzMy4yNzczNDQgNDk5LjAxNTYyNSAyMzIuMDI3MzQ0IEMgNDk2LjkwNjI1IDIzMC43ODEyNSA0OTQuNzU3ODEyIDIyOS41NzgxMjUgNDkyLjU3NDIxOSAyMjguNDE3OTY5IEMgNDkwLjM5MDYyNSAyMjcuMjU3ODEyIDQ4OC4yNDIxODggMjI2LjEyMTA5NCA0ODYuMTMyODEyIDIyNS4wMDc4MTIgQyA0ODQuMDIzNDM4IDIyMy44OTQ1MzEgNDgyLjE1MjM0NCAyMjIuNzI2NTYyIDQ4MC41MTU2MjUgMjIxLjUxMTcxOSBDIDQ3OC44ODI4MTIgMjIwLjI5Mjk2OSA0NzcuNTU4NTk0IDIxOS4wMDc4MTIgNDc2LjU1MDc4MSAyMTcuNjUyMzQ0IEMgNDc1LjUzOTA2MiAyMTYuMzAwNzgxIDQ3NS4wMzUxNTYgMjE0LjgwODU5NCA0NzUuMDM1MTU2IDIxMy4xNzU3ODEgQyA0NzUuMDM1MTU2IDIxMi4wMTU2MjUgNDc1LjI4MTI1IDIxMC44Nzg5MDYgNDc1Ljc2OTUzMSAyMDkuNzY1NjI1IEMgNDc2LjI1NzgxMiAyMDguNjQ4NDM4IDQ3Ni45ODgyODEgMjA3LjY1NjI1IDQ3Ny45NTMxMjUgMjA2Ljc3NzM0NCBDIDQ3OC45MTc5NjkgMjA1LjkwMjM0NCA0ODAuMTM2NzE5IDIwNS4xODc1IDQ4MS42MDkzNzUgMjA0LjYzNjcxOSBDIDQ4My4wNzgxMjUgMjA0LjA4OTg0NCA0ODQuNzk2ODc1IDIwMy44MTI1IDQ4Ni43NTc4MTIgMjAzLjgxMjUgQyA0ODguOTU3MDMxIDIwMy44MTI1IDQ5MC45MzM1OTQgMjA0LjExNzE4OCA0OTIuNjgzNTk0IDIwNC43MjY1NjIgQyA0OTQuNDM3NSAyMDUuMzM1OTM4IDQ5NS45OTIxODggMjA2LjIwNzAzMSA0OTcuMzQzNzUgMjA3LjMzNTkzOCBDIDQ5OC42OTUzMTIgMjA4LjQ2NDg0NCA0OTkuODU1NDY5IDIwOS44MTY0MDYgNTAwLjgyMDMxMiAyMTEuMzkwNjI1IEMgNTAxLjE3NTc4MSAyMTEuOTcyNjU2IDUwMS41MTE3MTkgMjEyLjU3ODEyNSA1MDEuODIwMzEyIDIxMy4yMDcwMzEgQyA1MDIuNzI2NTYyIDIxNS4wMzUxNTYgNTA0LjkxMDE1NiAyMTUuODI0MjE5IDUwNi43Njk1MzEgMjE0Ljk3MjY1NiBMIDUwOC41NTQ2ODggMjE0LjE1NjI1IEMgNTA3LjAzOTA2MiAyMDkuNDg4MjgxIDUwNC41NzgxMjUgMjA1LjkyMTg3NSA1MDEuMTc1NzgxIDIwMy40NTcwMzEgQyA0OTcuNzczNDM4IDIwMC45OTIxODggNDkzLjEzMjgxMiAxOTkuNzU3ODEyIDQ4Ny4yNDYwOTQgMTk5Ljc1NzgxMiBDIDQ4My45NzY1NjIgMTk5Ljc1NzgxMiA0ODEuMDg1OTM4IDIwMC4xNzk2ODggNDc4LjU3ODEyNSAyMDEuMDI3MzQ0ICI+PC9wYXRoPgo8L2NsaXBQYXRoPgo8bGluZWFyR3JhZGllbnQgaWQ9ImxpbmVhci1wYXR0ZXJuLTYiIGdyYWRpZW50VW5pdHM9InVzZXJTcGFjZU9uVXNlIiB4MT0iLTAuMDAwMDA1NDc2NjYiIHkxPSIwIiB4Mj0iMS4wMDAwMDkiIHkyPSIwIiBncmFkaWVudFRyYW5zZm9ybT0ibWF0cml4KDQ0LjI2MTUyOCwgMCwgMCwgNDQuMjYxNTI4LCA0NjUuODUxNjI1LCAyMzIuMjUxOTQ4KSI+PHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjMDBhZGVmIj48L3N0b3A+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMmMzNzkyIj48L3N0b3A+PC9saW5lYXJHcmFkaWVudD4KPGNsaXBQYXRoIGlkPSJjbGlwLTE0Ij4KPHBhdGggY2xpcC1ydWxlPSJub256ZXJvIiBkPSJNIDU4NCAyMDEgTCA1OTUgMjAxIEwgNTk1IDI2NCBMIDU4NCAyNjQgWiBNIDU4NCAyMDEgIj48L3BhdGg+CjwvY2xpcFBhdGg+CjxjbGlwUGF0aCBpZD0iY2xpcC0xNSI+CjxwYXRoIGNsaXAtcnVsZT0ibm9uemVybyIgZD0iTSA1ODQuMDYyNSAyMDEuMTgzNTk0IEwgNTg0LjA2MjUgMjYzLjI3MzQzOCBMIDU5NC40OTIxODggMjYzLjI3MzQzOCBMIDU5NC40OTIxODggMjA1LjY5OTIxOSBDIDU5NC40OTIxODggMjAzLjIwMzEyNSA1OTIuNDcyNjU2IDIwMS4xODM1OTQgNTg5Ljk3NjU2MiAyMDEuMTgzNTk0IFogTSA1ODQuMDYyNSAyMDEuMTgzNTk0ICI+PC9wYXRoPgo8L2NsaXBQYXRoPgo8bGluZWFyR3JhZGllbnQgaWQ9ImxpbmVhci1wYXR0ZXJuLTciIGdyYWRpZW50VW5pdHM9InVzZXJTcGFjZU9uVXNlIiB4MT0iLTAuMDAwMDU4NjgwNiIgeTE9IjAiIHgyPSIxLjAwMDAzOSIgeTI9IjAiIGdyYWRpZW50VHJhbnNmb3JtPSJtYXRyaXgoMTAuNDMwMjk3LCAwLCAwLCAxMC40MzAyOTcsIDU4NC4wNjIyMjMsIDIzMi4yMjk2NjcpIj48c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiMwMGFkZWYiPjwvc3RvcD48c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMyYzM3OTIiPjwvc3RvcD48L2xpbmVhckdyYWRpZW50Pgo8Y2xpcFBhdGggaWQ9ImNsaXAtMTYiPgo8cGF0aCBjbGlwLXJ1bGU9Im5vbnplcm8iIGQ9Ik0gNjEwIDIwMSBMIDY1MiAyMDEgTCA2NTIgMjY0IEwgNjEwIDI2NCBaIE0gNjEwIDIwMSAiPjwvcGF0aD4KPC9jbGlwUGF0aD4KPGNsaXBQYXRoIGlkPSJjbGlwLTE3Ij4KPHBhdGggY2xpcC1ydWxlPSJub256ZXJvIiBkPSJNIDYxMC4wOTM3NSAyMDEuMTgzNTk0IEwgNjEwLjA5Mzc1IDI2My4yNzM0MzggTCA2NTEuNzY5NTMxIDI2My4yNzM0MzggTCA2NTEuNzY5NTMxIDI1OS4yNjU2MjUgTCA2MjAuNTIzNDM4IDI1OS4yNjU2MjUgTCA2MjAuNTIzNDM4IDIwNC44NDM3NSBDIDYyMC41MjM0MzggMjAyLjgyNDIxOSA2MTguODgyODEyIDIwMS4xODM1OTQgNjE2Ljg2MzI4MSAyMDEuMTgzNTk0IFogTSA2MTAuMDkzNzUgMjAxLjE4MzU5NCAiPjwvcGF0aD4KPC9jbGlwUGF0aD4KPGxpbmVhckdyYWRpZW50IGlkPSJsaW5lYXItcGF0dGVybi04IiBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgeDE9IjAuMDAwMDA4OTk4OSIgeTE9IjAiIHgyPSIxLjAwMDAwMSIgeTI9IjAiIGdyYWRpZW50VHJhbnNmb3JtPSJtYXRyaXgoNDEuNjc2NjUyLCAwLCAwLCA0MS42NzY2NTIsIDYxMC4wOTI1NzUsIDIzMi4yMjk2NjcpIj48c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiMwMGFkZWYiPjwvc3RvcD48c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMyYzM3OTIiPjwvc3RvcD48L2xpbmVhckdyYWRpZW50Pgo8L2RlZnM+CjxnIGNsaXAtcGF0aD0idXJsKCNjbGlwLTApIj4KPGcgY2xpcC1wYXRoPSJ1cmwoI2NsaXAtMSkiPgo8cGF0aCBmaWxsLXJ1bGU9Im5vbnplcm8iIGZpbGw9InVybCgjbGluZWFyLXBhdHRlcm4tMCkiIGQ9Ik0gMTY1LjM3NSAyOTQuMjE4NzUgTCAxODkuNzE4NzUgMzk2LjYyMTA5NCBMIDY5Ni40NzY1NjIgMzQyLjY0MDYyNSBMIDY3Mi4xMzI4MTIgMjQwLjIzODI4MSBaIE0gMTY1LjM3NSAyOTQuMjE4NzUgIj48L3BhdGg+CjwvZz4KPC9nPgo8ZyBjbGlwLXBhdGg9InVybCgjY2xpcC0yKSI+CjxnIGNsaXAtcGF0aD0idXJsKCNjbGlwLTMpIj4KPHBhdGggZmlsbC1ydWxlPSJub256ZXJvIiBmaWxsPSJ1cmwoI2xpbmVhci1wYXR0ZXJuLTEpIiBkPSJNIDIwMy42NjAxNTYgMTkzLjQyOTY4OCBMIDE5NS44MjQyMTkgMjY0LjI1NzgxMiBMIDI1Ny40Mzc1IDI3MS4wNzQyMTkgTCAyNjUuMjczNDM4IDIwMC4yNDYwOTQgWiBNIDIwMy42NjAxNTYgMTkzLjQyOTY4OCAiPjwvcGF0aD4KPC9nPgo8L2c+CjxnIGNsaXAtcGF0aD0idXJsKCNjbGlwLTQpIj4KPGcgY2xpcC1wYXRoPSJ1cmwoI2NsaXAtNSkiPgo8cGF0aCBmaWxsLXJ1bGU9Im5vbnplcm8iIGZpbGw9InVybCgjbGluZWFyLXBhdHRlcm4tMikiIGQ9Ik0gNDA3LjU0Mjk2OSAxOTMuNjY0MDYyIEwgMzk5LjcwNzAzMSAyNjQuNDkyMTg4IEwgNDYxLjMyMDMxMiAyNzEuMzA4NTk0IEwgNDY5LjE1NjI1IDIwMC40ODA0NjkgWiBNIDQwNy41NDI5NjkgMTkzLjY2NDA2MiAiPjwvcGF0aD4KPC9nPgo8L2c+CjxnIGNsaXAtcGF0aD0idXJsKCNjbGlwLTYpIj4KPGcgY2xpcC1wYXRoPSJ1cmwoI2NsaXAtNykiPgo8cGF0aCBmaWxsLXJ1bGU9Im5vbnplcm8iIGZpbGw9InVybCgjbGluZWFyLXBhdHRlcm4tMykiIGQ9Ik0gNTIzLjcwMzEyNSAxOTMuNjY0MDYyIEwgNTE1Ljg2NzE4OCAyNjQuNDkyMTg4IEwgNTc3LjQ4NDM3NSAyNzEuMzA4NTk0IEwgNTg1LjMxNjQwNiAyMDAuNDgwNDY5IFogTSA1MjMuNzAzMTI1IDE5My42NjQwNjIgIj48L3BhdGg+CjwvZz4KPC9nPgo8ZyBmaWxsPSJyZ2IoMCUsIDY3LjgzOTA1JSwgOTMuNzI4NjM4JSkiIGZpbGwtb3BhY2l0eT0iMSI+Cjx1c2UgeGxpbms6aHJlZj0iI2dseXBoLTAtMCIgeD0iMjAyLjk5NDI4MSIgeT0iMzU5Ljc0MTc2NyI+PC91c2U+CjwvZz4KPGcgZmlsbD0icmdiKDAlLCA2Ny44MzkwNSUsIDkzLjcyODYzOCUpIiBmaWxsLW9wYWNpdHk9IjEiPgo8dXNlIHhsaW5rOmhyZWY9IiNnbHlwaC0wLTEiIHg9IjIzOS42OTQwNzkiIHk9IjM1OS43NDE3NjciPjwvdXNlPgo8L2c+CjxnIGZpbGw9InJnYigwJSwgNjcuODM5MDUlLCA5My43Mjg2MzglKSIgZmlsbC1vcGFjaXR5PSIxIj4KPHVzZSB4bGluazpocmVmPSIjZ2x5cGgtMC0yIiB4PSIyNzAuNjEwNzk4IiB5PSIzNTkuNzQxNzY3Ij48L3VzZT4KPHVzZSB4bGluazpocmVmPSIjZ2x5cGgtMC0zIiB4PSIzMDAuNzMxMDA0IiB5PSIzNTkuNzQxNzY3Ij48L3VzZT4KPHVzZSB4bGluazpocmVmPSIjZ2x5cGgtMC00IiB4PSIzMzIuMTAwNjQyIiB5PSIzNTkuNzQxNzY3Ij48L3VzZT4KPHVzZSB4bGluazpocmVmPSIjZ2x5cGgtMC01IiB4PSIzNjQuNjc1MDg3IiB5PSIzNTkuNzQxNzY3Ij48L3VzZT4KPHVzZSB4bGluazpocmVmPSIjZ2x5cGgtMC02IiB4PSIzOTYuNDQ2MzI3IiB5PSIzNTkuNzQxNzY3Ij48L3VzZT4KPHVzZSB4bGluazpocmVmPSIjZ2x5cGgtMC03IiB4PSI0MjguNjQxNDgxIiB5PSIzNTkuNzQxNzY3Ij48L3VzZT4KPHVzZSB4bGluazpocmVmPSIjZ2x5cGgtMC00IiB4PSI0NjEuMjE1OTI3IiB5PSIzNTkuNzQxNzY3Ij48L3VzZT4KPC9nPgo8ZyBmaWxsPSJyZ2IoMCUsIDY3LjgzOTA1JSwgOTMuNzI4NjM4JSkiIGZpbGwtb3BhY2l0eT0iMSI+Cjx1c2UgeGxpbms6aHJlZj0iI2dseXBoLTAtMiIgeD0iNDkzLjM4NDMwOCIgeT0iMzU5Ljc0MTc2NyI+PC91c2U+Cjx1c2UgeGxpbms6aHJlZj0iI2dseXBoLTAtNSIgeD0iNTIzLjUwNDUxNCIgeT0iMzU5Ljc0MTc2NyI+PC91c2U+Cjx1c2UgeGxpbms6aHJlZj0iI2dseXBoLTAtOCIgeD0iNTU1LjI3NTc1NCIgeT0iMzU5Ljc0MTc2NyI+PC91c2U+Cjx1c2UgeGxpbms6aHJlZj0iI2dseXBoLTAtOSIgeD0iNTc5LjU5NTAzMiIgeT0iMzU5Ljc0MTc2NyI+PC91c2U+CjwvZz4KPGcgZmlsbD0icmdiKDAlLCA2Ny44MzkwNSUsIDkzLjcyODYzOCUpIiBmaWxsLW9wYWNpdHk9IjEiPgo8dXNlIHhsaW5rOmhyZWY9IiNnbHlwaC0wLTIiIHg9IjYwOC40OTQ4MTIiIHk9IjM1OS43NDE3NjciPjwvdXNlPgo8dXNlIHhsaW5rOmhyZWY9IiNnbHlwaC0wLTEwIiB4PSI2MzguNjE1MDE5IiB5PSIzNTkuNzQxNzY3Ij48L3VzZT4KPC9nPgo8ZyBjbGlwLXBhdGg9InVybCgjY2xpcC04KSI+CjxnIGNsaXAtcGF0aD0idXJsKCNjbGlwLTkpIj4KPHBhdGggZmlsbC1ydWxlPSJub256ZXJvIiBmaWxsPSJ1cmwoI2xpbmVhci1wYXR0ZXJuLTQpIiBkPSJNIDI2Mi45MDIzNDQgMTk5Ljc1NzgxMiBMIDI2Mi45MDIzNDQgMjgyLjcxMDkzOCBMIDMzMC41NjY0MDYgMjgyLjcxMDkzOCBMIDMzMC41NjY0MDYgMTk5Ljc1NzgxMiBaIE0gMjYyLjkwMjM0NCAxOTkuNzU3ODEyICI+PC9wYXRoPgo8L2c+CjwvZz4KPGcgY2xpcC1wYXRoPSJ1cmwoI2NsaXAtMTApIj4KPGcgY2xpcC1wYXRoPSJ1cmwoI2NsaXAtMTEpIj4KPHBhdGggZmlsbC1ydWxlPSJub256ZXJvIiBmaWxsPSJ1cmwoI2xpbmVhci1wYXR0ZXJuLTUpIiBkPSJNIDM0Mi4zNzg5MDYgMjAxLjE4MzU5NCBMIDM0Mi4zNzg5MDYgMjY0Ljc0NjA5NCBMIDM5NiAyNjQuNzQ2MDk0IEwgMzk2IDIwMS4xODM1OTQgWiBNIDM0Mi4zNzg5MDYgMjAxLjE4MzU5NCAiPjwvcGF0aD4KPC9nPgo8L2c+CjxnIGNsaXAtcGF0aD0idXJsKCNjbGlwLTEyKSI+CjxnIGNsaXAtcGF0aD0idXJsKCNjbGlwLTEzKSI+CjxwYXRoIGZpbGwtcnVsZT0ibm9uemVybyIgZmlsbD0idXJsKCNsaW5lYXItcGF0dGVybi02KSIgZD0iTSA0NjUuODUxNTYyIDE5OS43NTc4MTIgTCA0NjUuODUxNTYyIDI2NC43NDYwOTQgTCA1MTAuMTEzMjgxIDI2NC43NDYwOTQgTCA1MTAuMTEzMjgxIDE5OS43NTc4MTIgWiBNIDQ2NS44NTE1NjIgMTk5Ljc1NzgxMiAiPjwvcGF0aD4KPC9nPgo8L2c+CjxnIGNsaXAtcGF0aD0idXJsKCNjbGlwLTE0KSI+CjxnIGNsaXAtcGF0aD0idXJsKCNjbGlwLTE1KSI+CjxwYXRoIGZpbGwtcnVsZT0ibm9uemVybyIgZmlsbD0idXJsKCNsaW5lYXItcGF0dGVybi03KSIgZD0iTSA1ODQuMDYyNSAyMDEuMTgzNTk0IEwgNTg0LjA2MjUgMjYzLjI3MzQzOCBMIDU5NC40OTIxODggMjYzLjI3MzQzOCBMIDU5NC40OTIxODggMjAxLjE4MzU5NCBaIE0gNTg0LjA2MjUgMjAxLjE4MzU5NCAiPjwvcGF0aD4KPC9nPgo8L2c+CjxnIGNsaXAtcGF0aD0idXJsKCNjbGlwLTE2KSI+CjxnIGNsaXAtcGF0aD0idXJsKCNjbGlwLTE3KSI+CjxwYXRoIGZpbGwtcnVsZT0ibm9uemVybyIgZmlsbD0idXJsKCNsaW5lYXItcGF0dGVybi04KSIgZD0iTSA2MTAuMDkzNzUgMjAxLjE4MzU5NCBMIDYxMC4wOTM3NSAyNjMuMjczNDM4IEwgNjUxLjc2OTUzMSAyNjMuMjczNDM4IEwgNjUxLjc2OTUzMSAyMDEuMTgzNTk0IFogTSA2MTAuMDkzNzUgMjAxLjE4MzU5NCAiPjwvcGF0aD4KPC9nPgo8L2c+Cjwvc3ZnPg==";
+const WAVE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="175 290 512 33" preserveAspectRatio="xMidYMid slice"><defs><clipPath id="wclip0"><path clip-rule="nonzero" d="M 177 292 L 685 292 L 685 323 L 177 323 Z M 177 292 "></path></clipPath><clipPath id="wclip1"><path clip-rule="nonzero" d="M 242.902344 299.539062 C 272.660156 298.445312 315.796875 301.179688 378.214844 311.785156 C 567.207031 343.898438 684.667969 293.851562 684.667969 293.851562 C 588.359375 324.210938 512.148438 310.234375 378.554688 296.121094 C 357.492188 293.898438 338.070312 292.960938 320.289062 292.960938 C 289.578125 292.960938 263.769531 295.753906 242.902344 299.539062 M 177.1875 319.710938 C 177.1875 319.710938 199.214844 307.457031 242.902344 299.539062 C 182.5625 301.753906 177.1875 319.710938 177.1875 319.710938 "></path></clipPath><linearGradient id="wgrad0" gradientUnits="userSpaceOnUse" x1="-0.0111942" y1="0" x2="1.000413" y2="0" gradientTransform="matrix(500.943069, -53.360687, 83.863433, 352.787935, 180.321488, 332.898763)"><stop offset="0" stop-color="#00adef"></stop><stop offset="1" stop-color="#2c3792"></stop></linearGradient></defs><g clip-path="url(#wclip0)"><g clip-path="url(#wclip1)"><path fill-rule="nonzero" fill="url(#wgrad0)" d="M 165.375 294.21875 L 189.71875 396.621094 L 696.476562 342.640625 L 672.132812 240.238281 Z M 165.375 294.21875 "></path></g></g></svg>`;
+
+const TODAY = '2026-09-20';
+const COMPANY = { name: 'AquaSail Watersports Ltd', meetingPoint: 'Marina jetty, Grand Baie', ticketFooter: 'Thank you for sailing with AquaSail. See you on the water.' };
+
+const ROLE = 'receptionist';
+const USER = { name: 'Marina Pillay', role: 'receptionist', initials: 'MP' };
+const MAX_DISCOUNT_RECEPTIONIST = 10;
+
+/* ---------------- catalogue ---------------- */
+const ACTIVITIES = [
+  { code:'CATAMARAN', name:'Catamaran Cruise', duration:240 },
+  { code:'PARASAIL', name:'Parasailing', duration:15 },
+  { code:'UNDERSEA', name:'Undersea Walk', duration:45 },
+  { code:'UNDERSEAPHOTO', name:'Undersea Photo', duration:10 },
+  { code:'TUBE', name:'Tube Ride', duration:15 },
+  { code:'SPEEDBOAT', name:'Speed Boat Ride', duration:30 },
+  { code:'PRIVATEBOAT', name:'Private Boat Charter', duration:360 },
+  { code:'ISLANDVISIT', name:'Ile aux Cerfs Visit', duration:180 },
+  { code:'LUNCH', name:'Beach BBQ Lunch', duration:60 },
+  { code:'SNORKEL', name:'Snorkelling', duration:60 },
+];
+const actByCode = c => ACTIVITIES.find(a=>a.code===c);
+
+const PACKAGES = [
+  { code:'ISLANDEXP', name:'Island Explorer', mode:'bundle', includes:['CATAMARAN','SNORKEL','LUNCH'], blurb:'Full-day catamaran sail, a snorkelling stop, and a beach BBQ lunch.' },
+  { code:'SUNSET', name:'Sunset Cruise', mode:'bundle', includes:['CATAMARAN'], blurb:'A shorter evening sail along the lagoon.' },
+  { code:'ADRENALINE', name:'Adrenaline Combo', mode:'components', includes:['PARASAIL','TUBE'], blurb:'Parasailing plus a tube ride, priced as the sum of both.' },
+  { code:'UNDERSEAPKG', name:'Undersea Adventure', mode:'components', includes:['UNDERSEA','LUNCH'], blurb:'Helmet-dive walk on the reef, then lunch on the beach.' },
+];
+const pkgByCode = c => PACKAGES.find(p=>p.code===c);
+
+const OPERATORS = [
+  { code:'BEACHCOMB', name:'Beachcomber Hotel', model:'net_rate', payer:'operator', rate:null },
+  { code:'VERANDA', name:'Veranda Resorts', model:'commission', payer:'client', rate:0.20 },
+  { code:'MERVILLE', name:'Sofitel Merville', model:'commission', payer:'client', rate:0.15 },
+  { code:'HERITAGE', name:'Heritage Le Telfair', model:'net_rate', payer:'client', rate:null },
+];
+const opByCode = c => OPERATORS.find(o=>o.code===c);
+
+/* ---------------- fleet (V1 pull-forward of V4's resource concept) ----------------
+   AquaSail's own boats — shared across every operator and walk-ins. Any booking whose
+   lines include the Catamaran Tour activity (standalone or via a package) must be
+   assigned to one of these before it can be submitted, so headcounts per vessel are
+   always accurate, not just per activity. */
+const RESOURCES = [
+  { code:'CAT_A', name:'Catamaran A', type:'Catamaran', capacity:20 },
+  { code:'CAT_B', name:'Catamaran B', type:'Catamaran', capacity:20 },
+  { code:'CATASPEED', name:'Cataspeed', type:'Speedboat', capacity:12 },
+];
+const resourceByCode = c => RESOURCES.find(r=>r.code===c);
+function linesIncludeActivity(lines, code){
+  return lines.some(l => l.kind==='activity' ? l.code===code : pkgByCode(l.code).includes.includes(code));
+}
+function needsBoat(lines){ return linesIncludeActivity(lines,'CATAMARAN'); }
+function fleetTotals(date){
+  date = date || TODAY;
+  const totals = {}; RESOURCES.forEach(r=>totals[r.code]=0);
+  STATE.bookings.filter(b=>b.serviceDate===date && b.status!=='cancelled' && b.resourceCode).forEach(b=>{ totals[b.resourceCode] = (totals[b.resourceCode]||0) + bookingPeople(b); });
+  return totals;
+}
+
+/* ---------------- price rules ----------------
+   { targetType:'activity'|'package', targetId, participant:'adult'|'child'|'infant',
+     audience:'walk_in'|'operator', operatorId, retail, net, from, to }
+   `to` is exclusive; null = still current. Never mutated — only closed + appended. */
+function buildBasePriceRules(){
+  const rules = [];
+  let rid = 1;
+  const add = (targetType, targetId, participant, audience, operatorId, retail, net, from, to) => {
+    rules.push({ id:'PR'+(rid++), targetType, targetId, participant, audience, operatorId, retail, net, from, to });
+  };
+  const walkinBase = { // [adult, child] — CATAMARAN excluded here, it gets a real history below
+    PARASAIL:[2200,1600], UNDERSEA:[3200,2400], UNDERSEAPHOTO:[600,400], TUBE:[1200,900], SPEEDBOAT:[1500,1000],
+    PRIVATEBOAT:[5000,2500], ISLANDVISIT:[2500,1500], LUNCH:[850,500], SNORKEL:[1100,800],
+  };
+  for(const code in walkinBase){
+    const [adult,child] = walkinBase[code];
+    add('activity',code,'adult','walk_in',null,adult,null,'2026-01-01',null);
+    add('activity',code,'child','walk_in',null,child,null,'2026-01-01',null);
+    add('activity',code,'infant','walk_in',null,0,null,'2026-01-01',null);
+  }
+  // Catamaran has a real price history, on purpose: proves out effective-dated pricing.
+  add('activity','CATAMARAN','adult','walk_in',null,1700,null,'2026-01-01','2026-09-01');
+  add('activity','CATAMARAN','adult','walk_in',null,1800,null,'2026-09-01','2026-10-01');
+  add('activity','CATAMARAN','adult','walk_in',null,1950,null,'2026-10-01',null);
+  add('activity','CATAMARAN','child','walk_in',null,850,null,'2026-01-01','2026-09-01');
+  add('activity','CATAMARAN','child','walk_in',null,900,null,'2026-09-01',null);
+  add('activity','CATAMARAN','infant','walk_in',null,0,null,'2026-01-01',null);
+
+  // bundle package prices (walk-in)
+  const bundleBase = { ISLANDEXP:[3200,1900], SUNSET:[2100,1100] };
+  for(const code in bundleBase){
+    const [adult,child] = bundleBase[code];
+    add('package',code,'adult','walk_in',null,adult,null,'2026-01-01',null);
+    add('package',code,'child','walk_in',null,child,null,'2026-01-01',null);
+    add('package',code,'infant','walk_in',null,0,null,'2026-01-01',null);
+  }
+
+  // operator net-rate rows — only net_rate operators need these; commission and none fall back to walk-in
+  const netRows = [
+    ['BEACHCOMB','SUNSET',1500,800], ['BEACHCOMB','CATAMARAN',1300,650],
+    ['HERITAGE','PRIVATEBOAT',4200,2100],
+  ];
+  for(const [opCode,targetCode,adultNet,childNet] of netRows){
+    const targetType = pkgByCode(targetCode) ? 'package' : 'activity';
+    add(targetType,targetCode,'adult','operator',opCode,null,adultNet,'2026-01-01',null);
+    add(targetType,targetCode,'child','operator',opCode,null,childNet,'2026-01-01',null);
+    add(targetType,targetCode,'infant','operator',opCode,null,0,'2026-01-01',null);
+  }
+  return rules;
+}
+
+function resolveRule(rules, targetType, targetId, participant, audience, operatorId, serviceDate){
+  const inWindow = r => r.from <= serviceDate && (!r.to || serviceDate < r.to);
+  if(audience==='operator'){
+    const opRule = rules.find(r => r.targetType===targetType && r.targetId===targetId && r.participant===participant && r.audience==='operator' && r.operatorId===operatorId && inWindow(r));
+    if(opRule) return opRule;
+  }
+  return rules.find(r => r.targetType===targetType && r.targetId===targetId && r.participant===participant && r.audience==='walk_in' && inWindow(r)) || null;
+}
+
+// Resolves ONE line (an activity, or a package expanded per its pricing_mode) for ONE participant type.
+function resolveLine(rules, kind, code, participant, operatorCode, serviceDate){
+  const audience = operatorCode ? 'operator' : 'walk_in';
+  if(kind==='activity'){
+    const rule = resolveRule(rules,'activity',code,participant,audience,operatorCode,serviceDate);
+    if(!rule) return { ok:false, error:`No price configured for ${actByCode(code).name} / ${participant} on ${serviceDate}.` };
+    const retail = rule.retail ?? rule.net; // an operator-only net row has no retail; use net as the reference figure
+    return { ok:true, retail, net: rule.net, ruleId: rule.id, warning:null };
+  }
+  const pkg = pkgByCode(code);
+  if(pkg.mode==='bundle'){
+    const rule = resolveRule(rules,'package',code,participant,audience,operatorCode,serviceDate);
+    if(!rule) return { ok:false, error:`No price configured for ${pkg.name} / ${participant} on ${serviceDate}.` };
+    const retail = rule.retail ?? rule.net;
+    return { ok:true, retail, net: rule.net, ruleId: rule.id, warning:null };
+  }
+  // components: sum each included activity
+  let retail=0, net=0, hasNet=true, ruleIds=[];
+  for(const actCode of pkg.includes){
+    const r = resolveLine(rules,'activity',actCode,participant,operatorCode,serviceDate);
+    if(!r.ok) return r;
+    retail += r.retail; ruleIds.push(r.ruleId);
+    if(r.net==null) hasNet=false; else net += r.net;
+  }
+  return { ok:true, retail, net: hasNet?net:null, ruleId: ruleIds.join('+'), warning:null };
+}
+
+// Full quote for a set of lines. Each line: {kind:'activity'|'package', code, qty:{adult,child,infant}}
+function buildQuote(rules, lines, operatorCode, serviceDate, discount){
+  const operator = operatorCode ? opByCode(operatorCode) : null;
+  const out = { ok:true, lines:[], retailTotal:0, chargedTotal:0, discountTotal:0, operatorNetTotal:0, commissionTotal:0, warnings:[] };
+  for(const line of lines){
+    for(const participant of ['adult','child','infant']){
+      const qty = line.qty[participant] || 0;
+      if(qty<=0) continue;
+      const r = resolveLine(rules, line.kind, line.code, participant, operatorCode, serviceDate);
+      if(!r.ok) return { ok:false, error:r.error };
+      const label = line.kind==='activity' ? actByCode(line.code).name : pkgByCode(line.code).name;
+      let unitCharged, unitOperatorNet=0, unitCommission=0;
+      if(!operator || operator.model==='none'){ unitCharged = r.retail; }
+      else if(operator.model==='net_rate'){
+        if(r.net==null){ unitCharged = r.retail; out.warnings.push(`No net price set for ${label} / ${participant} — using retail.`); }
+        else { unitCharged = r.net; unitOperatorNet = r.net; }
+      } else if(operator.model==='commission'){
+        unitCharged = r.retail; unitCommission = Math.round(r.retail * operator.rate);
+      }
+      out.lines.push({ label, participant, qty, unitRetail:r.retail, unitCharged, lineRetail:r.retail*qty, lineCharged:unitCharged*qty, lineOperatorNet:unitOperatorNet*qty, lineCommission:unitCommission*qty });
+      out.retailTotal += r.retail*qty; out.chargedTotal += unitCharged*qty;
+      out.operatorNetTotal += unitOperatorNet*qty; out.commissionTotal += unitCommission*qty;
+    }
+  }
+  let discountAmt = 0;
+  if(discount && discount.value>0){
+    discountAmt = discount.type==='percent' ? Math.round(out.chargedTotal * discount.value/100) : Math.round(discount.value*100);
+    discountAmt = Math.min(discountAmt, out.chargedTotal);
+  }
+  out.discountTotal = discountAmt;
+  out.chargedTotal -= discountAmt;
+  out.payer = operator ? operator.payer : 'client';
+  return out;
+}
+
+/* expand a booking's lines into entitlements (booking_activities) */
+function expandEntitlements(lines){
+  const totals = {}; // activityCode -> count of people entitled
+  for(const line of lines){
+    const totalPeople = (line.qty.adult||0)+(line.qty.child||0)+(line.qty.infant||0);
+    if(totalPeople<=0) continue;
+    const codes = line.kind==='activity' ? [line.code] : pkgByCode(line.code).includes;
+    for(const c of codes) totals[c] = (totals[c]||0) + totalPeople;
+  }
+  return totals;
+}
+
+/* ---------------- clients ---------------- */
+function seedClients(){
+  return [
+    { id:'c1', firstName:'Jean-Paul', lastName:'Rousseau', phone:'+230 5712 3456', email:'jp.rousseau@example.mu', country:'Mauritius', bookings:4, lastVisit:'2026-08-02' },
+    { id:'c2', firstName:'Emma', lastName:'Whitfield', phone:'+44 7700 900123', email:'emma.whitfield@example.co.uk', country:'United Kingdom', bookings:2, lastVisit:'2026-06-14' },
+    { id:'c3', firstName:'Priya', lastName:'Naidoo', phone:'+230 5893 1122', email:'priya.naidoo@example.mu', country:'Mauritius', bookings:6, lastVisit:'2026-09-01' },
+    { id:'c4', firstName:'Liu', lastName:'Wei', phone:'+86 138 0013 8000', email:'liu.wei@example.cn', country:'China', bookings:1, lastVisit:'2026-03-22' },
+    { id:'c5', firstName:'Sarah', lastName:'Thompson', phone:'+27 82 555 0134', email:'sarah.t@example.co.za', country:'South Africa', bookings:3, lastVisit:'2026-07-20' },
+    { id:'c6', firstName:'David', lastName:'Chen', phone:'+230 5744 9981', email:'', country:'Mauritius', bookings:2, lastVisit:'2026-05-11' },
+    { id:'c7', firstName:'Anna', lastName:'Kowalski', phone:'+48 601 234 567', email:'anna.k@example.pl', country:'Poland', bookings:1, lastVisit:null },
+    { id:'c8', firstName:'Marc', lastName:'Duval', phone:'+230 5601 2233', email:'', country:'Mauritius', bookings:1, lastVisit:null },
+    { id:'c9', firstName:'Tom', lastName:'Becker', phone:'+49 170 555 0192', email:'tom.becker@example.de', country:'Germany', bookings:1, lastVisit:null },
+    { id:'c10', firstName:'Wei', lastName:'Zhang', phone:'+86 139 1122 3344', email:'', country:'China', bookings:1, lastVisit:null },
+    { id:'c11', firstName:'James', lastName:'Whitmore', phone:'+44 7911 223344', email:'', country:'United Kingdom', bookings:1, lastVisit:null },
+  ];
+}
+
+/* ---------------- state ---------------- */
+const STORE_KEY = 'aquasail_ops_demo_v2';
+let STATE = null;
+
+function seedBookingsAndTickets(rules, clients){
+  const bookings = [];
+  const scenarios = [
+    { time:'07:30', clientId:'c7', source:'walk_in', lines:[{kind:'package',code:'ISLANDEXP',qty:{adult:2}}], boat:'CAT_A', payment:{method:'cash'}, cancel:{reason:'Guest reported feeling unwell; rescheduling for next week.', refund:true} },
+    { time:'08:00', clientId:'c1', source:'walk_in', lines:[{kind:'package',code:'ISLANDEXP',qty:{adult:4}}], boat:'CAT_A', payment:{method:'cash'} },
+    { time:'08:30', clientId:'c8', source:'operator', operator:'BEACHCOMB', lines:[{kind:'package',code:'SUNSET',qty:{adult:2,child:1}}], boat:'CAT_B', payment:null },
+    { time:'09:00', clientId:'c2', source:'walk_in', lines:[{kind:'package',code:'ADRENALINE',qty:{adult:2}}], payment:{method:'card'} },
+    { time:'09:15', clientId:'c9', source:'operator', operator:'VERANDA', lines:[{kind:'package',code:'ISLANDEXP',qty:{adult:6,child:2}}], boat:'CAT_A', payment:{method:'cash'} },
+    { time:'10:00', clientId:'c3', source:'walk_in', lines:[{kind:'activity',code:'SNORKEL',qty:{adult:3}},{kind:'activity',code:'LUNCH',qty:{adult:3}}], payment:{method:'cash'} },
+    { time:'10:30', clientId:'c4', source:'walk_in', lines:[{kind:'package',code:'UNDERSEAPKG',qty:{adult:2,child:2}}], payment:{method:'card'} },
+    { time:'11:00', clientId:'c10', source:'operator', operator:'MERVILLE', lines:[{kind:'activity',code:'CATAMARAN',qty:{adult:4}}], boat:'CATASPEED', payment:{method:'cash'} },
+    { time:'13:00', clientId:'c11', source:'operator', operator:'HERITAGE', lines:[{kind:'activity',code:'PRIVATEBOAT',qty:{adult:8}}], payment:{method:'bank_transfer'} },
+    { time:'14:00', clientId:'c5', source:'walk_in', lines:[{kind:'package',code:'SUNSET',qty:{adult:2}}], boat:'CAT_B', discount:{type:'percent',value:10,reason:'Birthday treat'}, payment:{method:'cash'} },
+    { time:'12:00', clientId:'c6', source:'walk_in', lines:[{kind:'activity',code:'SPEEDBOAT',qty:{adult:2}},{kind:'activity',code:'UNDERSEAPHOTO',qty:{adult:2}}], payment:{method:'cash'} },
+    // a prior operating day, so date-scoped reports (fleet totals, the daily register) have something real to filter against
+    { date:'2026-09-19', time:'09:30', clientId:'c7', source:'walk_in', lines:[{kind:'activity',code:'TUBE',qty:{adult:2}}], payment:{method:'cash'} },
+    { date:'2026-09-19', time:'10:15', clientId:'c9', source:'operator', operator:'VERANDA', lines:[{kind:'package',code:'SUNSET',qty:{adult:3}}], boat:'CAT_B', payment:{method:'cash'} },
+  ];
+  const seqByDate = {};
+  for(const sc of scenarios){
+    const serviceDate = sc.date || TODAY;
+    const operatorCode = sc.operator || null;
+    const quote = buildQuote(rules, sc.lines, operatorCode, serviceDate, sc.discount);
+    const n = (seqByDate[serviceDate] = (seqByDate[serviceDate]||0) + 1);
+    const ref = 'WS-' + serviceDate.replace(/-/g,'') + '-' + String(n).padStart(4,'0');
+    const client = clients.find(c=>c.id===sc.clientId);
+    const payer = sc.source==='operator' ? opByCode(operatorCode).payer : 'client';
+    const payments = [];
+    let createdAt = `${serviceDate}T${sc.time}:00+04:00`;
+    if(sc.payment){
+      payments.push({ id:ref+'-P1', amount:quote.chargedTotal, method:sc.payment.method, receivedFrom:'client', receivedAt:createdAt, correction:false, note:null });
+    }
+    const booking = {
+      id: ref, reference: ref, clientId: client.id, source: sc.source, operatorCode,
+      serviceDate, departureTime: sc.time, meetingPoint: COMPANY.meetingPoint,
+      status: sc.cancel ? 'cancelled' : 'confirmed', payer, resourceCode: sc.boat || null,
+      lines: sc.lines, quote, discount: sc.discount || null,
+      payments, createdAt, createdBy: USER.name, notes:'',
+      cancelledAt: null, cancelledBy:null, cancelReason:null,
+      printedCount: 0, ticketToken: 'tkn_' + ref.toLowerCase().replace(/-/g,''),
+      audit: [ { at: createdAt, who: USER.name, action: 'Booking created', detail: `${quote.lines.length} line item(s), charged ${quote.chargedTotal}` } ],
+    };
+    if(sc.payment) booking.audit.push({ at:createdAt, who:USER.name, action:'Payment recorded', detail: `${sc.payment.method} · Rs ${(quote.chargedTotal/100).toLocaleString()}` });
+    if(sc.cancel){
+      const cancelAt = `${serviceDate}T07:50:00+04:00`;
+      booking.cancelledAt = cancelAt; booking.cancelledBy = USER.name; booking.cancelReason = sc.cancel.reason;
+      booking.audit.push({ at:cancelAt, who:USER.name, action:'Booking cancelled', detail: sc.cancel.reason });
+      if(sc.cancel.refund && payments.length){
+        const corr = { id:ref+'-P2', amount:-quote.chargedTotal, method:payments[0].method, receivedFrom:'client', receivedAt:cancelAt, correction:true, note:'Refunded in cash after cancellation.' };
+        payments.push(corr);
+        booking.audit.push({ at:cancelAt, who:USER.name, action:'Payment correction', detail:`Refund of Rs ${(quote.chargedTotal/100).toLocaleString()} recorded against ${payments[0].id}` });
+      }
+    }
+    bookings.push(booking);
+  }
+  return bookings;
+}
+
+function freshState(){
+  const rules = buildBasePriceRules();
+  const clients = seedClients();
+  const bookings = seedBookingsAndTickets(rules, clients);
+  return { rules, clients, bookings, nextSeq: bookings.length+1 };
+}
+
+function loadState(){
+  try{
+    const raw = localStorage.getItem(STORE_KEY);
+    if(raw) return JSON.parse(raw);
+  }catch(e){}
+  return freshState();
+}
+function saveState(){ try{ localStorage.setItem(STORE_KEY, JSON.stringify(STATE)); }catch(e){} }
+function resetDemo(){ try{ localStorage.removeItem(STORE_KEY); }catch(e){} STATE = freshState(); saveState(); navigate('today'); toast('Demo data reset.', 'success'); }
+
+/* ---------------- formatting helpers ---------------- */
+function formatRs(cents){
+  const v = Math.round(cents)/100;
+  const sign = v<0 ? '-' : '';
+  return sign + 'Rs ' + Math.abs(v).toLocaleString('en-MU', { minimumFractionDigits: v%1!==0 ? 2:0, maximumFractionDigits:2 });
+}
+function formatDateLong(iso){
+  const d = new Date(iso+'T12:00:00');
+  return d.toLocaleDateString('en-GB', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+}
+function formatDateShort(iso){
+  const d = new Date(iso+'T12:00:00');
+  return d.toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' });
+}
+function clientName(c){ return c ? `${c.firstName} ${c.lastName}` : '—'; }
+function totalPeople(qty){ return (qty.adult||0)+(qty.child||0)+(qty.infant||0); }
+function bookingPeople(b){ return b.lines.length ? totalPeople(b.lines[0].qty) : 0; } // every line in a booking covers the same party
+function bookingPaid(b){ return b.payments.reduce((s,p)=>s+p.amount,0); }
+function lineSummary(b){
+  return b.lines.map(l=>{
+    const name = l.kind==='activity' ? actByCode(l.code).name : pkgByCode(l.code).name;
+    return `${name} ×${totalPeople(l.qty)}`;
+  }).join(', ');
+}
+
+/* ---------------- toast ---------------- */
+function toast(msg, kind){
+  const host = document.getElementById('toast-host');
+  const el = document.createElement('div');
+  el.className = 'toast' + (kind?(' '+kind):'');
+  el.textContent = msg;
+  host.appendChild(el);
+  setTimeout(()=>el.remove(), 3400);
+}
+
+/* ---------------- router ---------------- */
+let ROUTE = { view:'today', params:{} };
+function navigate(hash){ location.hash = hash; }
+function parseHash(){
+  const h = (location.hash||'#/today').replace(/^#\/?/, '');
+  const [view, ...rest] = h.split('/');
+  return { view: view || 'today', params: { id: rest[0] } };
+}
+window.addEventListener('hashchange', () => { ROUTE = parseHash(); renderApp(); });
+
+/* ---------------- app shell ---------------- */
+function navItems(){
+  return [
+    { key:'today', label:'Today', route:'#/today' },
+    { key:'new-booking', label:'New booking', route:'#/new-booking' },
+  ];
+}
+function renderShell(contentHtml){
+  const nav = navItems().map(n => `<button class="navlink ${ROUTE.view===n.key?'active':''}" onclick="navigate('${n.route}')"><span class="dot"></span>${n.label}</button>`).join('');
+  return `
+  <div class="sidebar">
+    <div class="brandmark"><img src="${LOGO_SVG_DATA_URI}" alt="AquaSail" style="width:120px;height:auto;filter:brightness(0) invert(1);"/></div>
+    ${nav}
+    <div class="nav-section">Admin</div>
+    <button class="navlink ${ROUTE.view==='pricing'?'active':''}" onclick="navigate('#/pricing')"><span class="dot"></span>Pricing</button>
+    <button class="navlink ${ROUTE.view==='register'?'active':''}" onclick="navigate('#/register')"><span class="dot"></span>Daily register</button>
+    <div class="sidebar-foot">Prototype build — mock data only, resets in this browser.<br><button class="btn-ghost" style="color:#bcd8f2;padding:4px 0;min-height:auto;margin-top:6px;" onclick="resetDemo()">Reset demo data</button></div>
+  </div>
+  <div class="main-col">
+    <div class="topbar no-print">
+      <div class="topbar-left">
+        <div class="body-sm" style="font-weight:700;">${COMPANY.name}</div>
+        <div class="caption">${formatDateLong(TODAY)}</div>
+      </div>
+      <div class="topbar-right">
+        <div class="user-block">
+          <div class="body-sm" style="font-weight:600;">${USER.name}</div>
+          <div class="caption" style="text-transform:capitalize;">${USER.role}</div>
+        </div>
+        <div class="avatar">${USER.initials}</div>
+        <button class="signout">Sign out</button>
+      </div>
+    </div>
+    <main id="main-content">${contentHtml}</main>
+  </div>`;
+}
+
+function renderApp(){
+  let html = '';
+  if(ROUTE.view==='today') html = viewToday();
+  else if(ROUTE.view==='new-booking') html = viewWizard();
+  else if(ROUTE.view==='booking') html = viewBookingDetail(ROUTE.params.id);
+  else if(ROUTE.view==='ticket') html = viewTicket(ROUTE.params.id);
+  else if(ROUTE.view==='pricing') html = viewPricing();
+  else if(ROUTE.view==='register') html = viewRegister();
+  else html = viewToday();
+  document.getElementById('app').innerHTML = renderShell(html);
+  afterRender();
+}
+let AFTER_RENDER = null;
+function afterRender(){ if(AFTER_RENDER){ const f=AFTER_RENDER; AFTER_RENDER=null; f(); } }
+
+/* ================= TODAY ================= */
+function viewToday(){
+  const todaysBookings = STATE.bookings.filter(b=>b.serviceDate===TODAY);
+  const active = todaysBookings.filter(b=>b.status!=='cancelled');
+  const count = active.length;
+  const people = active.reduce((s,b)=>s+bookingPeople(b),0);
+  const chargedTotal = active.reduce((s,b)=>s+b.quote.chargedTotal,0);
+  const cashCollected = todaysBookings.reduce((s,b)=>s+b.payments.filter(p=>p.method==='cash').reduce((a,p)=>a+p.amount,0),0);
+  const outstanding = active.reduce((s,b)=>s + Math.max(0, b.quote.chargedTotal - bookingPaid(b)), 0);
+  const operatorAccountCount = active.filter(b=>b.payer==='operator').length;
+
+  const sorted = [...todaysBookings].sort((a,b)=> a.departureTime.localeCompare(b.departureTime));
+  const rows = sorted.map(b=>{
+    const c = STATE.clients.find(cl=>cl.id===b.clientId);
+    const paid = bookingPaid(b);
+    const balance = b.quote.chargedTotal - paid;
+    let payBadge;
+    if(b.status==='cancelled') payBadge = `<span class="badge badge-neutral">Cancelled</span>`;
+    else if(b.payer==='operator') payBadge = `<span class="badge badge-warning">Operator account</span>`;
+    else if(balance<=0) payBadge = `<span class="badge badge-success">Paid</span>`;
+    else payBadge = `<span class="badge badge-danger">Rs ${(balance/100).toLocaleString()} due</span>`;
+    const sourceLabel = b.source==='walk_in' ? 'Walk-in' : opByCode(b.operatorCode).name;
+    return `<tr class="row-link ${b.status==='cancelled'?'row-cancelled':''}" onclick="navigate('#/booking/${b.id}')">
+      <td class="code num">${b.departureTime}</td>
+      <td>${clientName(c)}</td>
+      <td class="body-sm">${lineSummary(b)}</td>
+      <td class="num" style="text-align:center;">${bookingPeople(b)}</td>
+      <td class="num">${formatRs(b.quote.chargedTotal)}</td>
+      <td>${payBadge}</td>
+      <td class="body-sm">${sourceLabel}</td>
+    </tr>`;
+  }).join('');
+
+  // activity summary panel
+  const entTotals = {};
+  active.forEach(b=>{ const e = expandEntitlements(b.lines); for(const k in e) entTotals[k]=(entTotals[k]||0)+e[k]; });
+  const entRows = Object.entries(entTotals).sort((a,b)=>b[1]-a[1]).map(([code,n])=>`
+    <div class="part-row"><span class="body-sm">${actByCode(code).name}</span><span class="num body-sm" style="font-weight:700;">${n}</span></div>`).join('') || `<div class="empty-state">No entitlements yet today.</div>`;
+
+  const fleet = fleetTotals();
+  const fleetRows = RESOURCES.map(r=>{
+    const n = fleet[r.code]||0;
+    const pct = Math.min(100, Math.round((n/r.capacity)*100));
+    const barColor = pct>=90 ? 'var(--danger)' : pct>=70 ? 'var(--warning)' : 'var(--brand-mid)';
+    return `<div style="margin-bottom:12px;">
+      <div class="part-row" style="border-bottom:none; padding-bottom:4px;">
+        <span class="body-sm">${r.name} <span class="caption">· ${r.type}</span></span>
+        <span class="num body-sm" style="font-weight:700;">${n} / ${r.capacity}</span>
+      </div>
+      <div style="height:6px; background:var(--surface-inset); border-radius:var(--radius-pill); overflow:hidden;">
+        <div style="height:100%; width:${pct}%; background:${barColor};"></div>
+      </div>
+    </div>`;
+  }).join('');
+
+  return `
+  <div class="page-head">
+    <div>
+      <div class="eyebrow">Reception · Today</div>
+      <h1 class="display-lg">Today's bookings</h1>
+    </div>
+    <div style="display:flex; gap:var(--space-3); align-items:center;">
+      <input class="input" style="width:240px;" placeholder="Search reference, name or phone…" oninput="onTodaySearch(this.value)"/>
+      <button class="btn btn-secondary" onclick="navigate('#/register')">Daily register</button>
+      <button class="btn btn-primary" onclick="navigate('#/new-booking')">+ New booking</button>
+    </div>
+  </div>
+
+  <div class="kpi-grid">
+    <div class="kpi"><div class="kpi-label">Bookings</div><div class="kpi-value num">${count}</div></div>
+    <div class="kpi"><div class="kpi-label">People</div><div class="kpi-value num">${people}</div></div>
+    <div class="kpi accent"><div class="kpi-label">Charged total</div><div class="kpi-value num">${formatRs(chargedTotal)}</div></div>
+    <div class="kpi"><div class="kpi-label">Cash collected</div><div class="kpi-value num">${formatRs(cashCollected)}</div></div>
+    <div class="kpi ${outstanding>0?'warn':''}"><div class="kpi-label">Outstanding</div><div class="kpi-value num">${formatRs(outstanding)}</div></div>
+    <div class="kpi ${operatorAccountCount>0?'warn':''}"><div class="kpi-label">Operator account</div><div class="kpi-value num">${operatorAccountCount}</div></div>
+  </div>
+
+  <div style="display:grid; grid-template-columns:1fr 300px; gap:var(--space-5); align-items:start;">
+    <div class="table-wrap">
+      <table id="today-table">
+        <thead><tr><th>Time</th><th>Client</th><th>Package / activity</th><th style="text-align:center;">People</th><th>Total</th><th>Payment</th><th>Source</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+    <div style="display:flex; flex-direction:column; gap:var(--space-5);">
+      <div class="card card-pad">
+        <div class="label" style="margin-bottom:var(--space-3); color:var(--ink-muted);">Fleet today</div>
+        ${fleetRows}
+        <div class="caption" style="margin-top:4px;">Headcount per vessel, computed automatically from each booking's boat assignment. Excludes cancelled bookings.</div>
+      </div>
+      <div class="card card-pad">
+        <div class="label" style="margin-bottom:var(--space-3); color:var(--ink-muted);">Activity entitlements today</div>
+        ${entRows}
+        <div class="caption" style="margin-top:var(--space-3);">Counts of people entitled to each activity today — what the crew and kitchen need to know. Excludes cancelled bookings.</div>
+      </div>
+    </div>
+  </div>`;
+}
+function onTodaySearch(q){
+  q = q.trim().toLowerCase();
+  const rows = document.querySelectorAll('#today-table tbody tr');
+  rows.forEach(r=>{ r.style.display = r.textContent.toLowerCase().includes(q) ? '' : 'none'; });
+}
+
+/* ================= BOOKING WIZARD ================= */
+let WIZ = null;
+function freshWizard(){
+  return {
+    firstName:'', lastName:'', phone:'', email:'', country:'Mauritius', matchedClientId:null, clientLocked:false,
+    source:'walk_in', operatorCode:null,
+    lines:[], // {kind, code, qty:{adult,child,infant}}
+    resourceCode:null,
+    serviceDate: TODAY, departureTime:'', meetingPoint: COMPANY.meetingPoint,
+    discountType:'percent', discountValue:0, discountReason:'',
+    paymentMethod:'cash', amountReceived:0,
+  };
+}
+function viewWizard(){
+  if(!WIZ) WIZ = freshWizard();
+  const w = WIZ;
+  const operator = w.operatorCode ? opByCode(w.operatorCode) : null;
+  const quote = w.lines.length ? buildQuote(STATE.rules, w.lines, w.operatorCode, w.serviceDate, w.discountValue>0?{type:w.discountType,value:w.discountValue,reason:w.discountReason}:null) : null;
+
+  const matches = w.matchedClientId ? [] : findSimilarClients(w.firstName, w.lastName, w.phone);
+
+  const clientSection = w.clientLocked ? `
+    <div class="card card-pad" style="display:flex; justify-content:space-between; align-items:center;">
+      <div><div style="font-weight:700;">${w.firstName} ${w.lastName}</div><div class="caption">${w.phone || 'no phone'} · ${w.email || 'no email'}</div></div>
+      <button class="btn-ghost" onclick="wizUnlockClient()">Change</button>
+    </div>` : `
+    <div class="field-row">
+      <label class="field"><span class="label">First name</span><input id="wiz-first" class="input" value="${w.firstName}" oninput="wizField('firstName',this.value)" placeholder="First name" autofocus/></label>
+      <label class="field"><span class="label">Last name</span><input class="input" value="${w.lastName}" oninput="wizField('lastName',this.value)" placeholder="Last name"/></label>
+    </div>
+    <div class="field-row" style="margin-top:var(--space-3);">
+      <label class="field"><span class="label">Phone <span class="caption">(optional)</span></span><input class="input" value="${w.phone}" oninput="wizField('phone',this.value)" placeholder="+230 5xxx xxxx"/></label>
+      <label class="field"><span class="label">Email <span class="caption">(optional)</span></span><input class="input" value="${w.email}" oninput="wizField('email',this.value)" placeholder="name@example.com"/></label>
+    </div>
+    ${matches.length ? `<div class="match-banner"><div><b>Existing customer found</b><div class="body-sm muted">${clientName(matches[0])} · ${matches[0].bookings} previous booking(s)${matches[0].lastVisit?(' · last visit '+formatDateShort(matches[0].lastVisit)):''}</div></div><button class="btn btn-secondary btn-sm" onclick="wizUseClient('${matches[0].id}')">Use this client</button></div>` : ''}
+  `;
+
+  const sourceCards = `
+    <div class="source-cards">
+      <div class="radio-card ${w.source==='walk_in'?'selected':''}" onclick="wizSetSource('walk_in',null)">
+        <div style="font-weight:700;">Walk-in</div><div class="caption">Customer pays at reception.</div>
+      </div>
+      <div class="radio-card ${w.source==='operator'?'selected':''}" onclick="wizSetSource('operator', w.operatorCode || 'BEACHCOMB')">
+        <div style="font-weight:700;">Tour operator</div><div class="caption">Booked through a partner hotel or agent.</div>
+      </div>
+    </div>
+    ${w.source==='operator' ? `
+      <div style="margin-top:var(--space-3);">
+        <select class="input" onchange="wizSetOperator(this.value)">
+          ${OPERATORS.map(o=>`<option value="${o.code}" ${w.operatorCode===o.code?'selected':''}>${o.name}</option>`).join('')}
+        </select>
+      </div>
+      ${operator && operator.payer==='operator' ? `
+      <div class="banner-nocollect">
+        <span style="font-size:22px;">⚠</span>
+        <div><b>DO NOT COLLECT PAYMENT</b><div class="body-sm">${operator.name} account — this booking is invoiced to the operator, not the guest.</div></div>
+      </div>` : `<div class="caption" style="margin-top:var(--space-2);">${operator?operator.name:''} settles by ${operator&&operator.model==='commission'?`commission (${(operator.rate*100).toFixed(0)}%) — the guest pays retail at reception`:'net rate'}.</div>`}
+    ` : ''}
+  `;
+
+  const pkgTiles = PACKAGES.map((p,i)=>{
+    const q = resolveLine(STATE.rules,'package',p.code,'adult',w.operatorCode,w.serviceDate);
+    const priceStr = q.ok ? formatRs(q.retail)+' / adult' : 'Price not set';
+    const selected = w.lines.some(l=>l.kind==='package'&&l.code===p.code);
+    return `<button class="pkg-tile ${selected?'selected':''}" onclick="wizToggleLine('package','${p.code}')"><span class="key">${i+1}</span>
+      <div style="font-weight:700;">${p.name}</div>
+      <div class="caption">${p.blurb}</div>
+      <div class="body-sm" style="font-weight:600; color:var(--brand-blue);">${priceStr}</div>
+    </button>`;
+  }).join('');
+
+  const customLines = w.lines.filter(l=>l.kind==='activity');
+  const customRows = customLines.map(l=>{
+    const a = actByCode(l.code);
+    return `<div class="part-row"><span class="body-sm">${a.name}</span><button class="btn-ghost btn-sm" onclick="wizRemoveActivity('${l.code}')">Remove</button></div>`;
+  }).join('');
+
+  const partRow = (label, key) => {
+    const anyLine = w.lines[0];
+    const val = anyLine ? (anyLine.qty[key]||0) : 0;
+    return `<div class="part-row"><span class="body">${label}</span><div class="stepper">
+      <button onclick="wizStepParticipant('${key}',-1)">−</button><span class="count num">${val}</span><button onclick="wizStepParticipant('${key}',1)">+</button>
+    </div></div>`;
+  };
+
+  const quotePanel = renderQuotePanel(quote, w, operator);
+
+  return `
+  <div class="page-head"><div><div class="eyebrow">Reception</div><h1 class="display-lg">New booking</h1></div>
+    <div class="caption">Press <span class="kbd">Ctrl</span>+<span class="kbd">Enter</span> to submit · number keys pick a package</div>
+  </div>
+  <div class="wizard-grid">
+    <div>
+      <div class="wiz-section card card-pad">
+        <h3 class="heading-sm" style="margin-bottom:var(--space-4);"><span class="num-badge">1</span>Client</h3>
+        ${clientSection}
+      </div>
+      <div class="wiz-section card card-pad">
+        <h3 class="heading-sm" style="margin-bottom:var(--space-4);"><span class="num-badge">2</span>Source</h3>
+        ${sourceCards}
+      </div>
+      <div class="wiz-section card card-pad">
+        <h3 class="heading-sm" style="margin-bottom:var(--space-4);"><span class="num-badge">3</span>What they bought</h3>
+        <div class="package-tiles">${pkgTiles}</div>
+        <div style="margin-top:var(--space-4);">
+          <button class="btn btn-secondary btn-sm" onclick="openAddActivity()">+ Add a standalone activity</button>
+          ${customRows ? `<div style="margin-top:var(--space-2);">${customRows}</div>` : ''}
+        </div>
+        <hr class="divider"/>
+        <div class="label" style="color:var(--ink-muted); margin-bottom:var(--space-2);">Participants</div>
+        ${partRow('Adults','adult')}
+        ${partRow('Children (2–11)','child')}
+        ${partRow('Infants (under 2)','infant')}
+        <div class="field-row" style="margin-top:var(--space-4);">
+          <label class="field"><span class="label">Service date</span><input type="date" class="input" value="${w.serviceDate}" onchange="wizField('serviceDate',this.value)"/></label>
+          <label class="field"><span class="label">Departure time</span><input type="time" class="input" value="${w.departureTime}" onchange="wizField('departureTime',this.value)"/></label>
+        </div>
+        ${w.serviceDate < TODAY ? `<div class="alert alert-warning" style="margin-top:var(--space-3);">Backdated entry — this service date is in the past. The booking will be flagged for an outage or paper-book catch-up.</div>` : ''}
+      </div>
+      ${needsBoat(w.lines) ? `
+      <div class="wiz-section card card-pad">
+        <h3 class="heading-sm" style="margin-bottom:var(--space-4);"><span class="num-badge">4</span>Assign a boat</h3>
+        <p class="body-sm muted" style="margin-bottom:var(--space-4);">This booking includes the Catamaran Tour. Pick which vessel carries this group so today's fleet numbers stay accurate.</p>
+        ${renderBoatPicker(w)}
+      </div>` : ''}
+      <div class="wiz-section card card-pad">
+        <h3 class="heading-sm" style="margin-bottom:var(--space-4);"><span class="num-badge">${needsBoat(w.lines)?5:4}</span>Payment</h3>
+        <div class="field-row">
+          <label class="field"><span class="label">Discount</span>
+            <div style="display:flex; gap:8px;">
+              <select class="input" style="width:120px;" onchange="wizField('discountType',this.value)">
+                <option value="percent" ${w.discountType==='percent'?'selected':''}>%</option>
+                <option value="amount" ${w.discountType==='amount'?'selected':''}>Rs</option>
+              </select>
+              <input type="number" min="0" class="input" value="${w.discountValue}" oninput="wizField('discountValue',Number(this.value))"/>
+            </div>
+          </label>
+          <label class="field"><span class="label">Reason ${w.discountValue>0?'(required)':''}</span><input class="input ${w.discountValue>0 && !w.discountReason ? 'invalid':''}" value="${w.discountReason}" oninput="wizField('discountReason',this.value)" placeholder="e.g. Birthday, repeat guest"/></label>
+        </div>
+        ${w.discountType==='percent' && w.discountValue>MAX_DISCOUNT_RECEPTIONIST ? `<div class="alert alert-danger" style="margin-top:var(--space-3);">Receptionists may discount up to ${MAX_DISCOUNT_RECEPTIONIST}%. An admin must authorise anything higher.</div>`:''}
+        ${operator && operator.payer==='operator' ? `
+          <div class="alert alert-info" style="margin-top:var(--space-4);">This booking is unpaid at reception. The charged total becomes a receivable from ${operator.name}.</div>
+        ` : `
+          <div class="field-row" style="margin-top:var(--space-4);">
+            <label class="field"><span class="label">Payment method</span>
+              <select class="input" onchange="wizField('paymentMethod',this.value)">
+                ${['cash','card','bank_transfer','other'].map(m=>`<option value="${m}" ${w.paymentMethod===m?'selected':''}>${m.replace('_',' ')}</option>`).join('')}
+              </select>
+            </label>
+            <label class="field"><span class="label">Amount received</span><input type="number" class="input" value="${w.amountReceived||''}" oninput="wizField('amountReceived',Number(this.value))" placeholder="0"/></label>
+          </div>
+        `}
+      </div>
+    </div>
+    <div class="quote-panel">${quotePanel}</div>
+  </div>`;
+}
+
+function renderQuotePanel(quote, w, operator){
+  if(!quote || !w.lines.length){
+    return `<div class="card card-pad"><div class="empty-state" style="padding:var(--space-6) 0;">Pick a package or activity to see the quote.</div></div>`;
+  }
+  if(!quote.ok){
+    return `<div class="card card-pad"><div class="alert alert-danger"><b>${quote.error}</b><div class="body-sm">Ask an admin to set this price before continuing.</div></div></div>`;
+  }
+  const lines = quote.lines.map(l=>`<div class="quote-line"><div><div class="ln-name">${l.label} <span class="ln-sub">×${l.qty} ${l.participant}</span></div></div><div class="num">${formatRs(l.lineCharged)}</div></div>`).join('');
+  const changeDue = w.amountReceived ? Math.max(0, w.amountReceived*100 - quote.chargedTotal) : 0;
+  const canSubmit = w.firstName && w.source && (!(w.discountValue>0) || w.discountReason) && (!needsBoat(w.lines) || w.resourceCode) && (operator&&operator.payer==='operator' ? true : w.amountReceived>0);
+  return `<div class="card card-pad">
+    <div class="label" style="color:var(--ink-muted); margin-bottom:var(--space-2);">Quote</div>
+    ${lines}
+    ${quote.discountTotal>0 ? `<div class="quote-line"><span class="ln-name">Discount</span><span class="num" style="color:var(--danger);">−${formatRs(quote.discountTotal)}</span></div>`:''}
+    <div class="quote-total-row grand"><span>Total</span><span class="num">${formatRs(quote.chargedTotal)}</span></div>
+    ${operator && operator.model==='commission' ? `<div class="caption" style="margin-top:8px;">Commission owed to ${operator.name}: ${formatRs(quote.commissionTotal)}</div>`:''}
+    ${quote.warnings.map(w=>`<div class="alert alert-warning" style="margin-top:8px;">${w}</div>`).join('')}
+    ${needsBoat(w.lines) && !w.resourceCode ? `<div class="alert alert-warning" style="margin-top:8px;">Pick a boat below before this can be submitted.</div>`:''}
+    ${w.amountReceived>0 && w.paymentMethod==='cash' ? `<div class="quote-total-row"><span>Change due</span><span class="num">${formatRs(changeDue)}</span></div>`:''}
+    <button class="btn btn-primary btn-block" style="margin-top:var(--space-4);" ${canSubmit?'':'disabled'} onclick="submitBooking()">Create booking</button>
+    <div class="caption" style="margin-top:8px; text-align:center;">Double submissions are prevented automatically.</div>
+  </div>`;
+}
+
+function renderBoatPicker(w){
+  const totals = fleetTotals(w.serviceDate);
+  const partySize = w.lines.length ? totalPeople(w.lines[0].qty) : 0;
+  const cards = RESOURCES.map(r=>{
+    const current = totals[r.code]||0;
+    const pct = Math.min(100, Math.round((current/r.capacity)*100));
+    const wouldExceed = (current + partySize) > r.capacity;
+    const barColor = pct>=90 ? 'var(--danger)' : pct>=70 ? 'var(--warning)' : 'var(--brand-mid)';
+    return `<div class="radio-card ${w.resourceCode===r.code?'selected':''}" onclick="wizSetResource('${r.code}')">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <div style="font-weight:700;">${r.name}</div><span class="caption">${r.type}</span>
+      </div>
+      <div class="caption num">${current} / ${r.capacity} booked today</div>
+      <div style="height:6px; background:var(--surface-inset); border-radius:var(--radius-pill); margin-top:6px; overflow:hidden;">
+        <div style="height:100%; width:${pct}%; background:${barColor};"></div>
+      </div>
+      ${wouldExceed ? `<div class="caption" style="color:var(--danger); margin-top:4px;">Adding ${partySize} more would exceed capacity.</div>` : ''}
+    </div>`;
+  }).join('');
+  return `<div class="boat-cards">${cards}</div>`;
+}
+function wizSetResource(code){ WIZ.resourceCode = code; renderApp(); }
+
+function findSimilarClients(first, last, phone){
+  if(!first && !last && !phone) return [];
+  const nf = (first+' '+last).trim().toLowerCase();
+  const pf = phone.replace(/\D/g,'');
+  return STATE.clients.filter(c=>{
+    if(pf.length>=6 && c.phone.replace(/\D/g,'').endsWith(pf)) return true;
+    const cf = (c.firstName+' '+c.lastName).toLowerCase();
+    return nf.length>=3 && (cf.includes(nf) || nf.includes(c.lastName.toLowerCase()));
+  }).slice(0,1);
+}
+
+function wizField(k,v){ WIZ[k]=v; renderApp(); if(k==='firstName') setTimeout(()=>{const el=document.getElementById('wiz-first'); if(el){el.focus(); el.setSelectionRange(el.value.length,el.value.length);}},0); }
+function wizUseClient(id){ const c = STATE.clients.find(x=>x.id===id); WIZ.firstName=c.firstName; WIZ.lastName=c.lastName; WIZ.phone=c.phone; WIZ.email=c.email; WIZ.matchedClientId=id; WIZ.clientLocked=true; renderApp(); }
+function wizUnlockClient(){ WIZ.clientLocked=false; WIZ.matchedClientId=null; renderApp(); }
+function wizSetSource(source, opCode){ WIZ.source=source; WIZ.operatorCode = source==='operator' ? opCode : null; renderApp(); }
+function wizSetOperator(code){ WIZ.operatorCode=code; renderApp(); }
+function wizToggleLine(kind, code){
+  const idx = WIZ.lines.findIndex(l=>l.kind===kind && l.code===code);
+  if(idx>=0){ WIZ.lines.splice(idx,1); }
+  else{
+    if(kind==='package') WIZ.lines = WIZ.lines.filter(l=>l.kind!=='package'); // one package at a time in this demo
+    const carry = WIZ.lines[0] ? WIZ.lines[0].qty : {adult:1,child:0,infant:0};
+    WIZ.lines.push({ kind, code, qty:{...carry} });
+  }
+  renderApp();
+}
+function wizRemoveActivity(code){ WIZ.lines = WIZ.lines.filter(l=>!(l.kind==='activity'&&l.code===code)); renderApp(); }
+function wizStepParticipant(key, delta){
+  if(!WIZ.lines.length){ toast('Pick a package or activity first.'); return; }
+  WIZ.lines.forEach(l=>{ l.qty[key] = Math.max(0,(l.qty[key]||0)+delta); });
+  renderApp();
+}
+function openAddActivity(){
+  const options = ACTIVITIES.filter(a=>!WIZ.lines.some(l=>l.kind==='activity'&&l.code===a.code)).map(a=>`<option value="${a.code}">${a.name}</option>`).join('');
+  showModal(`<h3 class="heading-sm">Add a standalone activity</h3>
+    <select id="add-act-select" class="input">${options}</select>
+    <div style="display:flex; gap:8px; margin-top:var(--space-4); justify-content:flex-end;">
+      <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="confirmAddActivity()">Add</button>
+    </div>`);
+}
+function confirmAddActivity(){
+  const code = document.getElementById('add-act-select').value;
+  const carry = WIZ.lines[0] ? WIZ.lines[0].qty : {adult:1,child:0,infant:0};
+  WIZ.lines.push({ kind:'activity', code, qty:{...carry} });
+  closeModal(); renderApp();
+}
+
+let SUBMITTING = false;
+function submitBooking(){
+  if(SUBMITTING) return; SUBMITTING = true;
+  const w = WIZ;
+  const quote = buildQuote(STATE.rules, w.lines, w.operatorCode, w.serviceDate, w.discountValue>0?{type:w.discountType,value:w.discountValue,reason:w.discountReason}:null);
+  if(!quote.ok){ toast(quote.error,'danger'); SUBMITTING=false; return; }
+  if(w.discountType==='percent' && w.discountValue>MAX_DISCOUNT_RECEPTIONIST){ toast(`Discount above ${MAX_DISCOUNT_RECEPTIONIST}% needs an admin.`,'danger'); SUBMITTING=false; return; }
+
+  let client = w.matchedClientId ? STATE.clients.find(c=>c.id===w.matchedClientId) : null;
+  if(!client){
+    client = { id:'c'+(STATE.clients.length+1), firstName:w.firstName, lastName:w.lastName||'', phone:w.phone, email:w.email, country:w.country, bookings:0, lastVisit:null };
+    STATE.clients.push(client);
+  }
+  client.bookings += 1; client.lastVisit = w.serviceDate;
+
+  const operator = w.operatorCode ? opByCode(w.operatorCode) : null;
+  const payer = operator ? operator.payer : 'client';
+  const ref = 'WS-' + w.serviceDate.replace(/-/g,'') + '-' + String(STATE.nextSeq++).padStart(4,'0');
+  const now = new Date().toISOString();
+  const payments = [];
+  if(payer!=='operator' && w.amountReceived>0){
+    payments.push({ id:ref+'-P1', amount:Math.round(w.amountReceived*100), method:w.paymentMethod, receivedFrom:'client', receivedAt:now, correction:false, note:null });
+  }
+  const booking = {
+    id:ref, reference:ref, clientId:client.id, source:w.source, operatorCode:w.operatorCode,
+    serviceDate:w.serviceDate, departureTime:w.departureTime||'—', meetingPoint:w.meetingPoint,
+    status:'confirmed', payer, resourceCode: needsBoat(w.lines) ? w.resourceCode : null,
+    lines:JSON.parse(JSON.stringify(w.lines)),
+    quote, discount: w.discountValue>0?{type:w.discountType,value:w.discountValue,reason:w.discountReason}:null,
+    payments, createdAt:now, createdBy:USER.name, notes:'', cancelledAt:null, cancelledBy:null, cancelReason:null,
+    printedCount:0, ticketToken:'tkn_'+ref.toLowerCase().replace(/-/g,''),
+    audit:[ { at:now, who:USER.name, action:'Booking created', detail:`${quote.lines.length} line item(s), charged ${quote.chargedTotal}` } ],
+  };
+  if(payments.length) booking.audit.push({ at:now, who:USER.name, action:'Payment recorded', detail:`${w.paymentMethod} · Rs ${(quote.chargedTotal/100).toLocaleString()}` });
+  STATE.bookings.push(booking);
+  saveState();
+  WIZ = null; SUBMITTING = false;
+  toast(`Booking ${ref} created.`, 'success');
+  navigate('#/booking/'+ref);
+}
+
+document.addEventListener('keydown', (e)=>{
+  if(ROUTE.view==='new-booking'){
+    if((e.ctrlKey||e.metaKey) && e.key==='Enter'){ e.preventDefault(); submitBooking(); }
+    if(/^[1-4]$/.test(e.key) && document.activeElement.tagName!=='INPUT' && document.activeElement.tagName!=='SELECT'){
+      const p = PACKAGES[Number(e.key)-1]; if(p) wizToggleLine('package', p.code);
+    }
+  }
+});
+
+/* ================= BOOKING DETAIL ================= */
+function viewBookingDetail(id){
+  const b = STATE.bookings.find(x=>x.id===id);
+  if(!b) return `<div class="empty-state">Booking not found.</div>`;
+  const c = STATE.clients.find(cl=>cl.id===b.clientId);
+  const operator = b.operatorCode ? opByCode(b.operatorCode) : null;
+  const paid = bookingPaid(b);
+  const balance = b.quote.chargedTotal - paid;
+  const statusBadge = b.status==='cancelled' ? `<span class="badge badge-neutral">Cancelled</span>` :
+    (b.payer==='operator' ? `<span class="badge badge-warning">Operator account</span>` : (balance<=0?`<span class="badge badge-success">Paid</span>`:`<span class="badge badge-danger">Balance due</span>`));
+
+  const lineRows = b.quote.lines.map(l=>`<tr><td>${l.label}</td><td style="text-transform:capitalize;">${l.participant}</td><td class="num" style="text-align:center;">${l.qty}</td><td class="num">${formatRs(l.unitCharged)}</td><td class="num">${formatRs(l.lineCharged)}</td></tr>`).join('');
+  const entitlements = expandEntitlements(b.lines);
+  const entRows = Object.entries(entitlements).map(([code,n])=>`<div class="part-row"><span class="body-sm">${actByCode(code).name}</span><span class="badge badge-info">${n} entitled</span></div>`).join('');
+  const paymentRows = b.payments.map(p=>`<tr><td>${new Date(p.receivedAt).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</td><td style="text-transform:capitalize;">${p.method.replace('_',' ')}</td><td class="num" style="color:${p.amount<0?'var(--danger)':'inherit'};">${formatRs(p.amount)}</td><td class="body-sm">${p.correction?('Correction — '+(p.note||'')):'—'}</td></tr>`).join('') || `<tr><td colspan="4" class="empty-state">No payments recorded.</td></tr>`;
+  const auditRows = b.audit.slice().reverse().map(a=>`<div class="part-row"><div><div class="body-sm" style="font-weight:600;">${a.action}</div><div class="caption">${a.detail}</div></div><div class="caption num">${new Date(a.at).toLocaleString('en-GB',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}</div></div>`).join('');
+
+  return `
+  <div class="page-head">
+    <div>
+      <button class="btn-ghost" style="padding-left:0;" onclick="navigate('#/today')">← Back to today</button>
+      <div style="display:flex; align-items:center; gap:12px; margin-top:6px;">
+        <span class="code" style="font-size:22px; font-weight:700; color:var(--brand-blue);">${b.reference}</span>
+        ${statusBadge}
+      </div>
+      <div class="caption" style="margin-top:4px;">${formatDateLong(b.serviceDate)} · departs ${b.departureTime} · created by ${b.createdBy}</div>
+    </div>
+    <div style="display:flex; gap:8px;">
+      <button class="btn btn-secondary" onclick="navigate('#/ticket/${b.id}')">Print ticket</button>
+      ${b.status!=='cancelled' ? `<button class="btn btn-secondary" onclick="toast('Amend flow — same wizard, pre-filled. Not wired in this prototype.')">Amend</button>
+      <button class="btn btn-danger" onclick="openCancelModal('${b.id}')">Cancel</button>` : ''}
+    </div>
+  </div>
+
+  <div style="display:grid; grid-template-columns:1fr 320px; gap:var(--space-5); align-items:start;">
+    <div>
+      <div class="card card-pad" style="margin-bottom:var(--space-5);">
+        <div class="label" style="color:var(--ink-muted); margin-bottom:8px;">Client</div>
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <div><div style="font-weight:700;">${clientName(c)}</div><div class="caption">${c.phone||'no phone'} · ${c.email||'no email'} · ${c.country}</div></div>
+          <div class="caption">${c.bookings} total booking(s)</div>
+        </div>
+        <hr class="divider" style="margin:var(--space-4) 0;"/>
+        <div class="label" style="color:var(--ink-muted); margin-bottom:8px;">Source</div>
+        <div class="body-sm">${b.source==='walk_in' ? 'Walk-in' : `${operator.name} · ${operator.model.replace('_',' ')}${operator.rate?` (${(operator.rate*100).toFixed(0)}%)`:''}`}</div>
+        ${b.payer==='operator' ? `<div class="alert alert-warning" style="margin-top:var(--space-3);"><b>Do not collect</b> — receivable from ${operator.name}: ${formatRs(b.quote.chargedTotal)}</div>` : ''}
+        ${b.resourceCode ? `<div style="margin-top:var(--space-3); display:flex; justify-content:space-between; align-items:center;"><span class="label" style="color:var(--ink-muted);">Assigned boat</span><span class="badge badge-info">${resourceByCode(b.resourceCode).name}</span></div>` : ''}
+      </div>
+
+      <div class="card card-pad" style="margin-bottom:var(--space-5);">
+        <div class="label" style="color:var(--ink-muted); margin-bottom:8px;">Line items</div>
+        <div class="table-wrap"><table><thead><tr><th>Item</th><th>Type</th><th style="text-align:center;">Qty</th><th>Unit</th><th>Line total</th></tr></thead><tbody>${lineRows}</tbody></table></div>
+        <div style="max-width:280px; margin-left:auto; margin-top:var(--space-4);">
+          <div class="quote-total-row"><span>Retail total</span><span class="num">${formatRs(b.quote.retailTotal)}</span></div>
+          ${b.quote.discountTotal>0?`<div class="quote-total-row"><span>Discount${b.discount&&b.discount.reason?' — '+b.discount.reason:''}</span><span class="num" style="color:var(--danger);">−${formatRs(b.quote.discountTotal)}</span></div>`:''}
+          <div class="quote-total-row grand"><span>Charged total</span><span class="num">${formatRs(b.quote.chargedTotal)}</span></div>
+          ${ROLE!=='receptionist' || true ? (operator&&operator.model==='commission' ? `<div class="caption" style="margin-top:6px;">Commission owed to ${operator.name}: ${formatRs(b.quote.commissionTotal)}</div>`:'') : ''}
+        </div>
+      </div>
+
+      <div class="card card-pad" style="margin-bottom:var(--space-5);">
+        <div class="label" style="color:var(--ink-muted); margin-bottom:8px;">Entitlements (island redemption arrives in V2)</div>
+        ${entRows}
+      </div>
+
+      <div class="card card-pad">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <div class="label" style="color:var(--ink-muted);">Payments</div>
+          <button class="btn-ghost btn-sm" onclick="toast('Record-payment dialog — omitted from this prototype.')">Record payment</button>
+        </div>
+        <div class="table-wrap"><table><thead><tr><th>Time</th><th>Method</th><th>Amount</th><th>Note</th></tr></thead><tbody>${paymentRows}</tbody></table></div>
+        <div class="caption" style="margin-top:10px;">A wrong payment is corrected with a negative row and a reason — never deleted. Paid so far: <b class="num">${formatRs(paid)}</b> · Balance: <b class="num">${formatRs(balance)}</b></div>
+      </div>
+    </div>
+    <div class="card card-pad">
+      <div class="label" style="color:var(--ink-muted); margin-bottom:var(--space-3);">Audit trail</div>
+      ${auditRows}
+    </div>
+  </div>`;
+}
+
+function openCancelModal(id){
+  showModal(`<h3 class="heading-sm">Cancel booking</h3>
+    <p class="body-sm muted" style="margin-bottom:var(--space-3);">The booking is kept, struck through, never deleted. Any payments stay on record.</p>
+    <label class="field"><span class="label">Reason</span><textarea id="cancel-reason" class="input" rows="3" placeholder="Why is this booking being cancelled?"></textarea></label>
+    <div style="display:flex; gap:8px; margin-top:var(--space-4); justify-content:flex-end;">
+      <button class="btn btn-secondary" onclick="closeModal()">Keep booking</button>
+      <button class="btn btn-danger" onclick="confirmCancel('${id}')">Cancel booking</button>
+    </div>`);
+}
+function confirmCancel(id){
+  const reason = document.getElementById('cancel-reason').value.trim();
+  if(!reason){ toast('A cancellation reason is required.','danger'); return; }
+  const b = STATE.bookings.find(x=>x.id===id);
+  const now = new Date().toISOString();
+  b.status='cancelled'; b.cancelledAt=now; b.cancelledBy=USER.name; b.cancelReason=reason;
+  b.audit.push({ at:now, who:USER.name, action:'Booking cancelled', detail:reason });
+  const paid = bookingPaid(b);
+  if(paid>0){
+    b.payments.push({ id:b.id+'-refund', amount:-paid, method:b.payments[0].method, receivedFrom:'client', receivedAt:now, correction:true, note:'Refund recorded on cancellation.' });
+    b.audit.push({ at:now, who:USER.name, action:'Payment correction', detail:`Refund of ${formatRs(paid)} recorded.` });
+  }
+  saveState(); closeModal(); toast('Booking cancelled.'); renderApp();
+}
+
+/* ================= TICKET ================= */
+function viewTicket(id){
+  const b = STATE.bookings.find(x=>x.id===id);
+  if(!b) return `<div class="empty-state">Booking not found.</div>`;
+  const c = STATE.clients.find(cl=>cl.id===b.clientId);
+  b.printedCount = (b.printedCount||0)+1;
+  const pkgNames = [...new Set(b.lines.map(l=>l.kind==='activity'?actByCode(l.code).name:pkgByCode(l.code).name))];
+  const entitlements = expandEntitlements(b.lines);
+  return `
+  <div class="page-head no-print"><button class="btn-ghost" style="padding-left:0;" onclick="navigate('#/booking/${b.id}')">← Back to booking</button>
+    <button class="btn btn-primary" onclick="printTicket('${b.id}')">Print</button>
+  </div>
+  <div class="ticket-wrap" id="print-area">
+    <div class="ticket">
+      <div class="qr-box"><span style="font-size:22px;">▦</span><span class="caption" style="font-size:10px; text-align:center;">QR code<br/>in V2</span></div>
+      <div class="tk-logo"><img src="${LOGO_SVG_DATA_URI}" alt="AquaSail" style="height:22px;"/></div>
+      <div class="eyebrow" style="margin-bottom:4px;">Activity ticket</div>
+      <div class="tk-ref">${b.reference}</div>
+      <div style="clear:both;"></div>
+      <hr class="divider" style="margin:var(--space-4) 0;"/>
+      <div class="tk-row"><span class="muted">Guest</span><span style="font-weight:600;">${clientName(c)}</span></div>
+      <div class="tk-row"><span class="muted">Service date</span><span>${formatDateShort(b.serviceDate)}</span></div>
+      <div class="tk-row"><span class="muted">Departs</span><span>${b.departureTime}</span></div>
+      <div class="tk-row"><span class="muted">Meeting point</span><span>${b.meetingPoint}</span></div>
+      <div class="tk-row"><span class="muted">Package</span><span>${pkgNames.join(', ')}</span></div>
+      ${b.resourceCode ? `<div class="tk-row"><span class="muted">Boat</span><span>${resourceByCode(b.resourceCode).name}</span></div>` : ''}
+      <div class="tk-row"><span class="muted">Participants</span><span>${bookingPeople(b)}</span></div>
+      <div style="margin-top:var(--space-4);">
+        <div class="label" style="color:var(--ink-muted); margin-bottom:6px;">Included</div>
+        ${Object.entries(entitlements).map(([code,n])=>`<div class="tk-row"><span>${actByCode(code).name}</span><span class="num">×${n}</span></div>`).join('')}
+      </div>
+      <div class="caption" style="margin-top:var(--space-5); text-align:center;">${COMPANY.ticketFooter}</div>
+    </div>
+    <div class="caption no-print" style="text-align:center; margin-top:var(--space-3);">Printed ${b.printedCount} time(s) this session.</div>
+  </div>`;
+}
+function printTicket(id){ saveState(); window.print(); }
+
+/* ================= DAILY REGISTER =================
+   One printable sheet per operating day: PAX and amount received, broken down
+   by vessel and by individual activity, plus a second breakdown by tour operator.
+   Every figure is computed from real bookings — nothing here is hand-typed. */
+let REGISTER_DATE = TODAY;
+const REGISTER_ROWS = [
+  { label:'Catamaran A', kind:'boat', code:'CAT_A' },
+  { label:'Catamaran B', kind:'boat', code:'CAT_B' },
+  { label:'Cataspeed', kind:'boat', code:'CATASPEED' },
+  { label:'Undersea Walk', kind:'activity', code:'UNDERSEA' },
+  { label:'Parasailing', kind:'activity', code:'PARASAIL' },
+  { label:'Undersea Photo', kind:'activity', code:'UNDERSEAPHOTO' },
+  { label:'Tube Riding', kind:'activity', code:'TUBE' },
+  { label:'Speed Boat', kind:'activity', code:'SPEEDBOAT' },
+];
+
+// A boat-bearing booking's full value is attributed to its assigned vessel (never split further —
+// snorkelling/lunch riding along on a catamaran trip aren't tracked on this particular sheet).
+function boatRowStats(resourceCode, date){
+  let pax=0, amount=0;
+  STATE.bookings.filter(b=>b.serviceDate===date && b.status!=='cancelled' && b.resourceCode===resourceCode).forEach(b=>{
+    pax += bookingPeople(b);
+    const paidRatio = b.quote.chargedTotal>0 ? Math.min(1, bookingPaid(b)/b.quote.chargedTotal) : 0;
+    amount += b.quote.chargedTotal * paidRatio;
+  });
+  return { pax, amount: Math.round(amount) };
+}
+
+// Standalone activities, and activities inside a "components" package (never a boat booking —
+// those are fully counted above). Each activity's own retail/net price is re-resolved on its own,
+// then the booking's discount and payment-received ratios are applied proportionally, so nothing
+// is invented and a partly-paid booking doesn't overstate today's cash.
+function activityRowStats(code, date){
+  let pax=0, amount=0;
+  STATE.bookings.filter(b=>b.serviceDate===date && b.status!=='cancelled' && !needsBoat(b.lines)).forEach(b=>{
+    const matchingLines = b.lines.filter(l => l.kind==='activity' ? l.code===code : pkgByCode(l.code).includes.includes(code));
+    if(!matchingLines.length) return;
+    const preDiscount = b.quote.lines.reduce((s,l)=>s+l.lineCharged,0);
+    const discountRatio = preDiscount>0 ? b.quote.chargedTotal/preDiscount : 1;
+    const paidRatio = b.quote.chargedTotal>0 ? Math.min(1, bookingPaid(b)/b.quote.chargedTotal) : 0;
+    matchingLines.forEach(l=>{
+      ['adult','child','infant'].forEach(pt=>{
+        const qty = l.qty[pt]||0; if(qty<=0) return;
+        pax += qty;
+        const r = resolveLine(STATE.rules, 'activity', code, pt, b.operatorCode, b.serviceDate);
+        if(!r.ok) return;
+        const operator = b.operatorCode ? opByCode(b.operatorCode) : null;
+        const unit = (operator && operator.model==='net_rate') ? (r.net ?? r.retail) : r.retail;
+        amount += unit * qty * discountRatio * paidRatio;
+      });
+    });
+  });
+  return { pax, amount: Math.round(amount) };
+}
+function operatorRowStats(opCode, date){
+  let pax=0, amount=0;
+  STATE.bookings.filter(b=>b.serviceDate===date && b.status!=='cancelled' && b.operatorCode===opCode).forEach(b=>{
+    pax += bookingPeople(b); amount += bookingPaid(b);
+  });
+  return { pax, amount };
+}
+function registerGrandTotal(date){
+  return STATE.bookings.filter(b=>b.serviceDate===date).reduce((s,b)=>s+bookingPaid(b),0);
+}
+function viewRegister(){
+  const rows = REGISTER_ROWS.map(r => ({ label:r.label, ...(r.kind==='boat' ? boatRowStats(r.code, REGISTER_DATE) : activityRowStats(r.code, REGISTER_DATE)) }));
+  const opRows = OPERATORS.map(o => ({ label:o.name, sub: o.model==='commission' ? `${(o.rate*100).toFixed(0)}% commission` : 'net rate', ...operatorRowStats(o.code, REGISTER_DATE) }));
+  const subtotalPax = rows.reduce((s,r)=>s+r.pax,0);
+  const subtotalAmt = rows.reduce((s,r)=>s+r.amount,0);
+  const grand = registerGrandTotal(REGISTER_DATE);
+  const rowHtml = r => `<tr><td>${r.label}</td><td class="num" style="text-align:center;">${r.pax}</td><td class="num">${formatRs(r.amount)}</td></tr>`;
+  return `
+  <div class="page-head no-print">
+    <div><div class="eyebrow">End of day</div><h1 class="display-lg">Daily register</h1></div>
+    <div style="display:flex; gap:12px; align-items:center;">
+      <label class="body-sm">Date <input type="date" class="input" style="width:170px; display:inline-block;" value="${REGISTER_DATE}" onchange="REGISTER_DATE=this.value; renderApp();"/></label>
+      <button class="btn btn-primary" onclick="window.print()">Print</button>
+    </div>
+  </div>
+  <div id="print-area" class="ticket-wrap" style="max-width:640px;">
+    <div style="display:flex; align-items:center; gap:10px; margin-bottom:var(--space-5);">
+      <img src="${LOGO_SVG_DATA_URI}" alt="AquaSail" style="height:20px;"/>
+      <div><div style="font-weight:700;">Daily activity &amp; operator register</div><div class="caption">${formatDateLong(REGISTER_DATE)}</div></div>
+    </div>
+    <div class="table-wrap" style="margin-bottom:var(--space-4);">
+      <table>
+        <thead><tr><th>Activity</th><th style="text-align:center;">PAX</th><th>Amount received</th></tr></thead>
+        <tbody>
+          ${rows.map(rowHtml).join('')}
+          <tr><td style="font-weight:700;">Subtotal</td><td class="num" style="text-align:center; font-weight:700;">${subtotalPax}</td><td class="num" style="font-weight:700;">${formatRs(subtotalAmt)}</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="table-wrap" style="margin-bottom:var(--space-4);">
+      <table>
+        <thead><tr><th>Tour operator</th><th style="text-align:center;">PAX</th><th>Amount received</th></tr></thead>
+        <tbody>${opRows.map(r=>`<tr><td>${r.label} <span class="caption">(${r.sub})</span></td><td class="num" style="text-align:center;">${r.pax}</td><td class="num">${formatRs(r.amount)}</td></tr>`).join('')}</tbody>
+      </table>
+    </div>
+    <div class="card card-pad">
+      <div class="quote-total-row grand"><span>Total received</span><span class="num">${formatRs(grand)}</span></div>
+      <div class="caption" style="margin-top:6px;">All bookings, all payment methods, ${formatDateShort(REGISTER_DATE)}. This is the day's reconciliation figure. The tour-operator table is a second view of the same bookings by source, not an additional total — an operator-account booking (e.g. Beachcomber) shows its guests here with Rs 0 received, since that's a receivable, not cash in hand. The activity subtotal only covers what's tracked on this sheet — lunch and snorkelling add-ons aren't itemised here.</div>
+    </div>
+  </div>`;
+}
+
+/* ================= PRICING ================= */
+let PRICING_TAB = 'adult';
+let PRICING_ASAT = TODAY;
+function viewPricing(){
+  const targets = [
+    ...ACTIVITIES.map(a=>({kind:'activity', code:a.code, name:a.name})),
+    ...PACKAGES.filter(p=>p.mode==='bundle').map(p=>({kind:'package', code:p.code, name:p.name+' (bundle)'})),
+  ];
+  const cols = [{code:null,name:'Walk-in'}, ...OPERATORS.map(o=>({code:o.code,name:o.name}))];
+
+  const headerCells = cols.map(c=>`<th>${c.name}</th>`).join('');
+  const bodyRows = targets.map(t=>{
+    const cells = cols.map(col=>{
+      const r = resolveLine(STATE.rules, t.kind, t.code, PRICING_TAB, col.code, PRICING_ASAT);
+      if(!r.ok) return `<td><span class="pcell missing">Not set</span></td>`;
+      const future = hasFutureChange(t.kind,t.code,PRICING_TAB,col.code);
+      const priceStr = col.code && opByCode(col.code).model==='net_rate' ? (r.net!=null?formatRs(r.net):formatRs(r.retail)+' *') : formatRs(r.retail);
+      return `<td><span class="pcell ${future?'future':''}" onclick="openPriceEdit('${t.kind}','${t.code}','${col.code||''}')">${priceStr}</span></td>`;
+    }).join('');
+    return `<tr><td class="rowhead" onclick="showHistory('${t.kind}','${t.code}')" style="cursor:pointer;">${t.name}</td>${cells}</tr>`;
+  }).join('');
+
+  return `
+  <div class="page-head">
+    <div><div class="eyebrow">Admin</div><h1 class="display-lg">Pricing</h1><p class="body-sm muted" style="margin-top:4px;">Prices are never overwritten — every change closes the old rule and opens a new one from an effective date.</p></div>
+    <div style="display:flex; gap:12px; align-items:center;">
+      <label class="body-sm">As at <input type="date" class="input" style="width:160px; display:inline-block;" value="${PRICING_ASAT}" onchange="PRICING_ASAT=this.value; renderApp();"/></label>
+    </div>
+  </div>
+  <div class="tabs" style="margin-bottom:var(--space-4);">
+    ${['adult','child','infant'].map(p=>`<button class="tab ${PRICING_TAB===p?'active':''}" onclick="PRICING_TAB='${p}'; renderApp();">${p[0].toUpperCase()+p.slice(1)}</button>`).join('')}
+  </div>
+  <div class="table-wrap" style="margin-bottom:var(--space-6);">
+    <table class="pmatrix"><thead><tr><th style="text-align:left;">Item</th>${headerCells}</tr></thead><tbody>${bodyRows}</tbody></table>
+  </div>
+  <div class="caption">* Commission operators are shown at retail — the guest pays retail and the operator earns a commission automatically. → marks a price already scheduled for a future date. Click a row name for its price history; click a cell to schedule a change.</div>
+  <div id="history-panel" style="margin-top:var(--space-5);"></div>`;
+}
+function hasFutureChange(kind, code, participant, opCode){
+  const audience = opCode ? 'operator' : 'walk_in';
+  return STATE.rules.some(r=>r.targetType===kind && r.targetId===code && r.participant===participant && r.audience===audience && (opCode?r.operatorId===opCode:true) && r.from > TODAY);
+}
+function showHistory(kind, code){
+  const name = kind==='activity'?actByCode(code).name:pkgByCode(code).name;
+  const rows = STATE.rules.filter(r=>r.targetType===kind && r.targetId===code && r.participant===PRICING_TAB && r.audience==='walk_in').sort((a,b)=>a.from.localeCompare(b.from));
+  const html = rows.map(r=>`<div class="part-row"><span class="body-sm">${formatDateShort(r.from)} → ${r.to?formatDateShort(r.to):'current'}</span><span class="num" style="font-weight:700;">${formatRs(r.retail)}</span></div>`).join('') || `<div class="empty-state">No walk-in history recorded.</div>`;
+  document.getElementById('history-panel').innerHTML = `<div class="card card-pad"><div class="label" style="color:var(--ink-muted); margin-bottom:8px;">${name} — ${PRICING_TAB} price history (walk-in)</div>${html}</div>`;
+}
+function openPriceEdit(kind, code, opCode){
+  opCode = opCode || null;
+  const r = resolveLine(STATE.rules, kind, code, PRICING_TAB, opCode, PRICING_ASAT);
+  const name = kind==='activity'?actByCode(code).name:pkgByCode(code).name;
+  const colName = opCode ? opByCode(opCode).name : 'Walk-in';
+  const tomorrow = addDays(TODAY,1);
+  showModal(`<h3 class="heading-sm">${name} — ${PRICING_TAB} — ${colName}</h3>
+    <p class="body-sm muted" style="margin-bottom:var(--space-4);">Current: ${r.ok?formatRs(r.net!=null&&opCode?r.net:r.retail):'not set'}</p>
+    <label class="field"><span class="label">New price (Rs)</span><input id="price-new" type="number" class="input" placeholder="e.g. 1900"/></label>
+    <label class="field" style="margin-top:var(--space-3);"><span class="label">Effective from</span><input id="price-from" type="date" class="input" value="${tomorrow}" min="${tomorrow}"/></label>
+    <div id="price-preview" class="caption" style="margin-top:var(--space-3);"></div>
+    <div style="display:flex; gap:8px; margin-top:var(--space-4); justify-content:flex-end;">
+      <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="confirmPriceEdit('${kind}','${code}','${opCode||''}')">Save price</button>
+    </div>`);
+  document.getElementById('price-new').oninput = updatePricePreview;
+  document.getElementById('price-from').onchange = updatePricePreview;
+  function updatePricePreview(){
+    const val = document.getElementById('price-new').value;
+    const from = document.getElementById('price-from').value;
+    document.getElementById('price-preview').textContent = val ? `${name}, ${PRICING_TAB}, ${colName}: current price holds until ${formatDateShort(from)}, then Rs ${Number(val).toLocaleString()} from ${formatDateShort(from)}.` : '';
+  }
+}
+function addDays(iso, n){ const d = new Date(iso+'T12:00:00'); d.setDate(d.getDate()+n); return d.toISOString().slice(0,10); }
+function confirmPriceEdit(kind, code, opCode){
+  opCode = opCode || null;
+  const val = Number(document.getElementById('price-new').value);
+  const from = document.getElementById('price-from').value;
+  if(!val || val<=0){ toast('Enter a price above zero.','danger'); return; }
+  if(from <= TODAY){ toast('Effective date must be in the future.','danger'); return; }
+  const audience = opCode ? 'operator' : 'walk_in';
+  // close current open rule
+  const open = STATE.rules.find(r=>r.targetType===kind && r.targetId===code && r.participant===PRICING_TAB && r.audience===audience && (opCode?r.operatorId===opCode:true) && !r.to);
+  if(open) open.to = from;
+  const isNetRow = opCode && opByCode(opCode).model==='net_rate';
+  STATE.rules.push({ id:'PR'+Date.now(), targetType:kind, targetId:code, participant:PRICING_TAB, audience, operatorId:opCode, retail: isNetRow?null:Math.round(val*100), net: isNetRow?Math.round(val*100):null, from, to:null });
+  saveState(); closeModal(); toast('New price scheduled.','success'); renderApp();
+}
+
+/* ================= modal ================= */
+function showModal(innerHtml){
+  document.getElementById('modal-root').innerHTML = `<div class="modal-backdrop" onclick="if(event.target===this) closeModal()"><div class="modal">${innerHtml}</div></div>`;
+}
+function closeModal(){ document.getElementById('modal-root').innerHTML=''; }
+
+/* ================= boot ================= */
+STATE = loadState();
+ROUTE = parseHash();
+renderApp();
+</script>

@@ -2,7 +2,6 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { toast } from "sonner";
 import { createClientRecord, findSimilarClients, updateClientRecord, type ClientMatch } from "@/actions/clients";
 import { ClientMatchBanner } from "@/components/clients/client-match-banner";
 import { Alert } from "@/components/ui/alert";
@@ -11,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { formatPhone } from "@/lib/phone";
+import { openAfterSave } from "@/lib/navigate";
 import { useServerForm } from "@/lib/use-server-form";
 
 type ExistingClient = {
@@ -35,10 +35,7 @@ export function ClientForm({ client }: { client?: ExistingClient }) {
   const lookup = useRef(0);
 
   const { result, pending, onSubmit } = useServerForm(client ? updateClientRecord : createClientRecord, {
-    onSuccess: ({ id }) => {
-      toast.success(client ? "Client updated." : "Client added.");
-      router.push(`/clients/${id}`);
-    },
+    onSuccess: ({ id }) => openAfterSave(`/clients/${id}`),
   });
 
   useEffect(() => {

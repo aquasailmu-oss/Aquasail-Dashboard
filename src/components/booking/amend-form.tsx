@@ -2,7 +2,6 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
-import { toast } from "sonner";
 import { amendBooking, bookingContext, type BookingContext } from "@/actions/bookings";
 import { getQuote } from "@/actions/quotes";
 import { BoatPicker, type Boat } from "@/components/booking/boat-picker";
@@ -22,6 +21,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { formatRs, fromCents, type Cents } from "@/lib/money";
+import { openAfterSave } from "@/lib/navigate";
 import type { Quote } from "@/lib/pricing/types";
 
 export type AmendableBooking = {
@@ -135,13 +135,9 @@ export function AmendForm({
         resource_id: needsBoat ? boatId : null,
         expected_total_cents: total,
       });
-      if (!r.ok) {
-        setError(r.error);
-        if (/Prices changed/.test(r.error)) setRequote((x) => x + 1);
-        return;
-      }
-      toast.success(`Saved. Total was ${formatRs(r.data.previous)}, now ${formatRs(r.data.total)}.`);
-      router.push(`/bookings/${booking.id}`);
+      if (r.ok) return openAfterSave(`/bookings/${booking.id}?amended=${r.data.previous}-${r.data.total}`);
+      setError(r.error);
+      if (/Prices changed/.test(r.error)) setRequote((x) => x + 1);
     });
   }
 

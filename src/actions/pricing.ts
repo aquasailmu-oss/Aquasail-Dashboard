@@ -213,6 +213,8 @@ export async function previewBulkChange(input: BulkInput): Promise<Result<BulkPr
 export async function applyBulkChange(input: BulkInput & { fingerprint: string }): Promise<Result<number>> {
   const auth = await authorize(ADMIN);
   if (!auth.ok) return auth;
+  if (!z.string().max(200_000).safeParse(input.fingerprint).success)
+    return fail("Preview the change again before applying.");
   const computed = await computeBulk(input);
   if (!computed.ok) return computed;
   if (computed.data.rows.length === 0) return fail("There are no prices to change.");

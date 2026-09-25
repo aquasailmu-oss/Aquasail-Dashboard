@@ -116,7 +116,8 @@ const createSchema = z.object({
 
 export type CreateBookingInput = z.input<typeof createSchema>;
 
-export async function createBooking(input: CreateBookingInput): Promise<Result<{ id: string; reference: string }>> {
+/** Creates the booking; the form then opens its confirmation (see bookingSaved()). */
+export async function createBooking(input: CreateBookingInput): Promise<Result<{ id: string }>> {
   const auth = await authorize(WRITERS);
   if (!auth.ok) return auth;
   const parsed = createSchema.safeParse(input);
@@ -191,10 +192,10 @@ export async function createBooking(input: CreateBookingInput): Promise<Result<{
   });
   if (error) return fail(friendlyDbError(error, "The booking could not be saved. Nothing was charged; try again."));
 
-  const result = data as { booking_id: string; reference: string };
+  const result = data as { booking_id: string };
   revalidatePath("/today");
   revalidatePath("/bookings");
-  return ok({ id: result.booking_id, reference: result.reference });
+  return ok({ id: result.booking_id });
 }
 
 // ---------------------------------------------------------------------------
@@ -222,9 +223,8 @@ const amendSchema = z.object({
 
 export type AmendBookingInput = z.input<typeof amendSchema>;
 
-export async function amendBooking(
-  input: AmendBookingInput,
-): Promise<Result<{ previous: Cents; total: Cents; paid: Cents }>> {
+/** Saves an amendment; the form then opens the booking, which shows the old and new totals. */
+export async function amendBooking(input: AmendBookingInput): Promise<Result<{ previous: Cents; total: Cents }>> {
   const auth = await authorize(WRITERS);
   if (!auth.ok) return auth;
   const parsed = amendSchema.safeParse(input);
@@ -250,15 +250,11 @@ export async function amendBooking(
     } as unknown as Json,
   });
   if (error) return fail(friendlyDbError(error, "The changes could not be saved. Nothing was changed; try again."));
-  const r = data as { previous_total_cents: number; charged_total_cents: number; paid_cents: number };
+  const r = data as { previous_total_cents: number; charged_total_cents: number };
   revalidatePath(`/bookings/${d.booking_id}`);
   revalidatePath("/today");
   revalidatePath("/bookings");
-  return ok({
-    previous: cents(r.previous_total_cents),
-    total: cents(r.charged_total_cents),
-    paid: cents(r.paid_cents),
-  });
+  return ok({ previous: cents(r.previous_total_cents), total: cents(r.charged_total_cents) });
 }
 
 const cancelSchema = z.object({

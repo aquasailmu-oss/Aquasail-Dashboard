@@ -40,6 +40,8 @@ No ORM. Generated types in `src/lib/database.types.ts`.
    `Result<T>` (`src/lib/result.ts`). Errors are human-readable strings — a
    receptionist never sees "PGRST116" (`friendlyDbError()` in `src/lib/db-errors.ts`).
    Client forms submit through `useServerForm()` so nothing typed is lost.
+   Exception: the sign-in, sign-out and password actions in `src/actions/auth.ts`
+   run before there is a role to check.
 8. Nothing is ever hard-deleted. Bookings are cancelled; catalogue rows are
    deactivated; payments are corrected with a negative row. The one deliberate
    exception: `save_package()` replaces a package's activity links (composition,
@@ -119,6 +121,8 @@ on an error. Minimum 44px touch targets (`min-h-11`). No hover-only affordances.
 Write SQL in `supabase/migrations/` → `npm run db:reset` (rebuild local DB from
 scratch) → `npm run db:types` → `npm run test:db` (pgTAP, `supabase/tests/`) and
 `npm run test:rls` (attack suite, `tests/rls/`) → commit. Deploy with `npm run db:push`.
+End-to-end: `npm run db:demo`, then `npm run test:e2e` (Playwright, `tests/e2e/`,
+reuses a running `npm run dev`). Browser checks belong there, not in scratch files.
 A new table must be added to `TABLES` in `tests/rls/harness.ts` (the type
 checker enforces it) and get its own attacks in `tests/rls/`.
 

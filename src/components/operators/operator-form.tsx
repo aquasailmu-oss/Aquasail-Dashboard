@@ -2,7 +2,6 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { toast } from "sonner";
 import { saveOperator } from "@/actions/operators";
 import { PayerBanner } from "@/components/shared/payer-banner";
 import { Alert } from "@/components/ui/alert";
@@ -13,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { PAYERS, SETTLEMENT_MODELS, type Payer, type SettlementModel } from "@/lib/operators";
 import { formatPhone } from "@/lib/phone";
+import { openAfterSave } from "@/lib/navigate";
 import { useServerForm } from "@/lib/use-server-form";
 import { cn } from "@/lib/utils";
 
@@ -75,10 +75,7 @@ export function OperatorForm({ operator }: { operator?: Operator }) {
   const [payer, setPayer] = useState<Payer>(operator?.payer ?? "client");
   const [name, setName] = useState(operator?.name ?? "");
   const { result, pending, onSubmit } = useServerForm(saveOperator, {
-    onSuccess: ({ id }) => {
-      toast.success(operator ? "Operator saved." : "Operator added.");
-      router.push(`/admin/operators/${id}`);
-    },
+    onSuccess: ({ id }) => openAfterSave(`/admin/operators/${id}`),
   });
 
   return (

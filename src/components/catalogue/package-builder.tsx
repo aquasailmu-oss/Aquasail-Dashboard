@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { cents, formatRs } from "@/lib/money";
+import { openAfterSave } from "@/lib/navigate";
 import { cn } from "@/lib/utils";
 
 type ActivityOption = { id: string; code: string; name: string; is_active: boolean };
@@ -102,15 +103,15 @@ export function PackageBuilder({ pkg, activities }: { pkg?: ExistingPackage; act
         setError(result.error);
         return;
       }
-      if (result.data.warning) {
+      // Saved without a price for today: stay (an edit) or open the new package, whose preview says so.
+      if (result.data.warning && pkg) {
         toast.warning(result.data.warning, {
           duration: 10000,
           action: { label: "Open Pricing", onClick: () => router.push("/admin/pricing") },
         });
-      } else {
-        toast.success("Package saved.");
+        return;
       }
-      router.push(pkg ? "/admin/packages" : `/admin/packages/${result.data.id}`);
+      openAfterSave(pkg ? "/admin/packages" : `/admin/packages/${result.data.id}`);
     });
   }
 

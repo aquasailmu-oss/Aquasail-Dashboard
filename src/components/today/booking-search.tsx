@@ -2,16 +2,16 @@
 
 import { SearchIcon } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+
 import { useState, useTransition } from "react";
 import { searchBookings, type BookingHit } from "@/actions/bookings";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { formatDateShort } from "@/lib/dates";
+import { openAfterSave } from "@/lib/navigate";
 
 /** Find a booking by reference (the digits are enough), client name or phone; one match opens it. */
 export function BookingSearch() {
-  const router = useRouter();
   const [q, setQ] = useState("");
   const [hits, setHits] = useState<BookingHit[] | null>(null);
   const [pending, startTransition] = useTransition();
@@ -26,7 +26,7 @@ export function BookingSearch() {
           startTransition(async () => {
             const r = await searchBookings(q);
             const found = r.ok ? r.data : [];
-            if (found.length === 1) router.push(`/bookings/${found[0].id}`);
+            if (found.length === 1) openAfterSave(`/bookings/${found[0].id}`);
             else setHits(found);
           });
         }}

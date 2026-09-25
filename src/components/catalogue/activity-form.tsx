@@ -1,13 +1,13 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { toast } from "sonner";
 import { saveActivity } from "@/actions/catalogue";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { openAfterSave } from "@/lib/navigate";
 import { useServerForm } from "@/lib/use-server-form";
 
 type Activity = {
@@ -23,10 +23,7 @@ type Activity = {
 export function ActivityForm({ activity, nextSortOrder }: { activity?: Activity; nextSortOrder: number }) {
   const router = useRouter();
   const { result, pending, onSubmit } = useServerForm(saveActivity, {
-    onSuccess: () => {
-      toast.success(activity ? "Activity saved." : "Activity added.");
-      router.push("/admin/activities");
-    },
+    onSuccess: () => openAfterSave("/admin/activities"),
   });
 
   return (

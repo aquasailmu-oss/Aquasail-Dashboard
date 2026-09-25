@@ -13,7 +13,7 @@ pricing, fleet tracking, and daily reconciliation.
 | Phase | Scope                                                 | State                             |
 | ----- | ----------------------------------------------------- | --------------------------------- |
 | V0    | Foundation: repo, schema, RLS, auth, role-aware shell | Done (WP-01–09)                   |
-| V1    | Core booking system                                   | WP-10–19 and 17b done, WP-20 next |
+| V1    | Core booking system                                   | WP-10–20 and 17b done, WP-21 next |
 | V2–V4 | Ticketing, accounting, capacity/analytics             | Planned                           |
 
 ## Running it
@@ -83,6 +83,7 @@ by SQL and live in the Supabase dashboard of project `zhcxfxrsmmihnnwzfvdc`:
 | `npm test`                     | Unit tests (Vitest)                                                        |
 | `npm run test:db`              | Database tests (pgTAP, `supabase/tests/`)                                  |
 | `npm run test:rls`             | RLS attack suite (`tests/rls/`, local stack) — must pass before any deploy |
+| `npm run test:e2e`             | Playwright end-to-end tests (`tests/e2e/`); run `npm run db:demo` first    |
 | `npm run typecheck` / `lint`   | TypeScript and ESLint                                                      |
 | `npm run format`               | Prettier                                                                   |
 | `npm run db:start` / `db:stop` | Start/stop the local Supabase stack                                        |

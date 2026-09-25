@@ -64,6 +64,8 @@ function must<T>(res: { data: T; error: PostgrestError | null }): NonNullable<T>
 export async function createFixtures() {
   const tag = randomUUID().slice(0, 8);
   const today = businessDate();
+  // Earlier runs' fixture activities would otherwise pile up in the catalogue.
+  await service.from("activities").update({ is_active: false }).like("code", "RLS_%").eq("is_active", true);
   const client = must(
     await service
       .from("clients")

@@ -28,9 +28,16 @@ const METHOD = {
   other: "Other",
 } as const;
 
-export default async function BookingPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function BookingPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ amended?: string }>;
+}) {
   const user = await requireRole(["admin", "accountant", "receptionist"]);
-  const { id } = await params;
+  const [{ id }, { amended }] = await Promise.all([params, searchParams]);
+  const [wasCents, nowCents] = (amended ?? "").split("-").map(Number);
   const supabase = await createClient();
   const { data: b } = await supabase
     .from("bookings")
@@ -109,6 +116,11 @@ export default async function BookingPage({ params }: { params: Promise<{ id: st
         </div>
       </div>
 
+      {Number.isSafeInteger(wasCents) && Number.isSafeInteger(nowCents) && (
+        <Alert variant="success" className="mb-6" role="status">
+          Changes saved. Total was {formatRs(cents(wasCents))}, now {formatRs(cents(nowCents))}.
+        </Alert>
+      )}
       {cancelled && (
         <Alert variant="destructive" className="mb-6">
           Cancelled on {b.cancelled_at && formatDateTime(b.cancelled_at)} by {name(b.cancelled_by)}:{" "}
@@ -251,7 +263,8 @@ export default async function BookingPage({ params }: { params: Promise<{ id: st
       </Card>
 
       <div className="mt-8 grid gap-6 lg:grid-cols-2">
-        <div>
+        {/* min-w-0: let the tables scroll inside their cards instead of widening the page */}
+        <div className="min-w-0">
           <h2 className="font-display mb-3 text-xl font-semibold">Entitlements</h2>
           <Card className="overflow-x-auto">
             <Table>
@@ -277,7 +290,7 @@ export default async function BookingPage({ params }: { params: Promise<{ id: st
           </Card>
         </div>
 
-        <div>
+        <div className="min-w-0">
           <div className="mb-3 flex items-center justify-between gap-3">
             <h2 className="font-display text-xl font-semibold">Payments</h2>
             {canWrite && !cancelled && due > 0 && (

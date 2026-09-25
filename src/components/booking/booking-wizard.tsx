@@ -1,7 +1,6 @@
 "use client";
 
 import { UserCheckIcon } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { bookingContext, createBooking, type BookingContext } from "@/actions/bookings";
 import { findSimilarClients, type ClientMatch } from "@/actions/clients";
@@ -25,9 +24,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { formatDateShort } from "@/lib/dates";
-import { cents, formatRs, toCents, type Cents } from "@/lib/money";
+import { cents, formatRs, fromCents, toCents, type Cents } from "@/lib/money";
 import { formatPhone } from "@/lib/phone";
 import type { Quote } from "@/lib/pricing/types";
+import { openAfterSave } from "@/lib/navigate";
 import { cn } from "@/lib/utils";
 
 type WizardOperator = { id: string; name: string; payer: "client" | "operator" };
@@ -93,7 +93,6 @@ export function BookingWizard({
   defaultMeetingPoint: string;
   today: string;
 }) {
-  const router = useRouter();
   const idempotencyKey = useRef<string>(crypto.randomUUID());
 
   // 1. Client
@@ -192,13 +191,12 @@ export function BookingWizard({
     return () => clearTimeout(timer);
   }, [client, chosenClient]);
 
-  // Amount received follows the total until reception types their own.
+  // Amount received is the total until reception types their own. Derived,
+  // not copied in an effect, so an instant Ctrl+Enter still records payment.
   const total = quote && !quoteError ? quote.charged_total_cents : null;
-  useEffect(() => {
-    if (!receivedTouched && total !== null) setReceived(String(total / 100));
-  }, [total, receivedTouched]);
+  const receivedValue = receivedTouched ? received : total !== null ? String(fromCents(total)) : "";
 
-  const receivedCents = tryCents(received);
+  const receivedCents = tryCents(receivedValue);
   const changeDue =
     method === "cash" && receivedCents !== null && total !== null && receivedCents > total
       ? cents(receivedCents - total)
@@ -241,13 +239,10 @@ export function BookingWizard({
         meeting_point: meetingPoint,
         notes,
         resource_id: needsBoat ? boatId : null,
-        payment: payerIsOperator ? null : { method, received, reference: paymentRef },
+        payment: payerIsOperator ? null : { method, received: receivedValue, reference: paymentRef },
         expected_total_cents: quote.charged_total_cents,
       });
-      if (result.ok) {
-        router.push(`/bookings/${result.data.id}/confirmation`);
-        return;
-      }
+      if (result.ok) return openAfterSave(`/bookings/${result.data.id}/confirmation`);
       setSubmitError(result.error);
       if (/Prices changed/.test(result.error)) setRequote((n) => n + 1); // show the new price
     });
@@ -270,9 +265,8 @@ export function BookingWizard({
     boatId,
     payerIsOperator,
     method,
-    received,
+    receivedValue,
     paymentRef,
-    router,
   ]);
 
   // Keyboard: Ctrl/Cmd+Enter submits anywhere; 1–9 pick a package tile when not typing.
@@ -553,7 +547,7 @@ export function BookingWizard({
                 <Input
                   id="received"
                   inputMode="decimal"
-                  value={received}
+                  value={receivedValue}
                   onFocus={(e) => e.target.select()}
                   onChange={(e) => {
                     setReceivedTouched(true);

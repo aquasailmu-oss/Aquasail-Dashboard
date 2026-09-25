@@ -56,8 +56,9 @@ No ORM. Generated types in `src/lib/database.types.ts`.
 
 ## Roles
 
-`admin`, `accountant`, `receptionist`, `activity_staff`. Permissions matrix: build
-plan §8 (moves to `docs/ARCHITECTURE.md` in WP-21). `activity_staff` must never be
+`admin`, `accountant`, `receptionist`, `activity_staff`. Permissions matrix and
+the design record: `docs/ARCHITECTURE.md`. Releases: `docs/RELEASE.md`. Backups:
+`docs/BACKUP.md`. `activity_staff` must never be
 able to read prices, totals, commissions or customer contact details.
 
 ## UX principles

@@ -1053,6 +1053,7 @@ export type Database = {
         Args: { roles: Database["public"]["Enums"]["app_role"][] }
         Returns: boolean
       }
+      health_check: { Args: never; Returns: Json }
       is_admin: { Args: never; Returns: boolean }
       mark_ticket_printed: { Args: { p_token: string }; Returns: number }
       next_booking_reference: {

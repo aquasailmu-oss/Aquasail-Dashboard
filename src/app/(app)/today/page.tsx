@@ -177,7 +177,9 @@ export default async function TodayPage() {
                     <TableCell>{b.client_name}</TableCell>
                     <TableCell>{b.summary}</TableCell>
                     <TableCell className="text-right tabular-nums">{b.people}</TableCell>
-                    <TableCell className="text-right tabular-nums">{formatRs(cents(b.charged_total_cents))}</TableCell>
+                    <TableCell className="text-right whitespace-nowrap tabular-nums">
+                      {formatRs(cents(b.charged_total_cents))}
+                    </TableCell>
                     <TableCell>
                       {b.status === "cancelled" ? (
                         <BookingStatusBadge status="cancelled" />

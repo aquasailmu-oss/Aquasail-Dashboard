@@ -10,11 +10,11 @@ pricing, fleet tracking, and daily reconciliation.
 
 ## Status
 
-| Phase | Scope                                                 | State                             |
-| ----- | ----------------------------------------------------- | --------------------------------- |
-| V0    | Foundation: repo, schema, RLS, auth, role-aware shell | Done (WP-01–09)                   |
-| V1    | Core booking system                                   | WP-10–20 and 17b done, WP-21 next |
-| V2–V4 | Ticketing, accounting, capacity/analytics             | Planned                           |
+| Phase | Scope                                                 | State                |
+| ----- | ----------------------------------------------------- | -------------------- |
+| V0    | Foundation: repo, schema, RLS, auth, role-aware shell | Done (WP-01–09)      |
+| V1    | Core booking system                                   | Done (WP-10–21, 17b) |
+| V2–V4 | Ticketing, accounting, capacity/analytics             | Planned              |
 
 ## Running it
 
@@ -58,6 +58,23 @@ Realtime. Turn one back on by setting its `enabled = true`; its image downloads
 on the next `npm run db:start`. Check space with `df -h /`; a 64 GB machine type
 removes the constraint. When the disk is full, file writes fail silently and
 leave empty files, so check `git status` after freeing space.
+
+## Documentation
+
+- [docs/USER_GUIDE_RECEPTION.md](docs/USER_GUIDE_RECEPTION.md): the desk, step by step
+- [docs/USER_GUIDE_ADMIN.md](docs/USER_GUIDE_ADMIN.md): catalogue, prices, operators, users, audit
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): schema, pricing engine, permissions, design reasons
+- [docs/RELEASE.md](docs/RELEASE.md): CI, migrate-then-deploy, rollback, Vercel variables
+- [docs/BACKUP.md](docs/BACKUP.md): PITR, nightly encrypted dump, restore and rehearsals
+
+## Deploying
+
+CI (`.github/workflows/ci.yml`) runs every check on each pull request; make it
+a required check on `main`. Connect the repository to Vercel and set the
+variables in [docs/RELEASE.md](docs/RELEASE.md); the service-role key is
+server-only and must never be a `NEXT_PUBLIC_` variable. Turn on Vercel
+Deployment Protection for preview deployments. `/api/health` reports the app
+version and database connectivity.
 
 ## Cloud project setup (by hand, once)
 

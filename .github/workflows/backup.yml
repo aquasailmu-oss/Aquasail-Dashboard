@@ -1,0 +1,50 @@
+# Nightly encrypted logical backup of production, kept outside Supabase
+# (docs/BACKUP.md). Covers what point-in-time recovery cannot: a deleted or
+# locked project, a lost account. The schema lives in supabase/migrations;
+# this dump holds the data.
+#
+# Repository secrets:
+#   SUPABASE_DB_URL      production connection string (Session pooler URI, with password)
+#   BACKUP_PASSPHRASE    long random passphrase; store a copy offline, it is the only key
+name: Nightly backup
+
+on:
+  schedule:
+    - cron: "30 20 * * *" # 00:30 in Mauritius, after the day is closed
+  workflow_dispatch:
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Install PostgreSQL 17 client
+        run: |
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list
+          sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client-17
+
+      - name: Dump data (public, auth, storage), compress and encrypt
+        env:
+          DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          set -euo pipefail
+          stamp=$(TZ=Indian/Mauritius date +%Y-%m-%d)
+          /usr/lib/postgresql/17/bin/pg_dump "$DB_URL" \
+            --data-only --schema=public --schema=auth --schema=storage \
+            --exclude-table-data=storage.buckets --exclude-table-data=storage.migrations \
+            --exclude-table-data=auth.schema_migrations \
+            --no-owner --no-privileges \
+            | gzip -9 \
+            | gpg --batch --yes --symmetric --cipher-algo AES256 --passphrase "$PASSPHRASE" -o "aquasail-data-$stamp.sql.gz.gpg"
+          ls -la aquasail-data-*.gpg
+          echo "STAMP=$stamp" >> "$GITHUB_ENV"
+
+      - name: Keep for 30 days
+        uses: actions/upload-artifact@v4
+        with:
+          name: aquasail-data-${{ env.STAMP }}
+          path: aquasail-data-*.sql.gz.gpg
+          retention-days: 30

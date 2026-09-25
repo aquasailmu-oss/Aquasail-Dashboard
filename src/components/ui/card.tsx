@@ -15,8 +15,9 @@ function CardHeader({ className, ...props }: React.ComponentProps<"div">) {
   return <div data-slot="card-header" className={cn("flex flex-col gap-1 p-6 pb-3", className)} {...props} />;
 }
 
-function CardTitle({ className, ...props }: React.ComponentProps<"h3">) {
-  return <h3 data-slot="card-title" className={cn("font-display text-lg font-semibold", className)} {...props} />;
+// An h2: cards sit directly under a page's h1, so an h3 would skip a heading level.
+function CardTitle({ className, ...props }: React.ComponentProps<"h2">) {
+  return <h2 data-slot="card-title" className={cn("font-display text-lg font-semibold", className)} {...props} />;
 }
 
 function CardDescription({ className, ...props }: React.ComponentProps<"p">) {

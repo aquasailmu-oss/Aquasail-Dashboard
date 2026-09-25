@@ -28,22 +28,37 @@ No ORM. Generated types in `src/lib/database.types.ts`.
 4. Dates and times: everything business-facing is computed in Indian/Mauritius via
    `src/lib/dates.ts` (`businessDate()`, `formatDateShort()`, ...). Never call
    `new Date().toISOString().slice(0,10)`.
-5. Prices are resolved server-side from `price_rules` by `src/lib/pricing/`. The
-   client never computes or submits a price. Bookings store a price snapshot.
+5. Prices are resolved in the database by `build_quote()` (migration
+   `0011_pricing_engine.sql`; `src/lib/pricing/` is its typed wrapper and the
+   `getQuote` action). `create_booking()` calls the same engine and writes its
+   figures; a payload carries choices and the displayed total, never amounts.
+   The client never computes or submits a price. Bookings store a price snapshot.
 6. Prices are effective-dated and never overwritten. Changes go through the
    `set_price()` database function only.
 7. Every Server Action: Zod-validate its input, check the role with
-   `requireRole()`, return `Result<T>` (`src/lib/result.ts`). Errors are
-   human-readable strings — a receptionist never sees "PGRST116".
+   `authorize()` (pages use `requireRole()`; both in `src/lib/auth.ts`), return
+   `Result<T>` (`src/lib/result.ts`). Errors are human-readable strings — a
+   receptionist never sees "PGRST116" (`friendlyDbError()` in `src/lib/db-errors.ts`).
+   Client forms submit through `useServerForm()` so nothing typed is lost.
+   Exception: the sign-in, sign-out and password actions in `src/actions/auth.ts`
+   run before there is a role to check.
 8. Nothing is ever hard-deleted. Bookings are cancelled; catalogue rows are
-   deactivated; payments are corrected with a negative row.
+   deactivated; payments are corrected with a negative row. The one deliberate
+   exception: `save_package()` replaces a package's activity links (composition,
+   not a catalogue row; audited). Bookings are unaffected — each keeps its own
+   expanded entitlements in `booking_activities`. And `withdraw_scheduled_price()`
+   deletes a price that has not started and that no booking falls under
+   (owner-approved; audited), extending the previous price over the gap. And
+   `amend_booking()` deletes the lines an amendment removes (audited, like
+   every line change); the booking itself is only ever cancelled.
 9. RLS is enabled on every table and `npm run test:rls` must pass before any deploy.
 10. No `any`. No unused exports. No dead code left behind.
 
 ## Roles
 
-`admin`, `accountant`, `receptionist`, `activity_staff`. Permissions matrix: build
-plan §8 (moves to `docs/ARCHITECTURE.md` in WP-21). `activity_staff` must never be
+`admin`, `accountant`, `receptionist`, `activity_staff`. Permissions matrix and
+the design record: `docs/ARCHITECTURE.md`. Releases: `docs/RELEASE.md`. Backups:
+`docs/BACKUP.md`. `activity_staff` must never be
 able to read prices, totals, commissions or customer contact details.
 
 ## UX principles
@@ -93,6 +108,11 @@ on an error. Minimum 44px touch targets (`min-h-11`). No hover-only affordances.
   valued at their own resolved price, scaled by the booking's discount and paid
   ratios. Implement the arithmetic as a database view/function so V3's
   reconciliation reuses it.
+- **The pricing engine lives in Postgres, not TypeScript** (approved WP-14
+  change). Reception cannot read `price_rules`, and the owner wanted the
+  database itself to price every booking, so `build_quote()` is the single
+  source of truth for money. The plan's mandatory engine tests are pgTAP
+  (`supabase/tests/pricing_engine.test.sql`).
 - **Local Supabase in Codespaces**: custom Docker bridge networks are dropped by a
   legacy iptables `FORWARD DROP` policy, so `supabase start` fails at "Initialising
   schema". Fix once per Codespace (see README) or work against a cloud project.
@@ -100,7 +120,19 @@ on an error. Minimum 44px touch targets (`min-h-11`). No hover-only affordances.
 ## Database workflow (from WP-02)
 
 Write SQL in `supabase/migrations/` → `npm run db:reset` (rebuild local DB from
-scratch) → `npm run db:types` → commit. Deploy with `npm run db:push`.
+scratch) → `npm run db:types` → `npm run test:db` (pgTAP, `supabase/tests/`) and
+`npm run test:rls` (attack suite, `tests/rls/`) → commit. Deploy with `npm run db:push`.
+End-to-end: `npm run db:demo`, then `npm run test:e2e` (Playwright, `tests/e2e/`,
+reuses a running `npm run dev`). Browser checks belong there, not in scratch files.
+A new table must be added to `TABLES` in `tests/rls/harness.ts` (the type
+checker enforces it) and get its own attacks in `tests/rls/`.
+
+The repo is linked to the cloud project (ref `zhcxfxrsmmihnnwzfvdc`, eu-west-1).
+Push only after the local reset passes, and ask first: it is production.
+Auth hooks cannot be set in SQL: locally `supabase/config.toml` enables
+`custom_access_token_hook`; on the cloud project it is enabled by hand under
+Authentication > Hooks. Policies call the helpers from `0001_identity.sql` as
+`(select public.has_role(...))`, `(select public.is_admin())`.
 
 ## Commits
 

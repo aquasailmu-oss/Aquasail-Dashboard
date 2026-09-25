@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Jost, Source_Sans_3 } from "next/font/google";
+import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
 const jost = Jost({ variable: "--font-jost", subsets: ["latin"], weight: ["500", "600"] });
@@ -17,7 +18,10 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body className={`${jost.variable} ${sourceSans.variable} antialiased`}>{children}</body>
+      <body className={`${jost.variable} ${sourceSans.variable} antialiased`}>
+        {children}
+        <Toaster />
+      </body>
     </html>
   );
 }

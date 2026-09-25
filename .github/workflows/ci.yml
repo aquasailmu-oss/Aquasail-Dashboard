@@ -1,0 +1,74 @@
+# Every push to main and every pull request: the full test pyramid against a
+# local Supabase built from the migrations (the same schema as production).
+# Make "CI / checks" a required status check on main so failures block merges.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      CI: "true"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Format, types, lint, unit tests
+        run: |
+          npm run format:check
+          npm run typecheck
+          npm run lint
+          npm test
+
+      - name: Start local Supabase (migrations + seed)
+        run: npx supabase start
+
+      - name: Write .env.local from the local stack
+        run: |
+          eval "$(npx supabase status -o env)"
+          {
+            echo "NEXT_PUBLIC_SUPABASE_URL=$API_URL"
+            echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$ANON_KEY"
+            echo "SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY"
+          } > .env.local
+
+      - name: Database tests (pgTAP)
+        run: npm run test:db
+
+      - name: RLS attack suite
+        run: npm run test:rls
+
+      - name: Generated types are up to date
+        run: |
+          npm run db:types
+          git diff --exit-code src/lib/database.types.ts
+
+      - name: End-to-end tests (production build)
+        run: |
+          npx playwright install --with-deps chromium
+          npm run test:e2e
+
+      - name: Keep the Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 14

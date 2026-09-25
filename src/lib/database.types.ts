@@ -1,0 +1,1296 @@
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[]
+
+export type Database = {
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
+  public: {
+    Tables: {
+      activities: {
+        Row: {
+          code: string
+          created_at: string
+          default_duration_minutes: number | null
+          description: string | null
+          id: string
+          is_active: boolean
+          is_redeemable: boolean
+          name: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          default_duration_minutes?: number | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_redeemable?: boolean
+          name: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          default_duration_minutes?: number | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_redeemable?: boolean
+          name?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      app_settings: {
+        Row: {
+          key: string
+          updated_at: string
+          updated_by: string | null
+          value: Json
+        }
+        Insert: {
+          key: string
+          updated_at?: string
+          updated_by?: string | null
+          value: Json
+        }
+        Update: {
+          key?: string
+          updated_at?: string
+          updated_by?: string | null
+          value?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "app_settings_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      audit_logs: {
+        Row: {
+          action: string
+          actor_id: string | null
+          actor_role: Database["public"]["Enums"]["app_role"] | null
+          changed_at: string
+          id: number
+          new_data: Json | null
+          old_data: Json | null
+          record_id: string | null
+          table_name: string
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          actor_role?: Database["public"]["Enums"]["app_role"] | null
+          changed_at?: string
+          id?: number
+          new_data?: Json | null
+          old_data?: Json | null
+          record_id?: string | null
+          table_name: string
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          actor_role?: Database["public"]["Enums"]["app_role"] | null
+          changed_at?: string
+          id?: number
+          new_data?: Json | null
+          old_data?: Json | null
+          record_id?: string | null
+          table_name?: string
+        }
+        Relationships: []
+      }
+      booking_activities: {
+        Row: {
+          activity_id: string
+          booking_id: string
+          created_at: string
+          id: string
+          quantity: number
+          source_item_id: string | null
+        }
+        Insert: {
+          activity_id: string
+          booking_id: string
+          created_at?: string
+          id?: string
+          quantity: number
+          source_item_id?: string | null
+        }
+        Update: {
+          activity_id?: string
+          booking_id?: string
+          created_at?: string
+          id?: string
+          quantity?: number
+          source_item_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_activities_activity_id_fkey"
+            columns: ["activity_id"]
+            isOneToOne: false
+            referencedRelation: "activities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_activities_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "booking_register"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_activities_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_activities_source_item_id_fkey"
+            columns: ["source_item_id"]
+            isOneToOne: false
+            referencedRelation: "booking_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      booking_items: {
+        Row: {
+          activity_id: string | null
+          booking_id: string
+          commission_cents: number
+          commission_rate: number | null
+          created_at: string
+          discount_cents: number
+          discount_reason: string | null
+          id: string
+          line_type: string
+          package_id: string | null
+          participant_type: Database["public"]["Enums"]["participant_type"]
+          price_rule_id: string | null
+          quantity: number
+          sort_order: number
+          unit_charged_cents: number
+          unit_operator_net_cents: number | null
+          unit_retail_cents: number
+          updated_at: string
+        }
+        Insert: {
+          activity_id?: string | null
+          booking_id: string
+          commission_cents?: number
+          commission_rate?: number | null
+          created_at?: string
+          discount_cents?: number
+          discount_reason?: string | null
+          id?: string
+          line_type: string
+          package_id?: string | null
+          participant_type: Database["public"]["Enums"]["participant_type"]
+          price_rule_id?: string | null
+          quantity: number
+          sort_order?: number
+          unit_charged_cents: number
+          unit_operator_net_cents?: number | null
+          unit_retail_cents: number
+          updated_at?: string
+        }
+        Update: {
+          activity_id?: string | null
+          booking_id?: string
+          commission_cents?: number
+          commission_rate?: number | null
+          created_at?: string
+          discount_cents?: number
+          discount_reason?: string | null
+          id?: string
+          line_type?: string
+          package_id?: string | null
+          participant_type?: Database["public"]["Enums"]["participant_type"]
+          price_rule_id?: string | null
+          quantity?: number
+          sort_order?: number
+          unit_charged_cents?: number
+          unit_operator_net_cents?: number | null
+          unit_retail_cents?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_items_activity_id_fkey"
+            columns: ["activity_id"]
+            isOneToOne: false
+            referencedRelation: "activities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_items_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "booking_register"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_items_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_items_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "packages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_items_price_rule_id_fkey"
+            columns: ["price_rule_id"]
+            isOneToOne: false
+            referencedRelation: "price_rules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      booking_participants: {
+        Row: {
+          booking_id: string
+          count: number
+          created_at: string
+          id: string
+          participant_type: Database["public"]["Enums"]["participant_type"]
+          updated_at: string
+        }
+        Insert: {
+          booking_id: string
+          count: number
+          created_at?: string
+          id?: string
+          participant_type: Database["public"]["Enums"]["participant_type"]
+          updated_at?: string
+        }
+        Update: {
+          booking_id?: string
+          count?: number
+          created_at?: string
+          id?: string
+          participant_type?: Database["public"]["Enums"]["participant_type"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_participants_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "booking_register"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_participants_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      booking_sequences: {
+        Row: {
+          last_number: number
+          service_date: string
+        }
+        Insert: {
+          last_number?: number
+          service_date: string
+        }
+        Update: {
+          last_number?: number
+          service_date?: string
+        }
+        Relationships: []
+      }
+      bookings: {
+        Row: {
+          cancellation_reason: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
+          charged_total_cents: number
+          client_id: string
+          commission_total_cents: number
+          created_at: string
+          created_by: string | null
+          departure_time: string | null
+          discount_total_cents: number
+          id: string
+          idempotency_key: string | null
+          meeting_point: string | null
+          notes: string | null
+          operator_id: string | null
+          operator_net_total_cents: number
+          payer: string
+          reference: string
+          resource_id: string | null
+          retail_total_cents: number
+          service_date: string
+          source_type: string
+          status: Database["public"]["Enums"]["booking_status"]
+          updated_at: string
+        }
+        Insert: {
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          charged_total_cents?: number
+          client_id: string
+          commission_total_cents?: number
+          created_at?: string
+          created_by?: string | null
+          departure_time?: string | null
+          discount_total_cents?: number
+          id?: string
+          idempotency_key?: string | null
+          meeting_point?: string | null
+          notes?: string | null
+          operator_id?: string | null
+          operator_net_total_cents?: number
+          payer?: string
+          reference: string
+          resource_id?: string | null
+          retail_total_cents?: number
+          service_date: string
+          source_type: string
+          status?: Database["public"]["Enums"]["booking_status"]
+          updated_at?: string
+        }
+        Update: {
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          charged_total_cents?: number
+          client_id?: string
+          commission_total_cents?: number
+          created_at?: string
+          created_by?: string | null
+          departure_time?: string | null
+          discount_total_cents?: number
+          id?: string
+          idempotency_key?: string | null
+          meeting_point?: string | null
+          notes?: string | null
+          operator_id?: string | null
+          operator_net_total_cents?: number
+          payer?: string
+          reference?: string
+          resource_id?: string | null
+          retail_total_cents?: number
+          service_date?: string
+          source_type?: string
+          status?: Database["public"]["Enums"]["booking_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bookings_cancelled_by_fkey"
+            columns: ["cancelled_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_summaries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_operator_id_fkey"
+            columns: ["operator_id"]
+            isOneToOne: false
+            referencedRelation: "tour_operators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_resource_id_fkey"
+            columns: ["resource_id"]
+            isOneToOne: false
+            referencedRelation: "resources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clients: {
+        Row: {
+          country: string | null
+          created_at: string
+          created_by: string | null
+          email: string | null
+          first_name: string
+          id: string
+          last_name: string
+          notes: string | null
+          phone_e164: string | null
+          search_text: string | null
+          updated_at: string
+        }
+        Insert: {
+          country?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          first_name: string
+          id?: string
+          last_name: string
+          notes?: string | null
+          phone_e164?: string | null
+          search_text?: string | null
+          updated_at?: string
+        }
+        Update: {
+          country?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          first_name?: string
+          id?: string
+          last_name?: string
+          notes?: string | null
+          phone_e164?: string | null
+          search_text?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clients_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      package_activities: {
+        Row: {
+          activity_id: string
+          created_at: string
+          id: string
+          is_optional: boolean
+          package_id: string
+          quantity_per_participant: number
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          activity_id: string
+          created_at?: string
+          id?: string
+          is_optional?: boolean
+          package_id: string
+          quantity_per_participant?: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          activity_id?: string
+          created_at?: string
+          id?: string
+          is_optional?: boolean
+          package_id?: string
+          quantity_per_participant?: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "package_activities_activity_id_fkey"
+            columns: ["activity_id"]
+            isOneToOne: false
+            referencedRelation: "activities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "package_activities_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "packages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      packages: {
+        Row: {
+          code: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          pricing_mode: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          pricing_mode: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          pricing_mode?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      payments: {
+        Row: {
+          amount_cents: number
+          booking_id: string
+          corrects_payment_id: string | null
+          created_at: string
+          id: string
+          is_correction: boolean
+          method: Database["public"]["Enums"]["payment_method"]
+          note: string | null
+          received_at: string
+          received_from: string
+          recorded_by: string | null
+          reference: string | null
+        }
+        Insert: {
+          amount_cents: number
+          booking_id: string
+          corrects_payment_id?: string | null
+          created_at?: string
+          id?: string
+          is_correction?: boolean
+          method: Database["public"]["Enums"]["payment_method"]
+          note?: string | null
+          received_at?: string
+          received_from: string
+          recorded_by?: string | null
+          reference?: string | null
+        }
+        Update: {
+          amount_cents?: number
+          booking_id?: string
+          corrects_payment_id?: string | null
+          created_at?: string
+          id?: string
+          is_correction?: boolean
+          method?: Database["public"]["Enums"]["payment_method"]
+          note?: string | null
+          received_at?: string
+          received_from?: string
+          recorded_by?: string | null
+          reference?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "booking_register"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_corrects_payment_id_fkey"
+            columns: ["corrects_payment_id"]
+            isOneToOne: false
+            referencedRelation: "payments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_recorded_by_fkey"
+            columns: ["recorded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      price_rules: {
+        Row: {
+          activity_id: string | null
+          audience: Database["public"]["Enums"]["price_audience"]
+          commission_rate: number | null
+          created_at: string
+          created_by: string | null
+          effective_from: string
+          effective_to: string | null
+          id: string
+          net_cents: number | null
+          operator_id: string | null
+          package_id: string | null
+          participant_type: Database["public"]["Enums"]["participant_type"]
+          retail_cents: number
+          scope: string
+        }
+        Insert: {
+          activity_id?: string | null
+          audience: Database["public"]["Enums"]["price_audience"]
+          commission_rate?: number | null
+          created_at?: string
+          created_by?: string | null
+          effective_from: string
+          effective_to?: string | null
+          id?: string
+          net_cents?: number | null
+          operator_id?: string | null
+          package_id?: string | null
+          participant_type: Database["public"]["Enums"]["participant_type"]
+          retail_cents: number
+          scope: string
+        }
+        Update: {
+          activity_id?: string | null
+          audience?: Database["public"]["Enums"]["price_audience"]
+          commission_rate?: number | null
+          created_at?: string
+          created_by?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          net_cents?: number | null
+          operator_id?: string | null
+          package_id?: string | null
+          participant_type?: Database["public"]["Enums"]["participant_type"]
+          retail_cents?: number
+          scope?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "price_rules_activity_id_fkey"
+            columns: ["activity_id"]
+            isOneToOne: false
+            referencedRelation: "activities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "price_rules_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "price_rules_operator_id_fkey"
+            columns: ["operator_id"]
+            isOneToOne: false
+            referencedRelation: "tour_operators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "price_rules_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "packages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          full_name: string
+          id: string
+          is_active: boolean
+          role: Database["public"]["Enums"]["app_role"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          full_name: string
+          id: string
+          is_active?: boolean
+          role?: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          full_name?: string
+          id?: string
+          is_active?: boolean
+          role?: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      resources: {
+        Row: {
+          capacity: number
+          code: string
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          resource_type: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          capacity: number
+          code: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          resource_type: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          capacity?: number
+          code?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          resource_type?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      tickets: {
+        Row: {
+          booking_id: string
+          id: string
+          issued_at: string
+          printed_count: number
+          token: string
+        }
+        Insert: {
+          booking_id: string
+          id?: string
+          issued_at?: string
+          printed_count?: number
+          token?: string
+        }
+        Update: {
+          booking_id?: string
+          id?: string
+          issued_at?: string
+          printed_count?: number
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tickets_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: true
+            referencedRelation: "booking_register"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tickets_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: true
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tour_operators: {
+        Row: {
+          code: string
+          contact_email: string | null
+          contact_name: string | null
+          contact_phone: string | null
+          created_at: string
+          default_commission_rate: number | null
+          id: string
+          is_active: boolean
+          name: string
+          notes: string | null
+          payer: string
+          settlement_model: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          contact_email?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          default_commission_rate?: number | null
+          id?: string
+          is_active?: boolean
+          name: string
+          notes?: string | null
+          payer?: string
+          settlement_model: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          contact_email?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          default_commission_rate?: number | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          notes?: string | null
+          payer?: string
+          settlement_model?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+    }
+    Views: {
+      booking_register: {
+        Row: {
+          activity_ids: string[] | null
+          balance_cents: number | null
+          charged_total_cents: number | null
+          client_id: string | null
+          client_name: string | null
+          client_phone: string | null
+          commission_total_cents: number | null
+          created_at: string | null
+          created_by: string | null
+          departure_time: string | null
+          discount_total_cents: number | null
+          id: string | null
+          operator_id: string | null
+          operator_name: string | null
+          operator_net_total_cents: number | null
+          package_ids: string[] | null
+          paid_cents: number | null
+          payer: string | null
+          payment_status: string | null
+          people: number | null
+          reference: string | null
+          reference_digits: string | null
+          resource_id: string | null
+          retail_total_cents: number | null
+          service_date: string | null
+          source_type: string | null
+          status: Database["public"]["Enums"]["booking_status"] | null
+          summary: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bookings_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_summaries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_operator_id_fkey"
+            columns: ["operator_id"]
+            isOneToOne: false
+            referencedRelation: "tour_operators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_resource_id_fkey"
+            columns: ["resource_id"]
+            isOneToOne: false
+            referencedRelation: "resources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_summaries: {
+        Row: {
+          booking_count: number | null
+          country: string | null
+          created_at: string | null
+          email: string | null
+          first_name: string | null
+          id: string | null
+          last_name: string | null
+          last_visit: string | null
+          phone_e164: string | null
+          search_text: string | null
+        }
+        Relationships: []
+      }
+    }
+    Functions: {
+      admin_list_users: {
+        Args: never
+        Returns: {
+          created_at: string
+          email: string
+          full_name: string
+          id: string
+          invite_pending: boolean
+          is_active: boolean
+          last_sign_in_at: string
+          role: Database["public"]["Enums"]["app_role"]
+        }[]
+      }
+      amend_booking: {
+        Args: { p_booking_id: string; payload: Json }
+        Returns: Json
+      }
+      append_client_note: {
+        Args: { p_client_id: string; p_note: string }
+        Returns: string
+      }
+      auth_role: {
+        Args: never
+        Returns: Database["public"]["Enums"]["app_role"]
+      }
+      build_quote: { Args: { input: Json }; Returns: Json }
+      create_booking: { Args: { payload: Json }; Returns: Json }
+      custom_access_token_hook: { Args: { event: Json }; Returns: Json }
+      daily_register: { Args: { p_date: string }; Returns: Json }
+      find_similar_clients: {
+        Args: {
+          p_email?: string
+          p_first_name?: string
+          p_last_name?: string
+          p_phone_e164?: string
+        }
+        Returns: {
+          booking_count: number
+          confidence: string
+          country: string
+          email: string
+          first_name: string
+          id: string
+          last_name: string
+          last_visit: string
+          match_reason: string
+          phone_e164: string
+        }[]
+      }
+      has_role: {
+        Args: { roles: Database["public"]["Enums"]["app_role"][] }
+        Returns: boolean
+      }
+      health_check: { Args: never; Returns: Json }
+      is_admin: { Args: never; Returns: boolean }
+      mark_ticket_printed: { Args: { p_token: string }; Returns: number }
+      next_booking_reference: {
+        Args: { p_service_date: string }
+        Returns: string
+      }
+      price_rule_history: {
+        Args: { p_activity_id?: string; p_package_id?: string }
+        Returns: {
+          audience: Database["public"]["Enums"]["price_audience"]
+          commission_rate: number
+          effective_from: string
+          effective_to: string
+          id: string
+          net_cents: number
+          operator_id: string
+          operator_name: string
+          participant_type: Database["public"]["Enums"]["participant_type"]
+          retail_cents: number
+          set_at: string
+          set_by: string
+        }[]
+      }
+      resolve_price_rule: {
+        Args: {
+          p_activity_id: string
+          p_operator_id: string
+          p_package_id: string
+          p_participant_type: Database["public"]["Enums"]["participant_type"]
+          p_service_date: string
+        }
+        Returns: {
+          activity_id: string | null
+          audience: Database["public"]["Enums"]["price_audience"]
+          commission_rate: number | null
+          created_at: string
+          created_by: string | null
+          effective_from: string
+          effective_to: string | null
+          id: string
+          net_cents: number | null
+          operator_id: string | null
+          package_id: string | null
+          participant_type: Database["public"]["Enums"]["participant_type"]
+          retail_cents: number
+          scope: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "price_rules"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      save_package: { Args: { payload: Json }; Returns: string }
+      set_price: {
+        Args: {
+          p_activity_id?: string
+          p_audience: Database["public"]["Enums"]["price_audience"]
+          p_commission_rate?: number
+          p_effective_from: string
+          p_net_cents?: number
+          p_operator_id?: string
+          p_package_id?: string
+          p_participant_type: Database["public"]["Enums"]["participant_type"]
+          p_retail_cents: number
+          p_scope: string
+        }
+        Returns: string
+      }
+      set_prices_bulk: { Args: { changes: Json }; Returns: number }
+      staff_names: {
+        Args: { p_ids: string[] }
+        Returns: {
+          full_name: string
+          id: string
+        }[]
+      }
+      today_mauritius: { Args: never; Returns: string }
+      withdraw_scheduled_price: {
+        Args: { p_rule_id: string }
+        Returns: undefined
+      }
+    }
+    Enums: {
+      app_role: "admin" | "accountant" | "receptionist" | "activity_staff"
+      booking_status: "confirmed" | "cancelled" | "no_show" | "completed"
+      participant_type: "adult" | "child" | "infant"
+      payment_method:
+        | "cash"
+        | "card"
+        | "bank_transfer"
+        | "operator_account"
+        | "other"
+      price_audience: "walk_in" | "operator"
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
+}
+
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never) = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
+
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never) = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
+
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never) = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never) = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never) = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
+
+export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
+  public: {
+    Enums: {
+      app_role: ["admin", "accountant", "receptionist", "activity_staff"],
+      booking_status: ["confirmed", "cancelled", "no_show", "completed"],
+      participant_type: ["adult", "child", "infant"],
+      payment_method: [
+        "cash",
+        "card",
+        "bank_transfer",
+        "operator_account",
+        "other",
+      ],
+      price_audience: ["walk_in", "operator"],
+    },
+  },
+} as const
+

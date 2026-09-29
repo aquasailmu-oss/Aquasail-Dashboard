@@ -1,5 +1,6 @@
-import { expect, type Page } from "@playwright/test";
+import { expect, type Locator, type Page } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
+import jsQR from "jsqr";
 import type { Database } from "@/lib/database.types";
 
 /** The demo accounts from supabase/seed.sql. */
@@ -68,4 +69,24 @@ export async function bookingByReference(reference: string) {
     .eq("reference", reference)
     .single();
   return data;
+}
+
+/**
+ * Reads a rendered QR code the way a camera does: rasterises the <svg> in the
+ * browser and decodes the pixels. Returns the encoded text, or null.
+ */
+export async function decodeQr(svg: Locator): Promise<string | null> {
+  const px = 450;
+  const pixels = await svg.evaluate(async (el, size) => {
+    const img = new Image();
+    img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(new XMLSerializer().serializeToString(el))}`;
+    await img.decode();
+    const canvas = document.createElement("canvas");
+    canvas.width = canvas.height = size;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return [];
+    ctx.drawImage(img, 0, 0, size, size);
+    return Array.from(ctx.getImageData(0, 0, size, size).data);
+  }, px);
+  return jsQR(Uint8ClampedArray.from(pixels), px, px)?.data ?? null;
 }

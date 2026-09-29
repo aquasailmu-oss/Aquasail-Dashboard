@@ -40,6 +40,10 @@ name or phone number into the search box.
 On the confirmation, press **Print ticket**: the print window opens straight
 away. Then **New booking** for the next customer.
 
+The ticket carries a QR code that island staff scan on arrival, with the
+booking reference printed beneath it for when a camera cannot read it. The
+code holds only a link to the ticket: no name, price or reference.
+
 ## "DO NOT COLLECT PAYMENT"
 
 Some operators pay AquaSail themselves. When you choose one, a red banner

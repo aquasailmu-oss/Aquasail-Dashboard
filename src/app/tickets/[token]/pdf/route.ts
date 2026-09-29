@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from "pdf-lib";
 import { authorize } from "@/lib/auth";
 import { formatDateLong, formatTime } from "@/lib/dates";
+import { requestOrigin } from "@/lib/origin";
+import { qrSvgPath, ticketUrl } from "@/lib/qr";
 import { createClient } from "@/lib/supabase/server";
 import { getTicket } from "@/lib/tickets";
 
@@ -13,9 +15,9 @@ const BLACK = rgb(0, 0, 0);
 const safe = (s: string) => s.replace(/[^\x20-\x7E\xA0-\xFF]/g, "?");
 
 /**
- * The same ticket as /tickets/[token], as a PDF, for attaching to emails in
- * V2. Content comes from getTicket(), the single source for both. Staff-only
- * in V1, like the print page.
+ * The same ticket as /tickets/[token], as a PDF, for attaching to emails.
+ * Content comes from getTicket() and the QR from qrSvgPath(), the single
+ * sources for both. Staff-only, like the print page.
  */
 export async function GET(_request: Request, { params }: { params: Promise<{ token: string }> }) {
   const auth = await authorize(["admin", "receptionist"]);
@@ -71,26 +73,23 @@ export async function GET(_request: Request, { params }: { params: Promise<{ tok
     y -= 24;
   }
 
-  // Details on the left, the V2 QR square on the right.
-  const qr = 96;
-  page.drawRectangle({
-    x: W - M - qr,
-    y: y - qr + 10,
-    width: qr,
-    height: qr,
-    borderColor: BLACK,
-    borderWidth: 1,
-    borderDashArray: [4, 3],
-  });
-  const refSize = 8;
+  // Details on the left; on the right the QR (40mm with its quiet zone, as on
+  // the web ticket), the reference to type in when a camera fails, and the caption.
+  const qr = 113.4;
+  const code = qrSvgPath(ticketUrl(await requestOrigin(), t.token));
+  const qrTop = y + 10;
+  page.drawSvgPath(code.path, { x: W - M - qr, y: qrTop, scale: qr / code.size, color: BLACK });
+  const refSize = 10;
   text(
     page,
     t.reference,
     W - M - qr / 2 - mono.widthOfTextAtSize(t.reference, refSize) / 2,
-    y - qr / 2 + 6,
+    qrTop - qr - 10,
     refSize,
     mono,
   );
+  const caption = "Show this code on arrival.";
+  text(page, caption, W - M - qr / 2 - bold.widthOfTextAtSize(caption, 7) / 2, qrTop - qr - 21, 7, bold);
 
   const field = (label: string, value: string, strong = false) => {
     text(page, label.toUpperCase(), M, y, 7, bold);

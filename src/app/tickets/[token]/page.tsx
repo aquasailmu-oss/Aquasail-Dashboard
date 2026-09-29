@@ -1,18 +1,21 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { PrintControls } from "@/components/tickets/print-controls";
+import { TicketQr } from "@/components/tickets/ticket-qr";
 import { requireRole } from "@/lib/auth";
 import { formatDateLong, formatTime } from "@/lib/dates";
+import { requestOrigin } from "@/lib/origin";
 import { formatPhone } from "@/lib/phone";
+import { ticketUrl } from "@/lib/qr";
 import { getTicket } from "@/lib/tickets";
 
 export const metadata: Metadata = { title: "Ticket · AquaSail Ops" };
 
 /**
- * The printable ticket, addressed by its token, not the booking id: the URL
- * is already what the V2 QR code will encode. V1 requires a staff session.
- * V2 adds a token-authenticated view for customers, so the token must stay
- * unguessable (16 random bytes) and must never be derived from the reference.
+ * The printable ticket, addressed by its token, not the booking id: its URL
+ * is what the QR code encodes. It requires a staff session for now; customers
+ * will open it by token, so the token must stay unguessable (16 random bytes)
+ * and must never be derived from the reference.
  */
 export default async function TicketPage({
   params,
@@ -25,6 +28,7 @@ export default async function TicketPage({
   const [{ token }, { print }] = await Promise.all([params, searchParams]);
   const t = await getTicket(token);
   if (!t) notFound();
+  const qrUrl = ticketUrl(await requestOrigin(), t.token);
 
   return (
     <div className="ticket-page mx-auto flex max-w-[148mm] flex-col gap-4 px-4 py-6 print:max-w-none print:p-0">
@@ -95,12 +99,12 @@ export default async function TicketPage({
               </div>
             )}
           </dl>
-          {/* Reserved for the V2 QR code (it will encode this page's URL). Do not move. */}
-          <div
-            className="flex size-[34mm] flex-col items-center justify-center border-2 border-dashed border-black text-center"
-            data-testid="qr-placeholder"
-          >
-            <span className="font-mono text-xs leading-tight font-semibold break-all">{t.reference}</span>
+          {/* 40mm with its quiet zone: the code itself is over 30mm, which scans from a phone at 30cm in sun. */}
+          <div className="flex w-[40mm] flex-col items-center gap-1 text-center">
+            <TicketQr url={qrUrl} className="size-[40mm]" />
+            {/* The fallback when a camera fails in salt spray or glare: typed in by hand. */}
+            <span className="font-mono text-base leading-tight font-bold tracking-wide break-all">{t.reference}</span>
+            <span className="text-xs font-semibold">Show this code on arrival.</span>
           </div>
         </section>
 

@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { bookingByReference, db, expectTotal, login, logout, stubPrint, tag, today } from "./helpers";
+import { bookingByReference, db, decodeQr, expectTotal, login, logout, stubPrint, tag, today } from "./helpers";
 
 async function cashToday(): Promise<number> {
   const start = new Date(`${today()}T00:00:00+04:00`);
@@ -53,6 +53,8 @@ test("walk-in, keyboard only: 4 adults, catamaran + lunch, cash, ticket, on Toda
   await page.waitForURL(/\/tickets\/[0-9a-f]{32}\?print=1$/);
   await expect(page.getByText("Printed 1 time")).toBeVisible();
   await expect(page.getByTestId("ticket-reference")).toHaveText(reference);
+  // The QR decodes to this ticket's own URL, and nothing else (WP-25).
+  expect(await decodeQr(page.getByTestId("ticket-qr"))).toBe(page.url().replace(/\?print=1$/, ""));
 
   await page.goto("/today");
   await expect(page.locator("tbody tr", { hasText: reference })).toBeVisible();

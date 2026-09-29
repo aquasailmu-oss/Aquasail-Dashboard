@@ -14,7 +14,7 @@ pricing, fleet tracking, and daily reconciliation.
 | ----- | ----------------------------------------------------- | -------------------- |
 | V0    | Foundation: repo, schema, RLS, auth, role-aware shell | Done (WP-01–09)      |
 | V1    | Core booking system                                   | Done (WP-10–21, 17b) |
-| V2    | Digital ticketing and redemption                      | In progress (WP-23)  |
+| V2    | Digital ticketing and redemption                      | In progress (WP-24)  |
 | V3–V4 | Accounting, capacity/analytics                        | Planned              |
 
 ## Running it

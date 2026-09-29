@@ -189,6 +189,13 @@ functions; nobody writes `ticket_redemptions` directly.
   tablet stops it at once. Office staff may call from an unregistered desk.
 - Queued events are dated by the device's time, so a lunch redeemed at 16:00
   and synced after midnight still belongs to its day.
+- `scan_ticket(token)` (migration 0021) is the only way island roles see a
+  booking: one of seven verdicts (NOT_FOUND, REVOKED, CANCELLED, WRONG_DATE,
+  ALREADY_REDEEMED, PARTLY_USED, VALID, first match wins), the reference,
+  surname and initial, party size, departure, check-in, entitlements with
+  when/who/where, and the activities it does not include. Built from named
+  columns only; `tests/rls/scan.test.ts` searches the serialised payload for
+  money and contact words, and a pgTAP test pins its exact keys.
 - Entitlements with redemptions are never deleted or reduced below what was
   redeemed: `amend_booking()` scales a changed line's entitlements in place
   (same rows, so redemptions stay attached, and the package composition comes

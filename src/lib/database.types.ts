@@ -1564,6 +1564,14 @@ export type Database = {
         Returns: Json
       }
       save_package: { Args: { payload: Json }; Returns: string }
+      scan_ticket: {
+        Args: {
+          p_device_id?: string
+          p_device_secret?: string
+          p_token: string
+        }
+        Returns: Json
+      }
       set_price: {
         Args: {
           p_activity_id?: string

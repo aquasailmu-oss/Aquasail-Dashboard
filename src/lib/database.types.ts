@@ -358,6 +358,7 @@ export type Database = {
           charged_total_cents: number
           checked_in_at: string | null
           checked_in_by: string | null
+          checked_in_client_uuid: string | null
           checked_in_device_id: string | null
           checked_in_location_id: string | null
           client_id: string
@@ -388,6 +389,7 @@ export type Database = {
           charged_total_cents?: number
           checked_in_at?: string | null
           checked_in_by?: string | null
+          checked_in_client_uuid?: string | null
           checked_in_device_id?: string | null
           checked_in_location_id?: string | null
           client_id: string
@@ -418,6 +420,7 @@ export type Database = {
           charged_total_cents?: number
           checked_in_at?: string | null
           checked_in_by?: string | null
+          checked_in_client_uuid?: string | null
           checked_in_device_id?: string | null
           checked_in_location_id?: string | null
           client_id?: string
@@ -1398,14 +1401,47 @@ export type Database = {
         Args: { p_client_id: string; p_note: string }
         Returns: string
       }
+      apply_reversal: {
+        Args: {
+          p_device: Database["public"]["Tables"]["staff_devices"]["Row"]
+          p_location_id: string
+          p_reason: string
+          p_redemption_id: string
+        }
+        Returns: Json
+      }
+      assert_booking_usable: {
+        Args: {
+          p_booking: Database["public"]["Tables"]["bookings"]["Row"]
+          p_date: string
+        }
+        Returns: undefined
+      }
       auth_role: {
         Args: never
         Returns: Database["public"]["Enums"]["app_role"]
       }
+      booking_entitlements: { Args: { p_booking_id: string }; Returns: Json }
       build_quote: { Args: { input: Json }; Returns: Json }
+      check_in_booking: {
+        Args: {
+          p_booking_id: string
+          p_client_uuid: string
+          p_device_id?: string
+          p_device_secret?: string
+          p_from_queue?: boolean
+          p_location_id?: string
+          p_occurred_at_device?: string
+        }
+        Returns: Json
+      }
       create_booking: { Args: { payload: Json }; Returns: Json }
       custom_access_token_hook: { Args: { event: Json }; Returns: Json }
       daily_register: { Args: { p_date: string }; Returns: Json }
+      event_business_date: {
+        Args: { p_from_queue: boolean; p_occurred_at_device: string }
+        Returns: string
+      }
       find_similar_clients: {
         Args: {
           p_email?: string
@@ -1454,6 +1490,38 @@ export type Database = {
           set_by: string
         }[]
       }
+      redeem_activity: {
+        Args: {
+          p_booking_activity_id: string
+          p_client_uuid: string
+          p_device_id?: string
+          p_device_secret?: string
+          p_from_queue?: boolean
+          p_location_id?: string
+          p_note?: string
+          p_occurred_at_device?: string
+          p_quantity: number
+        }
+        Returns: Json
+      }
+      redemption_result: {
+        Args: {
+          p_already_applied: boolean
+          p_redemption: Database["public"]["Tables"]["ticket_redemptions"]["Row"]
+        }
+        Returns: Json
+      }
+      resolve_over_redemption: {
+        Args: {
+          p_action: string
+          p_device_id?: string
+          p_device_secret?: string
+          p_location_id?: string
+          p_note: string
+          p_redemption_id: string
+        }
+        Returns: Json
+      }
       resolve_price_rule: {
         Args: {
           p_activity_id: string
@@ -1485,6 +1553,16 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      reverse_redemption: {
+        Args: {
+          p_device_id?: string
+          p_device_secret?: string
+          p_location_id?: string
+          p_reason: string
+          p_redemption_id: string
+        }
+        Returns: Json
+      }
       save_package: { Args: { payload: Json }; Returns: string }
       set_price: {
         Args: {
@@ -1510,6 +1588,27 @@ export type Database = {
         }[]
       }
       today_mauritius: { Args: never; Returns: string }
+      verified_device: {
+        Args: { p_device_id: string; p_device_secret: string }
+        Returns: {
+          created_at: string
+          device_secret_hash: string
+          id: string
+          is_active: boolean
+          label: string
+          last_seen_at: string | null
+          location_id: string | null
+          registered_at: string
+          registered_by: string | null
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "staff_devices"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       withdraw_scheduled_price: {
         Args: { p_rule_id: string }
         Returns: undefined

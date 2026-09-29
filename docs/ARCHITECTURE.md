@@ -162,7 +162,38 @@ All are audited, so the rows remain readable in the audit log:
   catalogue row; bookings keep their own expanded entitlements);
 - `withdraw_scheduled_price()` removes a price that has not started and
   that no booking falls under;
-- `amend_booking()` deletes the lines an amendment removes.
+- `amend_booking()` deletes the lines an amendment removes (never one whose
+  entitlement has been redeemed).
+
+## The redemption engine (V2)
+
+Migration 0020, following the V2 plan's section 6. Island staff, reception
+and admins redeem, check in and reverse only through `security definer`
+functions; nobody writes `ticket_redemptions` directly.
+
+- `redeem_activity()`: quantity, not a flag ("three of four lunches"). A
+  retried request (same `client_uuid`) returns the original row with
+  `already_applied`. The entitlement row is locked (`for update`) before the
+  sum, which is what stops two tablets redeeming the last lunch at once;
+  `tests/rls/redemption.test.ts` fires simultaneous scans from four devices
+  and fails if the lock is removed. Online, an over-redemption is refused with
+  what remains; from an offline queue it is recorded and flagged
+  (`is_over_redemption`), because it physically happened.
+- `check_in_booking()`: once per booking; a second check-in returns the
+  original time. Separate from redemption (arrived vs consumed).
+- `reverse_redemption()`: a negative row, never a delete. The redeemer may
+  undo within a minute, a supervisor within 24 hours, an admin any time.
+  `resolve_over_redemption()` accepts or reverses a flagged row, with a note.
+- Devices prove themselves with a secret (only its hash is stored); island
+  roles must call from an active registered device, so deactivating a lost
+  tablet stops it at once. Office staff may call from an unregistered desk.
+- Queued events are dated by the device's time, so a lunch redeemed at 16:00
+  and synced after midnight still belongs to its day.
+- Entitlements with redemptions are never deleted or reduced below what was
+  redeemed: `amend_booking()` scales a changed line's entitlements in place
+  (same rows, so redemptions stay attached, and the package composition comes
+  from the booking, not today's package), and a trigger refuses the rest with
+  a sentence reception can act on.
 
 ## Audit
 
@@ -193,7 +224,7 @@ on that date's bookings. V3's reconciliation should reuse this function.
 | Layer      | Command            | What it proves                                                                                                      |
 | ---------- | ------------------ | ------------------------------------------------------------------------------------------------------------------- |
 | Unit       | `npm test`         | money, dates, phone, percentages, audit formatting                                                                  |
-| Database   | `npm run test:db`  | pgTAP: pricing engine rules, constraints, booking functions, register arithmetic                                    |
+| Database   | `npm run test:db`  | pgTAP: pricing and redemption engine rules, constraints, booking functions, register arithmetic                     |
 | RLS        | `npm run test:rls` | each role attacked through the public API                                                                           |
 | End-to-end | `npm run test:e2e` | Playwright: the plan's booking, operator, pricing, discount, amend/cancel, idempotency, export and layout scenarios |
 

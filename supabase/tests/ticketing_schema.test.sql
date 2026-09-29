@@ -86,7 +86,8 @@ select throws_ok(
   'P0001', 'This redemption has already been reviewed.', 'a review is recorded once');
 select throws_ok(
   $$delete from public.booking_activities where id = '00000000-0000-0000-0000-00000022ba01'$$,
-  '23503', null, 'a redeemed entitlement cannot be deleted');
+  'P0001', 'Lunch has already been redeemed on this booking, so that line cannot be removed.',
+  'a redeemed entitlement cannot be deleted, and says why');
 
 -- Devices
 update public.staff_devices set last_seen_at = now() where id = '00000000-0000-0000-0000-00000022de01';

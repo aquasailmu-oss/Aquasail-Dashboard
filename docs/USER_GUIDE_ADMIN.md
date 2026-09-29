@@ -72,12 +72,13 @@ a password.
 
 ![Invite a user](images/11-invite-user.png)
 
-| Role           | For                                                                      |
-| -------------- | ------------------------------------------------------------------------ |
-| Receptionist   | bookings and payments                                                    |
-| Accountant     | reading everything, the audit log and Excel exports                      |
-| Activity staff | island ticket scanning (arrives in V2); sees no money or contact details |
-| Admin          | everything, including prices, users and settings                         |
+| Role                | For                                                                                      |
+| ------------------- | ---------------------------------------------------------------------------------------- |
+| Receptionist        | bookings and payments                                                                    |
+| Accountant          | reading everything, the audit log and Excel exports                                      |
+| Activity staff      | island ticket scanning; sees no money or contact details                                 |
+| Activity supervisor | island staff who can also correct redemptions and register devices; sees no money either |
+| Admin               | everything, including prices, users and settings                                         |
 
 When someone leaves, **Edit** their user and choose **Deactivated**. They are
 blocked at once. Their name stays on past bookings and in the audit log. You

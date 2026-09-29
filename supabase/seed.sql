@@ -6,6 +6,7 @@
 --   reception@aquasail.test  Receptionist
 --   accounts@aquasail.test   Accountant
 --   island@aquasail.test     Activity staff
+--   supervisor@aquasail.test Activity supervisor (V2)
 
 -- A reset database has no users; a real one always has. Seeding demo
 -- accounts into a database with users is refused (e.g. db push --include-seed).
@@ -21,7 +22,8 @@ with demo (id, email, role, full_name) as (
     ('00000000-0000-4000-8000-00000000d001'::uuid, 'admin@aquasail.test', 'admin', 'Ada Admin'),
     ('00000000-0000-4000-8000-00000000d002'::uuid, 'reception@aquasail.test', 'receptionist', 'Rita Ramsamy'),
     ('00000000-0000-4000-8000-00000000d003'::uuid, 'accounts@aquasail.test', 'accountant', 'Carl Accountant'),
-    ('00000000-0000-4000-8000-00000000d004'::uuid, 'island@aquasail.test', 'activity_staff', 'Sam Island')
+    ('00000000-0000-4000-8000-00000000d004'::uuid, 'island@aquasail.test', 'activity_staff', 'Sam Island'),
+    ('00000000-0000-4000-8000-00000000d005'::uuid, 'supervisor@aquasail.test', 'activity_supervisor', 'Sue Supervisor')
 ),
 users as (
   insert into auth.users (
@@ -41,6 +43,17 @@ users as (
 insert into auth.identities (id, user_id, provider_id, identity_data, provider, last_sign_in_at, created_at, updated_at)
 select gen_random_uuid(), id, id::text, jsonb_build_object('sub', id::text, 'email', email), 'email', now(), now(), now()
 from users;
+
+-- Two registered island devices (V2). Their secrets, for local testing only:
+-- demo-device-secret-1 and demo-device-secret-2.
+insert into public.staff_devices (id, label, location_id, device_secret_hash, registered_by)
+select d.id, d.label, l.id, encode(extensions.digest(d.secret, 'sha256'), 'hex'), '00000000-0000-4000-8000-00000000d005'
+from (values
+  ('00000000-0000-4000-8000-0000000de501'::uuid, 'Island tablet 1', 'demo-device-secret-1'),
+  ('00000000-0000-4000-8000-0000000de502'::uuid, 'Island tablet 2', 'demo-device-secret-2')
+) as d (id, label, secret)
+cross join public.locations l
+where l.code = 'ISLAND';
 
 -- ---------------------------------------------------------------------------
 -- Catalogue, fleet, operators and prices, from the approved prototype

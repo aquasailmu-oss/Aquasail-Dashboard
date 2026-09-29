@@ -5,6 +5,7 @@ const NAV = {
   receptionist: ["Today", "New booking", "Bookings", "Clients", "Daily register"],
   accountant: ["Today", "Bookings", "Clients", "Daily register", "Reports", "Export", "Audit log"],
   activity_staff: ["Scan"],
+  activity_supervisor: ["Scan"],
 } as const;
 
 test("signed-out visitors are sent to sign in, and a wrong password is explained", async ({ page }) => {

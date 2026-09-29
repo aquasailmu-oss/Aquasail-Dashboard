@@ -5,6 +5,6 @@ import { requireRole } from "@/lib/auth";
 export const metadata: Metadata = { title: "Scan · AquaSail Ops" };
 
 export default async function ScanPage() {
-  await requireRole(["activity_staff"]);
+  await requireRole(["activity_staff", "activity_supervisor"]);
   return <ComingSoon title="Scan" description="Scan tickets and redeem activities on the island." arrives="V2" />;
 }

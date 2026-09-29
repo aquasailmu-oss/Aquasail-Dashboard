@@ -356,6 +356,10 @@ export type Database = {
           cancelled_at: string | null
           cancelled_by: string | null
           charged_total_cents: number
+          checked_in_at: string | null
+          checked_in_by: string | null
+          checked_in_device_id: string | null
+          checked_in_location_id: string | null
           client_id: string
           commission_total_cents: number
           created_at: string
@@ -382,6 +386,10 @@ export type Database = {
           cancelled_at?: string | null
           cancelled_by?: string | null
           charged_total_cents?: number
+          checked_in_at?: string | null
+          checked_in_by?: string | null
+          checked_in_device_id?: string | null
+          checked_in_location_id?: string | null
           client_id: string
           commission_total_cents?: number
           created_at?: string
@@ -408,6 +416,10 @@ export type Database = {
           cancelled_at?: string | null
           cancelled_by?: string | null
           charged_total_cents?: number
+          checked_in_at?: string | null
+          checked_in_by?: string | null
+          checked_in_device_id?: string | null
+          checked_in_location_id?: string | null
           client_id?: string
           commission_total_cents?: number
           created_at?: string
@@ -435,6 +447,27 @@ export type Database = {
             columns: ["cancelled_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_checked_in_by_fkey"
+            columns: ["checked_in_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_checked_in_device_id_fkey"
+            columns: ["checked_in_device_id"]
+            isOneToOne: false
+            referencedRelation: "staff_devices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_checked_in_location_id_fkey"
+            columns: ["checked_in_location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
             referencedColumns: ["id"]
           },
           {
@@ -520,6 +553,131 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      locations: {
+        Row: {
+          code: string
+          created_at: string
+          id: string
+          is_active: boolean
+          location_type: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          location_type: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          location_type?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      message_log: {
+        Row: {
+          attempt: number
+          booking_id: string
+          channel: string
+          cost_cents: number | null
+          created_at: string
+          delivered_at: string | null
+          error_code: string | null
+          error_detail: string | null
+          id: string
+          provider: string | null
+          provider_message_id: string | null
+          read_at: string | null
+          sent_at: string | null
+          sent_by: string | null
+          status: string
+          template: string | null
+          ticket_id: string | null
+          to_address: string | null
+          updated_at: string
+        }
+        Insert: {
+          attempt?: number
+          booking_id: string
+          channel: string
+          cost_cents?: number | null
+          created_at?: string
+          delivered_at?: string | null
+          error_code?: string | null
+          error_detail?: string | null
+          id?: string
+          provider?: string | null
+          provider_message_id?: string | null
+          read_at?: string | null
+          sent_at?: string | null
+          sent_by?: string | null
+          status?: string
+          template?: string | null
+          ticket_id?: string | null
+          to_address?: string | null
+          updated_at?: string
+        }
+        Update: {
+          attempt?: number
+          booking_id?: string
+          channel?: string
+          cost_cents?: number | null
+          created_at?: string
+          delivered_at?: string | null
+          error_code?: string | null
+          error_detail?: string | null
+          id?: string
+          provider?: string | null
+          provider_message_id?: string | null
+          read_at?: string | null
+          sent_at?: string | null
+          sent_by?: string | null
+          status?: string
+          template?: string | null
+          ticket_id?: string | null
+          to_address?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_log_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "booking_register"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "message_log_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "message_log_sent_by_fkey"
+            columns: ["sent_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "message_log_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "tickets"
             referencedColumns: ["id"]
           },
         ]
@@ -825,27 +983,232 @@ export type Database = {
         }
         Relationships: []
       }
+      staff_devices: {
+        Row: {
+          created_at: string
+          device_secret_hash: string
+          id: string
+          is_active: boolean
+          label: string
+          last_seen_at: string | null
+          location_id: string | null
+          registered_at: string
+          registered_by: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          device_secret_hash: string
+          id?: string
+          is_active?: boolean
+          label: string
+          last_seen_at?: string | null
+          location_id?: string | null
+          registered_at?: string
+          registered_by?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          device_secret_hash?: string
+          id?: string
+          is_active?: boolean
+          label?: string
+          last_seen_at?: string | null
+          location_id?: string | null
+          registered_at?: string
+          registered_by?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_devices_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staff_devices_registered_by_fkey"
+            columns: ["registered_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ticket_redemptions: {
+        Row: {
+          activity_id: string
+          booking_activity_id: string
+          booking_id: string
+          client_uuid: string
+          device_id: string | null
+          id: string
+          is_over_redemption: boolean
+          is_provisional: boolean
+          is_reversal: boolean
+          location_id: string | null
+          note: string | null
+          occurred_at_device: string | null
+          quantity_redeemed: number
+          redeemed_at: string
+          redeemed_by: string | null
+          reverses_redemption_id: string | null
+          review_note: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          synced_at: string
+        }
+        Insert: {
+          activity_id: string
+          booking_activity_id: string
+          booking_id: string
+          client_uuid: string
+          device_id?: string | null
+          id?: string
+          is_over_redemption?: boolean
+          is_provisional?: boolean
+          is_reversal?: boolean
+          location_id?: string | null
+          note?: string | null
+          occurred_at_device?: string | null
+          quantity_redeemed: number
+          redeemed_at?: string
+          redeemed_by?: string | null
+          reverses_redemption_id?: string | null
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          synced_at?: string
+        }
+        Update: {
+          activity_id?: string
+          booking_activity_id?: string
+          booking_id?: string
+          client_uuid?: string
+          device_id?: string | null
+          id?: string
+          is_over_redemption?: boolean
+          is_provisional?: boolean
+          is_reversal?: boolean
+          location_id?: string | null
+          note?: string | null
+          occurred_at_device?: string | null
+          quantity_redeemed?: number
+          redeemed_at?: string
+          redeemed_by?: string | null
+          reverses_redemption_id?: string | null
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          synced_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ticket_redemptions_activity_id_fkey"
+            columns: ["activity_id"]
+            isOneToOne: false
+            referencedRelation: "activities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ticket_redemptions_booking_activity_id_fkey"
+            columns: ["booking_activity_id"]
+            isOneToOne: false
+            referencedRelation: "booking_activities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ticket_redemptions_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "booking_register"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ticket_redemptions_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ticket_redemptions_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "staff_devices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ticket_redemptions_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ticket_redemptions_redeemed_by_fkey"
+            columns: ["redeemed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ticket_redemptions_reverses_redemption_id_fkey"
+            columns: ["reverses_redemption_id"]
+            isOneToOne: false
+            referencedRelation: "ticket_redemptions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ticket_redemptions_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tickets: {
         Row: {
           booking_id: string
+          delivered_channels: Json
           id: string
           issued_at: string
           printed_count: number
+          reissued_from_ticket_id: string | null
+          revoke_reason: string | null
+          revoked_at: string | null
+          revoked_by: string | null
           token: string
+          token_hash: string | null
         }
         Insert: {
           booking_id: string
+          delivered_channels?: Json
           id?: string
           issued_at?: string
           printed_count?: number
+          reissued_from_ticket_id?: string | null
+          revoke_reason?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
           token?: string
+          token_hash?: string | null
         }
         Update: {
           booking_id?: string
+          delivered_channels?: Json
           id?: string
           issued_at?: string
           printed_count?: number
+          reissued_from_ticket_id?: string | null
+          revoke_reason?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
           token?: string
+          token_hash?: string | null
         }
         Relationships: [
           {
@@ -860,6 +1223,20 @@ export type Database = {
             columns: ["booking_id"]
             isOneToOne: true
             referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tickets_reissued_from_ticket_id_fkey"
+            columns: ["reissued_from_ticket_id"]
+            isOneToOne: false
+            referencedRelation: "tickets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tickets_revoked_by_fkey"
+            columns: ["revoked_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -1139,7 +1516,12 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "accountant" | "receptionist" | "activity_staff"
+      app_role:
+        | "admin"
+        | "accountant"
+        | "receptionist"
+        | "activity_staff"
+        | "activity_supervisor"
       booking_status: "confirmed" | "cancelled" | "no_show" | "completed"
       participant_type: "adult" | "child" | "infant"
       payment_method:
@@ -1279,7 +1661,13 @@ export const Constants = {
   },
   public: {
     Enums: {
-      app_role: ["admin", "accountant", "receptionist", "activity_staff"],
+      app_role: [
+        "admin",
+        "accountant",
+        "receptionist",
+        "activity_staff",
+        "activity_supervisor",
+      ],
       booking_status: ["confirmed", "cancelled", "no_show", "completed"],
       participant_type: ["adult", "child", "infant"],
       payment_method: [

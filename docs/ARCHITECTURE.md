@@ -41,9 +41,13 @@ Browser (reception PC, tablet)            Vercel: Next.js 15 App Router
 | `bookings`                       | header with the five money totals and payer                     | cancelled, never deleted                                 |
 | `booking_items`                  | priced lines with the **price snapshot**                        | retail, charged, net, commission per line                |
 | `booking_participants`           | counts per participant type                                     |                                                          |
-| `booking_activities`             | entitlements expanded at creation                               | V2 redeems these; history never re-interpreted           |
+| `booking_activities`             | entitlements expanded at creation                               | redeemed in V2; history never re-interpreted             |
 | `payments`                       | append-only; corrections are negative rows                      | `received_at` and `recorded_by` are set by the server    |
-| `tickets`                        | random 16-byte token per booking, print count                   | the token is the future QR payload                       |
+| `tickets`                        | random 16-byte token per booking, print count, revocation       | the token is the QR payload; `token_hash` for offline    |
+| `locations`                      | where a check-in or redemption happened                         | reception, island, jetty; readable by island roles       |
+| `staff_devices`                  | registered island devices, secret stored as a hash              | the offline unit of accountability; deactivate if lost   |
+| `ticket_redemptions`             | append-only redemption events, quantity per entitlement         | reversals are negative rows; `client_uuid` is idempotent |
+| `message_log`                    | every WhatsApp/email delivery attempt and its provider result   | written before the provider is called                    |
 | `booking_sequences`              | per-day counter for `WS-YYYYMMDD-NNNN`                          |                                                          |
 | `app_settings`                   | key/value settings                                              | typed accessors with defaults                            |
 | `audit_logs`                     | old/new JSON of every change with actor                         | written by trigger; immutable even for admins            |
@@ -125,17 +129,26 @@ Roles live in `profiles.role` and are copied into the JWT (`user_role`) by
 **live profile**, so a deactivation takes effect immediately rather than when
 the token expires. An inactive user is denied everywhere.
 
-| Data                 | admin                          | accountant  | receptionist                            | activity_staff            |
-| -------------------- | ------------------------------ | ----------- | --------------------------------------- | ------------------------- |
-| clients              | all                            | read        | read, create, update                    | none                      |
-| activities, packages | all                            | read        | read                                    | read (no prices anywhere) |
-| tour operators       | all                            | read        | read                                    | none                      |
-| price rules          | read; change via `set_price()` | read        | none (quotes only)                      | none                      |
-| bookings and lines   | all, any date                  | read        | create; amend or cancel today and later | none                      |
-| payments             | read, insert                   | read        | read, insert (never update or delete)   | none                      |
-| audit log            | read                           | read        | none                                    | none                      |
-| settings             | all                            | read        | read                                    | read                      |
-| users                | all                            | own profile | own profile                             | own profile               |
+| Data                 | admin                          | accountant  | receptionist                            | activity_staff and activity_supervisor |
+| -------------------- | ------------------------------ | ----------- | --------------------------------------- | -------------------------------------- |
+| clients              | all                            | read        | read, create, update                    | none                                   |
+| activities, packages | all                            | read        | read                                    | read (no prices anywhere)              |
+| tour operators       | all                            | read        | read                                    | none                                   |
+| price rules          | read; change via `set_price()` | read        | none (quotes only)                      | none                                   |
+| bookings and lines   | all, any date                  | read        | create; amend or cancel today and later | none                                   |
+| payments             | read, insert                   | read        | read, insert (never update or delete)   | none                                   |
+| tickets              | read                           | none        | read                                    | none                                   |
+| locations            | all                            | read        | read                                    | read                                   |
+| devices              | read (never the secret), edit  | read        | none                                    | none (supervisors via functions)       |
+| redemptions          | read; write via functions      | read        | read; write via functions               | none; write via functions              |
+| message log          | read                           | read        | read                                    | none                                   |
+| audit log            | read                           | read        | none                                    | none                                   |
+| settings             | all                            | read        | read                                    | read                                   |
+| users                | all                            | own profile | own profile                             | own profile                            |
+
+The V2 plan's matrix (§10.2) also lists table reads for supervisors; they
+are served by functions instead, so a supervisor reads exactly what activity
+staff read and differs only in what it may correct (WP-24's rule).
 
 In the UI, reception never sees operator net prices or commissions. Nobody can
 delete a booking, payment, client or catalogue row. `npm run test:rls` attacks

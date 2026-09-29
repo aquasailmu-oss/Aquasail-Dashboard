@@ -9,7 +9,7 @@ import { fail, ok, type Result } from "@/lib/result";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
-const roleSchema = z.enum(["admin", "accountant", "receptionist", "activity_staff"], {
+const roleSchema = z.enum(["admin", "accountant", "receptionist", "activity_staff", "activity_supervisor"], {
   error: "Choose a role.",
 });
 

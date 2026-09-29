@@ -8,6 +8,7 @@ export const USERS = {
   receptionist: "reception@aquasail.test",
   accountant: "accounts@aquasail.test",
   activity_staff: "island@aquasail.test",
+  activity_supervisor: "supervisor@aquasail.test",
 } as const;
 export const PASSWORD = "demo-password-1";
 

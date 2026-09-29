@@ -6,7 +6,11 @@ Money and audit correctness matter more than elegance.
 
 The build follows `AquasailOperationsPlatform.pdf` (Build Plan v1.0, work packages
 WP-01 to WP-21), adjusted to the approved UI prototype in `prototype/index.html`.
-Where the two disagree, the "Adjustments" section below wins.
+Where the two disagree, the "Adjustments" section below wins. V2 (digital
+ticketing and redemption, WP-22 to WP-36) follows `Aquasail-Dashboard-v2.pdf`
+in the repo root; it assumes V1.1, which is what was built (fleet and the daily
+register in V1). Migration numbers in that plan (0006, 0007...) map to the
+next free number here.
 
 ## Stack
 
@@ -56,10 +60,12 @@ No ORM. Generated types in `src/lib/database.types.ts`.
 
 ## Roles
 
-`admin`, `accountant`, `receptionist`, `activity_staff`. Permissions matrix and
-the design record: `docs/ARCHITECTURE.md`. Releases: `docs/RELEASE.md`. Backups:
-`docs/BACKUP.md`. `activity_staff` must never be
-able to read prices, totals, commissions or customer contact details.
+`admin`, `accountant`, `receptionist`, `activity_staff`, `activity_supervisor`
+(V2). Permissions matrix and the design record: `docs/ARCHITECTURE.md`.
+Releases: `docs/RELEASE.md`. Backups: `docs/BACKUP.md`. `activity_staff` and
+`activity_supervisor` must never be able to read prices, totals, commissions or
+customer contact details: they have no table access beyond `locations`, and
+reach everything else through `security definer` functions with narrow payloads.
 
 ## UX principles
 

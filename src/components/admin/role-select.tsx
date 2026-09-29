@@ -3,7 +3,7 @@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ROLE_DESCRIPTIONS, ROLE_LABELS, type Role } from "@/lib/roles";
 
-const ORDER: Role[] = ["receptionist", "accountant", "activity_staff", "admin"];
+const ORDER: Role[] = ["receptionist", "accountant", "activity_staff", "activity_supervisor", "admin"];
 
 export function RoleSelect({ id, defaultValue, disabled }: { id: string; defaultValue?: Role; disabled?: boolean }) {
   return (

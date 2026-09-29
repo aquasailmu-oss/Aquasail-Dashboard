@@ -3,6 +3,7 @@ import type { Role } from "@/lib/roles";
 export type NavItem = { href: string; label: string; roles: readonly Role[]; section?: "Admin" };
 
 const OFFICE: readonly Role[] = ["admin", "accountant", "receptionist"];
+const ISLAND: readonly Role[] = ["activity_staff", "activity_supervisor"];
 
 /** The sidebar, per role (build plan WP-08). Pages enforce the same roles with requireRole(). */
 const NAV_ITEMS: readonly NavItem[] = [
@@ -14,7 +15,7 @@ const NAV_ITEMS: readonly NavItem[] = [
   { href: "/reports", label: "Reports", roles: ["admin", "accountant"] },
   { href: "/export", label: "Export", roles: ["admin", "accountant"] },
   { href: "/admin/audit", label: "Audit log", roles: ["admin", "accountant"] },
-  { href: "/scan", label: "Scan", roles: ["activity_staff"] },
+  { href: "/scan", label: "Scan", roles: ISLAND },
   { href: "/admin/activities", label: "Activities", roles: ["admin"], section: "Admin" },
   { href: "/admin/packages", label: "Packages", roles: ["admin"], section: "Admin" },
   { href: "/admin/operators", label: "Operators", roles: ["admin"], section: "Admin" },
@@ -30,7 +31,7 @@ export function navFor(role: Role): NavItem[] {
 
 /** Where a role lands after signing in. */
 export function landingPath(role: Role): string {
-  return role === "activity_staff" ? "/scan" : "/today";
+  return ISLAND.includes(role) ? "/scan" : "/today";
 }
 
 /** Only same-site paths are honoured as a post-login destination. */

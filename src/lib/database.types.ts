@@ -1535,6 +1535,10 @@ export type Database = {
         }
         Returns: Json
       }
+      redemption_report: {
+        Args: { p_from: string; p_to: string }
+        Returns: Json
+      }
       redemption_result: {
         Args: {
           p_already_applied: boolean

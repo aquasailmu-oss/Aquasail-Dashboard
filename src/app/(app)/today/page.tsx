@@ -53,7 +53,7 @@ export default async function TodayPage() {
   const { start, end } = businessDayBounds(today);
   const supabase = await createClient();
 
-  const [bookings, cash, entitlements, boats, failedDeliveries] = await Promise.all([
+  const [bookings, cash, entitlements, boats, failedDeliveries, checkedInCount, redemptionCount, flaggedCount] = await Promise.all([
     supabase
       .from("booking_register")
       .select(
@@ -82,6 +82,23 @@ export default async function TodayPage() {
       .eq("bookings.service_date", today)
       .order("created_at", { ascending: false })
       .overrideTypes<Array<{ id: string; booking_id: string; channel: string; to_address: string | null; error_detail: string | null; bookings: { reference: string; service_date: string } }>, { merge: false }>(),
+    supabase
+      .from("bookings")
+      .select("id", { count: "exact", head: true })
+      .eq("service_date", today)
+      .neq("status", "cancelled")
+      .not("checked_in_at", "is", null),
+    supabase
+      .from("ticket_redemptions")
+      .select("quantity_redeemed, booking_activities!inner(bookings!inner(service_date))")
+      .eq("booking_activities.bookings.service_date", today)
+      .eq("is_reversal", false),
+    supabase
+      .from("ticket_redemptions")
+      .select("id", { count: "exact", head: true })
+      .eq("is_reversal", false)
+      .or("is_over_redemption.eq.true,is_provisional.eq.true")
+      .is("reviewed_at", null),
   ]);
   if (bookings.error || cash.error || entitlements.error || boats.error) {
     return (
@@ -133,7 +150,7 @@ export default async function TodayPage() {
         <BookingSearch />
       </div>
 
-      <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-6">
+      <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-9">
         <Kpi label="Bookings" value={String(live.length)} />
         <Kpi label="People" value={String(people)} />
         <Kpi label="Charged" value={formatRs(cents(charged))} />
@@ -144,6 +161,17 @@ export default async function TodayPage() {
           value={String(onAccount.length)}
           hint={`${formatRs(cents(receivable))} receivable`}
         />
+        <Kpi label="Checked in" value={String(checkedInCount.count ?? 0)} />
+        <Kpi
+          label="Redeemed"
+          value={String(
+            (redemptionCount.data ?? []).reduce(
+              (s: number, r: { quantity_redeemed: number }) => s + r.quantity_redeemed,
+              0,
+            ),
+          )}
+        />
+        <Kpi label="Flagged" value={String(flaggedCount.count ?? 0)} hint={flaggedCount.count ? "Need review" : undefined} />
       </div>
 
       {failedDeliveries.data && failedDeliveries.data.length > 0 && (

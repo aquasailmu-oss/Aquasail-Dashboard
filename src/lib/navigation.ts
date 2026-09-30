@@ -11,6 +11,7 @@ const NAV_ITEMS: readonly NavItem[] = [
   { href: "/bookings/new", label: "New booking", roles: ["admin", "receptionist"] },
   { href: "/bookings", label: "Bookings", roles: OFFICE },
   { href: "/clients", label: "Clients", roles: OFFICE },
+  { href: "/operations", label: "Operations", roles: [...OFFICE, "activity_supervisor"] },
   { href: "/register", label: "Daily register", roles: OFFICE },
   { href: "/reports", label: "Reports", roles: ["admin", "accountant"] },
   { href: "/export", label: "Export", roles: ["admin", "accountant"] },

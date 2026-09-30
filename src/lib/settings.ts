@@ -11,6 +11,7 @@ const SETTING_DEFAULTS = {
   currency_label: "Rs",
   max_discount_percent_receptionist: 10,
   logo_path: "",
+  auto_send_ticket: "off",
 };
 
 export type Settings = typeof SETTING_DEFAULTS;

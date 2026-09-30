@@ -1,12 +1,12 @@
-import { PencilIcon, PrinterIcon } from "lucide-react";
+import { PencilIcon } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { TicketPanel } from "@/components/booking/ticket-panel";
 import {
   CancelBookingDialog,
   CorrectPaymentDialog,
   RecordPaymentDialog,
-  ReissueTicketDialog,
 } from "@/components/booking/booking-dialogs";
 import { BookingStatusBadge } from "@/components/shared/booking-status-badge";
 import { PayerBanner } from "@/components/shared/payer-banner";
@@ -53,6 +53,12 @@ export default async function BookingPage({
     .eq("id", id)
     .maybeSingle();
   if (!b) notFound();
+
+  const { data: deliveryLogs } = await supabase
+    .from("message_log")
+    .select("id, channel, status, to_address, error_code, error_detail, attempt, sent_at, delivered_at, read_at, created_at")
+    .eq("booking_id", id)
+    .order("created_at", { ascending: false });
 
   const redemptions = b.booking_activities.flatMap((e) => e.ticket_redemptions);
   const staffIds = [
@@ -111,16 +117,6 @@ export default async function BookingPage({
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          {liveTicket && !cancelled && (
-            <Button asChild variant="outline">
-              <Link href={`/tickets/${liveTicket.token}?print=1`}>
-                <PrinterIcon /> Print ticket
-                {liveTicket.printed_count > 0 && (
-                  <span className="text-muted-foreground text-sm">({liveTicket.printed_count})</span>
-                )}
-              </Link>
-            </Button>
-          )}
           {canAmend && (
             <Button asChild variant="outline">
               <Link href={`/bookings/${b.id}/edit`}>
@@ -201,33 +197,36 @@ export default async function BookingPage({
       </div>
 
       {tickets.length > 0 && (
-        <Card className="mt-6">
-          <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
-            <CardTitle>
-              Ticket: <span data-testid="ticket-state">{state}</span>
-            </CardTitle>
-            {canWrite && !cancelled && <ReissueTicketDialog bookingId={b.id} />}
-          </CardHeader>
-          <CardContent>
-            <ol className="flex flex-col gap-2" aria-label="Ticket history">
-              {tickets.map((t) => (
-                <li key={t.id} className="flex flex-col border-b pb-2 last:border-b-0 last:pb-0">
-                  <span className={t.revoked_at ? "text-muted-foreground" : "font-semibold"}>
-                    {t.revoked_at ? "Replaced" : "Current"} ticket, issued {formatDateTime(t.issued_at)}
-                    {!t.revoked_at && t.printed_count > 0 && ` · printed ${t.printed_count}×`}
-                  </span>
-                  {t.revoked_at && (
-                    <span className="text-muted-foreground text-sm">
-                      {cancelled && t === tickets[0]
-                        ? "Stopped working when the booking was cancelled."
-                        : `Stopped working ${formatDateTime(t.revoked_at)} (${name(t.revoked_by)}): ${t.revoke_reason}`}
-                    </span>
-                  )}
-                </li>
-              ))}
-            </ol>
-          </CardContent>
-        </Card>
+        <TicketPanel
+          bookingId={b.id}
+          cancelled={cancelled}
+          canWrite={canWrite}
+          tickets={tickets.map((t) => ({
+            id: t.id,
+            token: t.token,
+            printedCount: t.printed_count,
+            issuedAt: t.issued_at,
+            revokedAt: t.revoked_at,
+            revokedBy: t.revoked_by ? name(t.revoked_by) : null,
+            revokeReason: t.revoke_reason,
+          }))}
+          state={state}
+          clientEmail={b.clients?.email ?? null}
+          clientPhone={b.clients?.phone_e164 ?? null}
+          deliveryLogs={(deliveryLogs ?? []).map((l) => ({
+            id: l.id,
+            channel: l.channel,
+            status: l.status,
+            toAddress: l.to_address,
+            errorCode: l.error_code,
+            errorDetail: l.error_detail,
+            attempt: l.attempt,
+            sentAt: l.sent_at,
+            deliveredAt: l.delivered_at,
+            readAt: l.read_at,
+            createdAt: l.created_at,
+          }))}
+        />
       )}
 
       <h2 className="font-display mt-8 mb-3 text-xl font-semibold">Lines</h2>

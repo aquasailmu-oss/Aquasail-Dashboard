@@ -1,7 +1,8 @@
-import { CircleCheckBigIcon, MailIcon, MessageCircleIcon, PlusIcon } from "lucide-react";
+import { CircleCheckBigIcon, PlusIcon } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ConfirmationSendButtons } from "@/components/booking/confirmation-send-buttons";
 import { PayerBanner } from "@/components/shared/payer-banner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -20,7 +21,7 @@ export default async function ConfirmationPage({ params }: { params: Promise<{ i
   const { data: b } = await supabase
     .from("bookings")
     .select(
-      "id, reference, service_date, departure_time, charged_total_cents, payer, clients(first_name, last_name), tour_operators(name), payments(amount_cents), tickets(token, revoked_at)",
+      "id, reference, service_date, departure_time, charged_total_cents, payer, clients(first_name, last_name, email, phone_e164), tour_operators(name), payments(amount_cents), tickets(token, revoked_at)",
     )
     .eq("id", id)
     .maybeSingle();
@@ -74,14 +75,11 @@ export default async function ConfirmationPage({ params }: { params: Promise<{ i
             <Link href={`/bookings/${b.id}`}>View booking</Link>
           </Button>
         </div>
-        <div className="flex flex-wrap justify-center gap-3">
-          <Button type="button" variant="ghost" disabled title="Available in V2">
-            <MessageCircleIcon /> Send WhatsApp <span className="text-xs">(V2)</span>
-          </Button>
-          <Button type="button" variant="ghost" disabled title="Available in V2">
-            <MailIcon /> Send email <span className="text-xs">(V2)</span>
-          </Button>
-        </div>
+        <ConfirmationSendButtons
+          bookingId={b.id}
+          hasEmail={!!b.clients?.email}
+          hasPhone={!!b.clients?.phone_e164}
+        />
       </CardContent>
     </Card>
   );

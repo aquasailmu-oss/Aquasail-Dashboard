@@ -53,7 +53,7 @@ export default async function TodayPage() {
   const { start, end } = businessDayBounds(today);
   const supabase = await createClient();
 
-  const [bookings, cash, entitlements, boats] = await Promise.all([
+  const [bookings, cash, entitlements, boats, failedDeliveries] = await Promise.all([
     supabase
       .from("booking_register")
       .select(
@@ -75,6 +75,13 @@ export default async function TodayPage() {
       .eq("bookings.service_date", today)
       .neq("bookings.status", "cancelled"),
     supabase.from("resources").select("id, name, capacity").eq("is_active", true).order("sort_order"),
+    supabase
+      .from("message_log")
+      .select("id, booking_id, channel, to_address, error_detail, bookings!inner(reference, service_date)")
+      .eq("status", "failed")
+      .eq("bookings.service_date", today)
+      .order("created_at", { ascending: false })
+      .overrideTypes<Array<{ id: string; booking_id: string; channel: string; to_address: string | null; error_detail: string | null; bookings: { reference: string; service_date: string } }>, { merge: false }>(),
   ]);
   if (bookings.error || cash.error || entitlements.error || boats.error) {
     return (
@@ -138,6 +145,24 @@ export default async function TodayPage() {
           hint={`${formatRs(cents(receivable))} receivable`}
         />
       </div>
+
+      {failedDeliveries.data && failedDeliveries.data.length > 0 && (
+        <Alert variant="destructive" className="mb-6">
+          <strong>FAILED DELIVERIES</strong>
+          <ul className="mt-1 space-y-0.5">
+            {failedDeliveries.data.map((f) => (
+              <li key={f.id}>
+                <Link href={`/bookings/${f.booking_id}`} className="underline">
+                  {f.bookings.reference}
+                </Link>
+                {" — "}
+                {f.channel} to {f.to_address ?? "—"}
+                {f.error_detail && `: ${f.error_detail}`}
+              </li>
+            ))}
+          </ul>
+        </Alert>
+      )}
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]">
         <Card className="overflow-x-auto">

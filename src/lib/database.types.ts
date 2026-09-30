@@ -1488,6 +1488,17 @@ export type Database = {
       }
       health_check: { Args: never; Returns: Json }
       is_admin: { Args: never; Returns: boolean }
+      log_delivery_attempt: {
+        Args: {
+          p_booking_id: string
+          p_channel: string
+          p_provider: string
+          p_template: string
+          p_ticket_id: string
+          p_to_address: string
+        }
+        Returns: string
+      }
       mark_ticket_printed: { Args: { p_token: string }; Returns: number }
       next_booking_reference: {
         Args: { p_service_date: string }
@@ -1654,6 +1665,20 @@ export type Database = {
         Returns: Json
       }
       today_mauritius: { Args: never; Returns: string }
+      update_delivery_status: {
+        Args: {
+          p_error_code?: string
+          p_error_detail?: string
+          p_log_id: string
+          p_provider_message_id?: string
+          p_status: string
+        }
+        Returns: undefined
+      }
+      update_delivery_webhook: {
+        Args: { p_event: string; p_provider_message_id: string }
+        Returns: undefined
+      }
       verified_device: {
         Args: { p_device_id: string; p_device_secret: string }
         Returns: {

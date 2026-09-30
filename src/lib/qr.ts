@@ -1,5 +1,5 @@
 import "server-only";
-import { create } from "qrcode";
+import { create, toDataURL, toBuffer } from "qrcode";
 
 /** Modules of white border the QR spec requires around the code. */
 const QUIET_ZONE = 4;
@@ -27,4 +27,12 @@ export function qrSvgPath(text: string): { size: number; path: string } {
     }
   }
   return { size: modules.size + 2 * QUIET_ZONE, path: parts.join("") };
+}
+
+export async function qrDataUrl(text: string): Promise<string> {
+  return toDataURL(text, { errorCorrectionLevel: "M", width: 360, margin: QUIET_ZONE });
+}
+
+export async function qrPngBuffer(text: string): Promise<Buffer> {
+  return toBuffer(text, { errorCorrectionLevel: "M", width: 360, margin: QUIET_ZONE });
 }

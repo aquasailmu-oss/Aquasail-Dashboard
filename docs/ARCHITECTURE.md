@@ -252,6 +252,19 @@ office sidebar, installable as a PWA (`/island.webmanifest`, icons drawn by
   only an admin can. Deactivating a device clears its secret hash, so it stops
   working immediately.
 
+## Email delivery (V2)
+
+`sendTicketEmail()` (WP-31, migration 0026) sends a confirmation email via
+Resend with the ticket PDF attached. The flow writes a `message_log` row with
+status 'queued' **before** calling the provider, then updates it to 'sent' or
+'failed' — a failed email always has a logged row. The `message_log` writes
+go through security definer functions (`log_delivery_attempt`,
+`update_delivery_status`), so the receptionist's RLS session can trigger a
+send without direct table grants. Provider webhooks
+(`/api/webhooks/resend`) update delivery and read timestamps via
+`update_delivery_webhook`. Both the HTML and plain text include the QR
+code inline (data URL), since many clients block remote images.
+
 ## Audit
 
 `audit_trigger()` writes old/new JSON, the actor and the role for every

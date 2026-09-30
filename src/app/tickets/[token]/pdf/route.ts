@@ -68,8 +68,8 @@ export async function GET(_request: Request, { params }: { params: Promise<{ tok
   page.drawLine({ start: { x: M, y }, end: { x: W - M, y }, thickness: 1.5, color: BLACK });
   y -= 22;
 
-  if (t.cancelled) {
-    text(page, "CANCELLED: THIS TICKET IS NOT VALID", M, y, 13, bold);
+  if (t.cancelled || t.revoked) {
+    text(page, `${t.cancelled ? "CANCELLED" : "REPLACED"}: THIS TICKET IS NOT VALID`, M, y, 13, bold);
     y -= 24;
   }
 

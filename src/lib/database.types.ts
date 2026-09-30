@@ -1217,14 +1217,14 @@ export type Database = {
           {
             foreignKeyName: "tickets_booking_id_fkey"
             columns: ["booking_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "booking_register"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "tickets_booking_id_fkey"
             columns: ["booking_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "bookings"
             referencedColumns: ["id"]
           },
@@ -1511,6 +1511,10 @@ export type Database = {
         }
         Returns: Json
       }
+      reissue_ticket: {
+        Args: { p_booking_id: string; p_reason: string }
+        Returns: Json
+      }
       resolve_over_redemption: {
         Args: {
           p_action: string
@@ -1562,6 +1566,10 @@ export type Database = {
           p_redemption_id: string
         }
         Returns: Json
+      }
+      revoke_ticket: {
+        Args: { p_reason: string; p_ticket_id: string }
+        Returns: undefined
       }
       save_package: { Args: { payload: Json }; Returns: string }
       scan_ticket: {

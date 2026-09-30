@@ -44,6 +44,11 @@ The ticket carries a QR code that island staff scan on arrival, with the
 booking reference printed beneath it for when a camera cannot read it. The
 code holds only a link to the ticket: no name, price or reference.
 
+**Lost phone or wrong number?** On the booking, press **Reissue ticket** and
+give the reason. A new ticket is issued and the old one stops working at once:
+if someone scans it on the island, it says a newer ticket exists. Print or
+send the new one. Cancelling a booking also stops its ticket working.
+
 ## "DO NOT COLLECT PAYMENT"
 
 Some operators pay AquaSail themselves. When you choose one, a red banner

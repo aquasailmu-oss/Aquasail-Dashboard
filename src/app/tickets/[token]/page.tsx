@@ -44,7 +44,7 @@ export default async function TicketPage({
         bookingHref={`/bookings/${t.bookingId}`}
         printedCount={t.printedCount}
         autoPrint={print === "1"}
-        disabled={t.cancelled}
+        disabled={t.cancelled || t.revoked}
       />
 
       <article
@@ -65,9 +65,9 @@ export default async function TicketPage({
           <div className="font-display text-right text-xl font-semibold tracking-widest">ACTIVITY TICKET</div>
         </header>
 
-        {t.cancelled && (
+        {(t.cancelled || t.revoked) && (
           <div className="border-2 border-black p-3 text-center text-lg font-bold tracking-wide">
-            CANCELLED: THIS TICKET IS NOT VALID
+            {t.cancelled ? "CANCELLED" : "REPLACED BY A NEWER TICKET"}: THIS TICKET IS NOT VALID
           </div>
         )}
 

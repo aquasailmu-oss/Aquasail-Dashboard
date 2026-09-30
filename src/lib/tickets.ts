@@ -12,6 +12,8 @@ export type TicketData = {
   bookingId: string;
   reference: string;
   cancelled: boolean;
+  /** Replaced by a newer ticket (reissued): this one no longer scans. */
+  revoked: boolean;
   printedCount: number;
   companyName: string;
   companyPhone: string;
@@ -36,7 +38,7 @@ export async function getTicket(token: string): Promise<TicketData | null> {
     supabase
       .from("tickets")
       .select(
-        "token, printed_count, bookings(id, reference, status, service_date, departure_time, meeting_point, clients(first_name, last_name), resources(name), booking_participants(participant_type, count), booking_items(sort_order, packages(name), activities(name)), booking_activities(quantity, activities(name, sort_order)))",
+        "token, printed_count, revoked_at, bookings(id, reference, status, service_date, departure_time, meeting_point, clients(first_name, last_name), resources(name), booking_participants(participant_type, count), booking_items(sort_order, packages(name), activities(name)), booking_activities(quantity, activities(name, sort_order)))",
       )
       .eq("token", token)
       .maybeSingle(),
@@ -71,6 +73,7 @@ export async function getTicket(token: string): Promise<TicketData | null> {
     bookingId: b.id,
     reference: b.reference,
     cancelled: b.status === "cancelled",
+    revoked: t.revoked_at !== null && b.status !== "cancelled",
     printedCount: t.printed_count,
     companyName: settings.company_name,
     companyPhone: settings.company_phone,

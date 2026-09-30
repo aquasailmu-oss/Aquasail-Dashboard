@@ -20,11 +20,12 @@ export default async function ConfirmationPage({ params }: { params: Promise<{ i
   const { data: b } = await supabase
     .from("bookings")
     .select(
-      "id, reference, service_date, departure_time, charged_total_cents, payer, clients(first_name, last_name), tour_operators(name), payments(amount_cents), tickets(token)",
+      "id, reference, service_date, departure_time, charged_total_cents, payer, clients(first_name, last_name), tour_operators(name), payments(amount_cents), tickets(token, revoked_at)",
     )
     .eq("id", id)
     .maybeSingle();
   if (!b) notFound();
+  const liveTicket = b.tickets.find((t) => !t.revoked_at);
   const paid = b.payments.reduce((sum, p) => sum + p.amount_cents, 0);
   const due = b.charged_total_cents - paid;
 
@@ -64,9 +65,9 @@ export default async function ConfirmationPage({ params }: { params: Promise<{ i
               <PlusIcon /> New booking
             </Link>
           </Button>
-          {b.tickets && (
+          {liveTicket && (
             <Button asChild size="lg" variant="outline">
-              <Link href={`/tickets/${b.tickets.token}?print=1`}>Print ticket</Link>
+              <Link href={`/tickets/${liveTicket.token}?print=1`}>Print ticket</Link>
             </Button>
           )}
           <Button asChild size="lg" variant="outline">

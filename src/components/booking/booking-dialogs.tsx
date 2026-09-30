@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { cancelBooking, correctPayment, recordPayment } from "@/actions/bookings";
+import { reissueTicket } from "@/actions/tickets";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
@@ -201,6 +202,25 @@ export function CancelBookingDialog({ bookingId, paid }: { bookingId: string; pa
       <div className="flex flex-col gap-2">
         <Label htmlFor="cancel_reason">Reason (required)</Label>
         <Textarea id="cancel_reason" name="reason" autoFocus placeholder="Weather / guest unwell / booked twice" />
+      </div>
+    </ActionDialog>
+  );
+}
+
+export function ReissueTicketDialog({ bookingId }: { bookingId: string }) {
+  return (
+    <ActionDialog
+      trigger={<Button variant="outline">Reissue ticket</Button>}
+      title="Reissue this ticket?"
+      description="A new ticket with a new code is issued. The current one stops working immediately: scanning it on the island will say a newer ticket exists."
+      action={reissueTicket}
+      success="New ticket issued. Print or send it to the customer."
+      submitLabel="Reissue ticket"
+    >
+      <input type="hidden" name="booking_id" value={bookingId} />
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="reissue_reason">Reason (required)</Label>
+        <Textarea id="reissue_reason" name="reason" autoFocus placeholder="Lost phone / sent to the wrong number" />
       </div>
     </ActionDialog>
   );

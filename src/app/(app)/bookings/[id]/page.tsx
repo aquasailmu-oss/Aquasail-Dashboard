@@ -2,7 +2,12 @@ import { PencilIcon, PrinterIcon } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { CancelBookingDialog, CorrectPaymentDialog, RecordPaymentDialog } from "@/components/booking/booking-dialogs";
+import {
+  CancelBookingDialog,
+  CorrectPaymentDialog,
+  RecordPaymentDialog,
+  ReissueTicketDialog,
+} from "@/components/booking/booking-dialogs";
 import { BookingStatusBadge } from "@/components/shared/booking-status-badge";
 import { PayerBanner } from "@/components/shared/payer-banner";
 import { Alert } from "@/components/ui/alert";
@@ -16,6 +21,7 @@ import { cents, formatRs } from "@/lib/money";
 import { formatRate } from "@/lib/operators";
 import { formatPhone } from "@/lib/phone";
 import { createClient } from "@/lib/supabase/server";
+import { ticketState } from "@/lib/ticket-state";
 
 export const metadata: Metadata = { title: "Booking · AquaSail Ops" };
 
@@ -42,15 +48,20 @@ export default async function BookingPage({
   const { data: b } = await supabase
     .from("bookings")
     .select(
-      "*, clients(id, first_name, last_name, phone_e164, email), tour_operators(name, settlement_model), resources(name), booking_items(*, packages(name), activities(name)), booking_participants(participant_type, count), booking_activities(id, quantity, activities(name, sort_order)), payments(*), tickets(token, printed_count)",
+      "*, clients(id, first_name, last_name, phone_e164, email), tour_operators(name, settlement_model), resources(name), booking_items(*, packages(name), activities(name)), booking_participants(participant_type, count), booking_activities(id, quantity, activities(name, sort_order, is_redeemable), ticket_redemptions(quantity_redeemed, redeemed_at, redeemed_by, is_reversal, locations(name))), payments(*), tickets(id, token, printed_count, issued_at, revoked_at, revoked_by, revoke_reason, delivered_channels)",
     )
     .eq("id", id)
     .maybeSingle();
   if (!b) notFound();
 
-  const staffIds = [b.created_by, b.cancelled_by, ...b.payments.map((p) => p.recorded_by)].filter(
-    (x): x is string => !!x,
-  );
+  const redemptions = b.booking_activities.flatMap((e) => e.ticket_redemptions);
+  const staffIds = [
+    b.created_by,
+    b.cancelled_by,
+    ...b.payments.map((p) => p.recorded_by),
+    ...b.tickets.map((t) => t.revoked_by),
+    ...redemptions.map((r) => r.redeemed_by),
+  ].filter((x): x is string => !!x);
   const { data: staff } = await supabase.rpc("staff_names", { p_ids: [...new Set(staffIds)] });
   const name = (sid: string | null) => staff?.find((s) => s.id === sid)?.full_name ?? "—";
 
@@ -67,6 +78,16 @@ export default async function BookingPage({
   const people = b.booking_participants.map(
     (p) => `${p.count} ${TYPE[p.participant_type].toLowerCase()}${p.count === 1 ? "" : "s"}`,
   );
+  // Reception and admins read tickets; accountants do not (RLS), so they see no ticket panel.
+  const tickets = [...b.tickets].sort((x, y) => y.issued_at.localeCompare(x.issued_at));
+  const liveTicket = tickets.find((t) => !t.revoked_at);
+  const redeemable = b.booking_activities.filter((e) => e.activities?.is_redeemable);
+  const state = ticketState({
+    revoked: !liveTicket,
+    delivered: Array.isArray(liveTicket?.delivered_channels) && liveTicket.delivered_channels.length > 0,
+    redeemed: redeemable.flatMap((e) => e.ticket_redemptions).reduce((sum, r) => sum + r.quantity_redeemed, 0),
+    entitled: redeemable.reduce((sum, e) => sum + e.quantity, 0),
+  });
   const corrected = new Map<string, number>();
   for (const p of payments)
     if (p.corrects_payment_id)
@@ -90,12 +111,12 @@ export default async function BookingPage({
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          {b.tickets && !cancelled && (
+          {liveTicket && !cancelled && (
             <Button asChild variant="outline">
-              <Link href={`/tickets/${b.tickets.token}?print=1`}>
+              <Link href={`/tickets/${liveTicket.token}?print=1`}>
                 <PrinterIcon /> Print ticket
-                {b.tickets.printed_count > 0 && (
-                  <span className="text-muted-foreground text-sm">({b.tickets.printed_count})</span>
+                {liveTicket.printed_count > 0 && (
+                  <span className="text-muted-foreground text-sm">({liveTicket.printed_count})</span>
                 )}
               </Link>
             </Button>
@@ -178,6 +199,36 @@ export default async function BookingPage({
           </CardContent>
         </Card>
       </div>
+
+      {tickets.length > 0 && (
+        <Card className="mt-6">
+          <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
+            <CardTitle>
+              Ticket: <span data-testid="ticket-state">{state}</span>
+            </CardTitle>
+            {canWrite && !cancelled && <ReissueTicketDialog bookingId={b.id} />}
+          </CardHeader>
+          <CardContent>
+            <ol className="flex flex-col gap-2" aria-label="Ticket history">
+              {tickets.map((t) => (
+                <li key={t.id} className="flex flex-col border-b pb-2 last:border-b-0 last:pb-0">
+                  <span className={t.revoked_at ? "text-muted-foreground" : "font-semibold"}>
+                    {t.revoked_at ? "Replaced" : "Current"} ticket, issued {formatDateTime(t.issued_at)}
+                    {!t.revoked_at && t.printed_count > 0 && ` · printed ${t.printed_count}×`}
+                  </span>
+                  {t.revoked_at && (
+                    <span className="text-muted-foreground text-sm">
+                      {cancelled && t === tickets[0]
+                        ? "Stopped working when the booking was cancelled."
+                        : `Stopped working ${formatDateTime(t.revoked_at)} (${name(t.revoked_by)}): ${t.revoke_reason}`}
+                    </span>
+                  )}
+                </li>
+              ))}
+            </ol>
+          </CardContent>
+        </Card>
+      )}
 
       <h2 className="font-display mt-8 mb-3 text-xl font-semibold">Lines</h2>
       <Card className="overflow-x-auto">
@@ -278,13 +329,36 @@ export default async function BookingPage({
               <TableBody>
                 {[...b.booking_activities]
                   .sort((x, y) => (x.activities?.sort_order ?? 0) - (y.activities?.sort_order ?? 0))
-                  .map((e) => (
-                    <TableRow key={e.id}>
-                      <TableCell>{e.activities?.name}</TableCell>
-                      <TableCell className="text-right tabular-nums">{e.quantity}</TableCell>
-                      <TableCell className="text-muted-foreground text-sm">Redemption arrives in V2</TableCell>
-                    </TableRow>
-                  ))}
+                  .map((e) => {
+                    const used = e.ticket_redemptions.reduce((sum, r) => sum + r.quantity_redeemed, 0);
+                    const last = e.ticket_redemptions
+                      .filter((r) => !r.is_reversal)
+                      .sort((x, y) => y.redeemed_at.localeCompare(x.redeemed_at))[0];
+                    return (
+                      <TableRow key={e.id}>
+                        <TableCell>{e.activities?.name}</TableCell>
+                        <TableCell className="text-right tabular-nums">{e.quantity}</TableCell>
+                        <TableCell className="text-sm">
+                          {!e.activities?.is_redeemable ? (
+                            <span className="text-muted-foreground">Not redeemed on the ticket</span>
+                          ) : used === 0 ? (
+                            <span className="text-muted-foreground">Not used yet</span>
+                          ) : (
+                            <>
+                              {Math.min(used, e.quantity)} of {e.quantity} used
+                              {used > e.quantity && ` (+${used - e.quantity} over)`}
+                              {last && (
+                                <div className="text-muted-foreground">
+                                  Last {formatDateTime(last.redeemed_at)}, {name(last.redeemed_by)}
+                                  {last.locations && `, ${last.locations.name}`}
+                                </div>
+                              )}
+                            </>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
               </TableBody>
             </Table>
           </Card>

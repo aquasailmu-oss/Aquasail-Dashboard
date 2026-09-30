@@ -196,6 +196,13 @@ functions; nobody writes `ticket_redemptions` directly.
   when/who/where, and the activities it does not include. Built from named
   columns only; `tests/rls/scan.test.ts` searches the serialised payload for
   money and contact words, and a pgTAP test pins its exact keys.
+- Tickets (migration 0022): one live ticket per booking (a partial unique
+  index). `reissue_ticket()` issues a new token and revokes the old in one
+  transaction; cancelling a booking revokes its ticket by trigger, whatever
+  path cancelled it. Revoked tokens are kept, so an old one scans as REVOKED
+  (a cancelled booking's as CANCELLED, checked first) instead of NOT_FOUND.
+  The state shown on the booking (issued, delivered, partly used, fully used,
+  revoked) is derived, never stored.
 - Entitlements with redemptions are never deleted or reduced below what was
   redeemed: `amend_booking()` scales a changed line's entitlements in place
   (same rows, so redemptions stay attached, and the package composition comes

@@ -242,6 +242,15 @@ office sidebar, installable as a PWA (`/island.webmanifest`, icons drawn by
   through the existing engine with `p_from_queue=true`; over-redemptions are
   flagged, not rejected. The status bar shows manifest age (amber past 3 hours)
   and queue depth.
+- **Supervisor tools** (WP-30): `/scan/supervisor` (migration 0025) gives
+  supervisors and admins a review queue of flagged redemptions (over-redemptions
+  and provisional items), device management (list, deactivate), and a shift
+  handover summary (check-ins, redemptions by activity, flagged count). All
+  four functions (`review_queue`, `device_list`, `deactivate_device`,
+  `shift_summary`) are security definer; island roles still have no table
+  grants. Supervisors can reverse any redemption within 24 hours; beyond that,
+  only an admin can. Deactivating a device clears its secret hash, so it stops
+  working immediately.
 
 ## Audit
 

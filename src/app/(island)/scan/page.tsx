@@ -15,6 +15,7 @@ export default async function ScanPage() {
         staffName={user.fullName}
         deviceLabel={device.device.label}
         locationName={device.device.locationName}
+        isSupervisor={user.role === "activity_supervisor" || user.role === "admin"}
       />
     );
   }

@@ -1442,7 +1442,19 @@ export type Database = {
         Args: { p_device_id: string; p_device_secret: string }
         Returns: Json
       }
+      deactivate_device: {
+        Args: {
+          p_device_id: string
+          p_device_secret: string
+          p_target_device_id: string
+        }
+        Returns: Json
+      }
       device_info: {
+        Args: { p_device_id: string; p_device_secret: string }
+        Returns: Json
+      }
+      device_list: {
         Args: { p_device_id: string; p_device_secret: string }
         Returns: Json
       }
@@ -1579,6 +1591,10 @@ export type Database = {
         }
         Returns: Json
       }
+      review_queue: {
+        Args: { p_device_id: string; p_device_secret: string }
+        Returns: Json
+      }
       revoke_ticket: {
         Args: { p_reason: string; p_ticket_id: string }
         Returns: undefined
@@ -1617,6 +1633,10 @@ export type Database = {
         Returns: string
       }
       set_prices_bulk: { Args: { changes: Json }; Returns: number }
+      shift_summary: {
+        Args: { p_device_id: string; p_device_secret: string }
+        Returns: Json
+      }
       staff_names: {
         Args: { p_ids: string[] }
         Returns: {

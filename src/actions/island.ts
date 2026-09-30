@@ -215,3 +215,187 @@ export async function syncQueueItem(
   if (!result.success) return fail("The sync result could not be read.");
   return ok(result.data);
 }
+
+// ---------------------------------------------------------------------------
+// WP-30: Supervisor tools — review queue, reversal, device management, shift
+// ---------------------------------------------------------------------------
+
+const SUPERVISOR = ["activity_supervisor", "admin"] as const;
+
+export type ReviewItem = {
+  redemption_id: string;
+  booking_id: string;
+  reference: string;
+  client_surname: string;
+  activity_name: string;
+  quantity_redeemed: number;
+  is_over_redemption: boolean;
+  is_provisional: boolean;
+  redeemed_at: string;
+  occurred_at_device: string | null;
+  synced_at: string | null;
+  redeemed_by_name: string | null;
+  device_label: string | null;
+  location_name: string | null;
+  entitlement_quantity: number;
+  is_stale: boolean;
+};
+
+const reviewItemSchema = z.object({
+  redemption_id: z.string(),
+  booking_id: z.string(),
+  reference: z.string(),
+  client_surname: z.string(),
+  activity_name: z.string(),
+  quantity_redeemed: z.number().int(),
+  is_over_redemption: z.boolean(),
+  is_provisional: z.boolean(),
+  redeemed_at: z.string(),
+  occurred_at_device: z.string().nullable(),
+  synced_at: z.string().nullable(),
+  redeemed_by_name: z.string().nullable(),
+  device_label: z.string().nullable(),
+  location_name: z.string().nullable(),
+  entitlement_quantity: z.number().int(),
+  is_stale: z.boolean(),
+});
+
+/** Loads the review queue — flagged redemptions that need supervisor attention. */
+export async function fetchReviewQueue(): Promise<Result<ReviewItem[]>> {
+  const ctx = await supervisorContext();
+  if (!ctx.ok) return ctx;
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("review_queue", ctx.data);
+  if (error) return fail(friendlyDbError(error, "The review queue could not be loaded."));
+  const parsed = z.array(reviewItemSchema).safeParse(data);
+  if (!parsed.success) return fail("The review queue could not be read.");
+  return ok(parsed.data);
+}
+
+const resolveSchema = z.object({
+  redemptionId: z.uuid(),
+  action: z.enum(["accept", "reverse"]),
+  note: z.string().trim().min(1, "Add a note saying what happened.").max(500),
+});
+
+/** Resolves a flagged over-redemption: accept or reverse, with a note. */
+export async function resolveOverRedemption(input: z.input<typeof resolveSchema>): Promise<Result<null>> {
+  const ctx = await supervisorContext();
+  if (!ctx.ok) return ctx;
+  const parsed = resolveSchema.safeParse(input);
+  if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Check the inputs.");
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("resolve_over_redemption", {
+    p_redemption_id: parsed.data.redemptionId,
+    p_action: parsed.data.action,
+    p_note: parsed.data.note,
+    ...ctx.data,
+  });
+  if (error) return fail(friendlyDbError(error, "The resolution did not go through."));
+  return ok(null);
+}
+
+const supervisorReverseSchema = z.object({
+  redemptionId: z.uuid(),
+  reason: z.string().trim().min(1, "Give a reason for the reversal.").max(500),
+});
+
+/** A supervisor reverses a redemption within 24 hours. */
+export async function supervisorReverseRedemption(
+  input: z.input<typeof supervisorReverseSchema>,
+): Promise<Result<null>> {
+  const ctx = await supervisorContext();
+  if (!ctx.ok) return ctx;
+  const parsed = supervisorReverseSchema.safeParse(input);
+  if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Check the inputs.");
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("reverse_redemption", {
+    p_redemption_id: parsed.data.redemptionId,
+    p_reason: parsed.data.reason,
+    ...ctx.data,
+  });
+  if (error) return fail(friendlyDbError(error, "The reversal did not go through."));
+  return ok(null);
+}
+
+export type DeviceInfo = {
+  device_id: string;
+  label: string;
+  location_name: string | null;
+  registered_at: string;
+  last_seen_at: string | null;
+  is_active: boolean;
+};
+
+const deviceInfoSchema = z.object({
+  device_id: z.string(),
+  label: z.string(),
+  location_name: z.string().nullable(),
+  registered_at: z.string(),
+  last_seen_at: z.string().nullable(),
+  is_active: z.boolean(),
+});
+
+/** Lists all registered devices (active and inactive). */
+export async function fetchDeviceList(): Promise<Result<DeviceInfo[]>> {
+  const ctx = await supervisorContext();
+  if (!ctx.ok) return ctx;
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("device_list", ctx.data);
+  if (error) return fail(friendlyDbError(error, "The device list could not be loaded."));
+  const parsed = z.array(deviceInfoSchema).safeParse(data);
+  if (!parsed.success) return fail("The device list could not be read.");
+  return ok(parsed.data);
+}
+
+/** Deactivates a device — it can no longer scan or redeem. */
+export async function deactivateDevice(targetDeviceId: string): Promise<Result<null>> {
+  const ctx = await supervisorContext();
+  if (!ctx.ok) return ctx;
+  const id = z.uuid().safeParse(targetDeviceId);
+  if (!id.success) return fail("That device could not be found.");
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("deactivate_device", {
+    p_target_device_id: id.data,
+    ...ctx.data,
+  });
+  if (error) return fail(friendlyDbError(error, "The device could not be deactivated."));
+  return ok(null);
+}
+
+export type ShiftSummary = {
+  device_label: string;
+  date: string;
+  check_ins: number;
+  redemptions: Array<{ activity_name: string; total_redeemed: number }>;
+  flagged: number;
+};
+
+const shiftSummarySchema = z.object({
+  device_label: z.string(),
+  date: z.string(),
+  check_ins: z.number().int(),
+  redemptions: z.array(z.object({ activity_name: z.string(), total_redeemed: z.number() })),
+  flagged: z.number().int(),
+});
+
+/** This device's activity today: check-ins, redemptions by activity, flagged items. */
+export async function fetchShiftSummary(): Promise<Result<ShiftSummary>> {
+  const ctx = await islandContext();
+  if (!ctx.ok) return ctx;
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("shift_summary", ctx.data);
+  if (error) return fail(friendlyDbError(error, "The shift summary could not be loaded."));
+  const parsed = shiftSummarySchema.safeParse(data);
+  if (!parsed.success) return fail("The shift summary could not be read.");
+  return ok(parsed.data);
+}
+
+/** Device + auth for supervisor-only functions. */
+async function supervisorContext() {
+  const auth = await authorize([...SUPERVISOR]);
+  if (!auth.ok) return auth;
+  const device = await readDeviceCredentials();
+  if (!device) return fail("This device is not registered. Ask a supervisor to register it.");
+  return ok({ p_device_id: device.deviceId, p_device_secret: device.secret });
+}

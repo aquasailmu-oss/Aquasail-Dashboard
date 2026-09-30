@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useState, useSyncExternalStore } from "react";
+import Link from "next/link";
 import { scanCode, scanReference } from "@/actions/island";
 import { signOut } from "@/actions/auth";
 import type { ScanResult } from "@/lib/scan";
@@ -39,10 +40,12 @@ export function IslandApp({
   staffName,
   deviceLabel,
   locationName,
+  isSupervisor,
 }: {
   staffName: string;
   deviceLabel: string;
   locationName: string | null;
+  isSupervisor?: boolean;
 }) {
   const [screen, setScreen] = useState<Screen>({ kind: "camera" });
   const [flash, setFlash] = useState(false);
@@ -111,10 +114,6 @@ export function IslandApp({
   const scanNext = () => setScreen({ kind: "camera" });
   const enterReference = () => setScreen({ kind: "manual" });
 
-  const dismissOverRedemptions = useCallback(() => {
-    // The notification is non-blocking; tapping it just clears the count
-  }, []);
-
   return (
     <div className="flex min-h-dvh flex-col bg-white text-lg text-[#0a0a0a]">
       <header
@@ -149,6 +148,14 @@ export function IslandApp({
           >
             {online ? "ONLINE" : "OFFLINE"}
           </span>
+          {isSupervisor && (
+            <Link
+              href="/scan/supervisor"
+              className="min-h-14 rounded-lg bg-white/20 px-3 text-base font-bold flex items-center"
+            >
+              Supervisor
+            </Link>
+          )}
           <form action={signOut}>
             <button type="submit" className="min-h-14 rounded-lg px-3 text-base font-bold underline">
               Sign out

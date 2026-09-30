@@ -233,6 +233,15 @@ office sidebar, installable as a PWA (`/island.webmanifest`, icons drawn by
   the device before the call, so a retry lands once.
 - **Verdicts** fill the screen in the verdict's colour with near-black text,
   56px+ targets, 18px+ text and every action in the bottom half.
+- **Offline operation** (WP-29): `day_manifest()` (migration 0024) returns
+  today's confirmed bookings with token hashes (never tokens), persisted in
+  IndexedDB (`src/lib/offline/idb.ts`). A QR scan hashes the token client-side
+  and matches the manifest. Unknown tokens show CANNOT VERIFY OFFLINE (blue).
+  Redemptions and check-ins queue locally and sync on connectivity regain, on
+  focus, and on a manual button. `sync_queued_item()` processes each item
+  through the existing engine with `p_from_queue=true`; over-redemptions are
+  flagged, not rejected. The status bar shows manifest age (amber past 3 hours)
+  and queue depth.
 
 ## Audit
 

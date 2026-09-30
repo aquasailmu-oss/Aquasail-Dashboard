@@ -107,3 +107,10 @@ export type CheckInResult = z.infer<typeof checkInResultSchema>;
 export function partyCount(r: { adults: number; children: number; infants: number }): number {
   return r.adults + r.children + r.infants;
 }
+
+/** What sync_queued_item() returns per item. */
+export const syncResultSchema = z.object({
+  result: z.enum(["applied", "already_applied", "over_redemption", "rejected"]),
+  reason: z.string().optional(),
+});
+export type SyncItemResult = z.infer<typeof syncResultSchema>;

@@ -49,6 +49,8 @@ function EntitlementRow({
   onUndone,
   staffName,
   locationName,
+  isOffline,
+  onOfflineRedeem,
 }: {
   e: ScanEntitlement;
   canRedeem: boolean;
@@ -57,6 +59,8 @@ function EntitlementRow({
   onUndone: (e: ScanEntitlement) => void;
   staffName: string;
   locationName: string | null;
+  isOffline?: boolean;
+  onOfflineRedeem?: (bookingActivityId: string, quantity: number, clientUuid: string) => Promise<void>;
 }) {
   const [quantity, setQuantity] = useState(e.remaining);
   const [busy, setBusy] = useState(false);
@@ -66,11 +70,42 @@ function EntitlementRow({
   async function redeem() {
     setBusy(true);
     setError(null);
-    // The request id exists before the attempt, so a retry after a dropped connection lands once.
+    const clientUuid = crypto.randomUUID();
+
+    if (isOffline && onOfflineRedeem) {
+      await onOfflineRedeem(e.booking_activity_id, shown, clientUuid);
+      setBusy(false);
+      const newRedeemed = e.redeemed + shown;
+      const newRemaining = Math.max(e.quantity - newRedeemed, 0);
+      const at = new Date().toISOString();
+      onRedeemed(
+        {
+          ...e,
+          redeemed: newRedeemed,
+          remaining: newRemaining,
+          events: [
+            ...e.events,
+            {
+              redemption_id: clientUuid,
+              quantity: shown,
+              at,
+              by_name: staffName,
+              location_name: locationName,
+              device_label: null,
+              is_reversal: false,
+            },
+          ],
+        },
+        { redemptionId: clientUuid, until: Date.now() + UNDO_MS },
+      );
+      setQuantity(newRemaining);
+      return;
+    }
+
     const res = await redeemEntitlement({
       bookingActivityId: e.booking_activity_id,
       quantity: shown,
-      clientUuid: crypto.randomUUID(),
+      clientUuid,
     });
     setBusy(false);
     if (!res.ok) {
@@ -204,12 +239,18 @@ export function VerdictView({
   onEnterReference,
   staffName,
   locationName,
+  isOffline = false,
+  enqueueRedeem,
+  enqueueCheckIn,
 }: {
   result: ScanResult;
   onScanNext: () => void;
   onEnterReference: () => void;
   staffName: string;
   locationName: string | null;
+  isOffline?: boolean;
+  enqueueRedeem?: (item: { bookingActivityId: string; quantity: number; clientUuid: string }) => Promise<void>;
+  enqueueCheckIn?: (item: { bookingId: string; clientUuid: string }) => Promise<void>;
 }) {
   const look = LOOK[result.verdict];
   const found = result.verdict === "NOT_FOUND" ? null : result;
@@ -245,7 +286,16 @@ export function VerdictView({
     if (!found) return;
     setCheckingIn(true);
     setCheckInError(null);
-    const res = await checkInParty({ bookingId: found.booking_id, clientUuid: crypto.randomUUID() });
+    const clientUuid = crypto.randomUUID();
+
+    if (isOffline && enqueueCheckIn) {
+      await enqueueCheckIn({ bookingId: found.booking_id, clientUuid });
+      setCheckingIn(false);
+      setCheckedIn({ at: new Date().toISOString(), by: staffName });
+      return;
+    }
+
+    const res = await checkInParty({ bookingId: found.booking_id, clientUuid });
     setCheckingIn(false);
     if (!res.ok) {
       setCheckInError(res.error);
@@ -322,6 +372,14 @@ export function VerdictView({
                     undo={undos[e.booking_activity_id]}
                     staffName={staffName}
                     locationName={locationName}
+                    isOffline={isOffline}
+                    onOfflineRedeem={
+                      enqueueRedeem
+                        ? async (baId, qty, uuid) => {
+                            await enqueueRedeem({ bookingActivityId: baId, quantity: qty, clientUuid: uuid });
+                          }
+                        : undefined
+                    }
                     onRedeemed={(next, undo) => {
                       replace(next);
                       setUndos((u) => ({ ...u, [next.booking_activity_id]: undo }));

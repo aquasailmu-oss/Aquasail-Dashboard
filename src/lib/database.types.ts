@@ -1438,6 +1438,10 @@ export type Database = {
       create_booking: { Args: { payload: Json }; Returns: Json }
       custom_access_token_hook: { Args: { event: Json }; Returns: Json }
       daily_register: { Args: { p_date: string }; Returns: Json }
+      day_manifest: {
+        Args: { p_device_id: string; p_device_secret: string }
+        Returns: Json
+      }
       device_info: {
         Args: { p_device_id: string; p_device_secret: string }
         Returns: Json
@@ -1619,6 +1623,15 @@ export type Database = {
           full_name: string
           id: string
         }[]
+      }
+      sync_queued_item: {
+        Args: {
+          p_device_id: string
+          p_device_secret: string
+          p_payload: Json
+          p_type: string
+        }
+        Returns: Json
       }
       today_mauritius: { Args: never; Returns: string }
       verified_device: {

@@ -209,6 +209,25 @@ functions; nobody writes `ticket_redemptions` directly.
   from the booking, not today's package), and a trigger refuses the rest with
   a sentence reception can act on.
 
+## The island app (V2)
+
+`/scan` is its own route group (`src/app/(island)`), full screen with no
+office sidebar, installable as a PWA (`/island.webmanifest`, icons drawn by
+`/island-icons/[file]`). Island staff land there after signing in.
+
+- **Device identity.** A supervisor or admin registers the tablet once
+  (`register_device()`); the secret it returns lives in an httpOnly cookie
+  (`src/lib/device.ts`), so page scripts never see it, and it outlives staff
+  sessions. Every island call sends the device id and secret; the database
+  checks them and refuses a deactivated device at once.
+- **Scanning.** `QrCamera` decodes on the device (the browser's own
+  BarcodeDetector, else jsQR), so it needs no signal. The code must be a
+  ticket URL (`tokenFromQr()`); anything else is NOT FOUND without a query.
+  ENTER REFERENCE (`scan_reference()`: "0042" means today's booking 0042)
+  shares `scan_payload()` with `scan_ticket()`, so both answer identically.
+- **Verdicts** fill the screen in the verdict's colour with near-black text,
+  56px+ targets, 18px+ text and every action in the bottom half.
+
 ## Audit
 
 `audit_trigger()` writes old/new JSON, the actor and the role for every

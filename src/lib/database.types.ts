@@ -1438,6 +1438,10 @@ export type Database = {
       create_booking: { Args: { payload: Json }; Returns: Json }
       custom_access_token_hook: { Args: { event: Json }; Returns: Json }
       daily_register: { Args: { p_date: string }; Returns: Json }
+      device_info: {
+        Args: { p_device_id: string; p_device_secret: string }
+        Returns: Json
+      }
       event_business_date: {
         Args: { p_from_queue: boolean; p_occurred_at_device: string }
         Returns: string
@@ -1511,6 +1515,10 @@ export type Database = {
         }
         Returns: Json
       }
+      register_device: {
+        Args: { p_label: string; p_location_id: string }
+        Returns: Json
+      }
       reissue_ticket: {
         Args: { p_booking_id: string; p_reason: string }
         Returns: Json
@@ -1572,6 +1580,15 @@ export type Database = {
         Returns: undefined
       }
       save_package: { Args: { payload: Json }; Returns: string }
+      scan_payload: { Args: { p_ticket_id: string }; Returns: Json }
+      scan_reference: {
+        Args: {
+          p_device_id?: string
+          p_device_secret?: string
+          p_reference: string
+        }
+        Returns: Json
+      }
       scan_ticket: {
         Args: {
           p_device_id?: string

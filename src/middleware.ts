@@ -2,7 +2,8 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { supabaseAnonKey, supabaseUrl } from "@/lib/supabase/env";
 
-const PUBLIC_PATHS = ["/login", "/auth/", "/api/health"];
+// The island app manifest is fetched by the browser without cookies; it holds nothing private.
+const PUBLIC_PATHS = ["/login", "/auth/", "/api/health", "/island.webmanifest"];
 
 /**
  * Refreshes the Supabase session cookie on every request and sends anyone

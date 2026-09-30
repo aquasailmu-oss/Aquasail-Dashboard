@@ -4,8 +4,6 @@ import { login, logout } from "./helpers";
 const NAV = {
   receptionist: ["Today", "New booking", "Bookings", "Clients", "Daily register"],
   accountant: ["Today", "Bookings", "Clients", "Daily register", "Reports", "Export", "Audit log"],
-  activity_staff: ["Scan"],
-  activity_supervisor: ["Scan"],
 } as const;
 
 test("signed-out visitors are sent to sign in, and a wrong password is explained", async ({ page }) => {
@@ -23,6 +21,16 @@ for (const [role, items] of Object.entries(NAV) as [keyof typeof NAV, readonly s
     await login(page, role);
     await expect(page.locator("nav[aria-label=Main] a").filter({ hasText: /\w/ })).toHaveText([...items]);
     await logout(page);
+  });
+}
+
+for (const role of ["activity_staff", "activity_supervisor"] as const) {
+  test(`${role} lands in the island app, without the office menu`, async ({ page }) => {
+    await login(page, role);
+    await expect(page).toHaveURL(/\/scan$/);
+    await expect(page.locator("nav[aria-label=Main]")).toHaveCount(0);
+    await page.goto("/today");
+    await expect(page.getByText("Not available for your role")).toBeVisible();
   });
 }
 

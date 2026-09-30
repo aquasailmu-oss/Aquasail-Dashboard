@@ -78,6 +78,33 @@ describe.each(["activity_staff", "activity_supervisor"] as const)("scan_ticket a
   });
 });
 
+describe("manual reference entry", () => {
+  it("answers as the scan does, and carries nothing forbidden either", async () => {
+    const res = await staff.client.rpc("scan_reference", {
+      p_reference: fx.todayBooking.reference,
+      p_device_id: deviceId,
+      p_device_secret: secret,
+    });
+    expect(res.error).toBeNull();
+    const text = JSON.stringify(res.data).toLowerCase();
+    for (const word of FORBIDDEN) expect(text, `the payload mentions "${word}"`).not.toContain(word);
+  });
+
+  it("island staff cannot register a device; anonymous callers cannot reach any of it", async () => {
+    expectRaised(
+      await staff.client.rpc("register_device", { p_label: "Rogue", p_location_id: deviceId }),
+      "Only a supervisor or an admin can register a device.",
+    );
+    for (const res of [
+      await anon.rpc("register_device", { p_label: "Rogue", p_location_id: deviceId }),
+      await anon.rpc("scan_reference", { p_reference: fx.todayBooking.reference }),
+      await anon.rpc("device_info", { p_device_id: deviceId, p_device_secret: secret }),
+    ]) {
+      expect(res.error?.code).toBe("42501");
+    }
+  });
+});
+
 describe("who may scan", () => {
   it("an accountant may not", async () => {
     expectRaised(await accountant.client.rpc("scan_ticket", { p_token: token }), "Your role cannot scan tickets.");

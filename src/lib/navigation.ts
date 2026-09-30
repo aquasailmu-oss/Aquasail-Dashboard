@@ -15,7 +15,7 @@ const NAV_ITEMS: readonly NavItem[] = [
   { href: "/reports", label: "Reports", roles: ["admin", "accountant"] },
   { href: "/export", label: "Export", roles: ["admin", "accountant"] },
   { href: "/admin/audit", label: "Audit log", roles: ["admin", "accountant"] },
-  { href: "/scan", label: "Scan", roles: ISLAND },
+  { href: "/scan", label: "Scan", roles: [...ISLAND, "admin"] },
   { href: "/admin/activities", label: "Activities", roles: ["admin"], section: "Admin" },
   { href: "/admin/packages", label: "Packages", roles: ["admin"], section: "Admin" },
   { href: "/admin/operators", label: "Operators", roles: ["admin"], section: "Admin" },

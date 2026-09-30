@@ -6,7 +6,15 @@ import { authorize } from "@/lib/auth";
 import { friendlyDbError } from "@/lib/db-errors";
 import { readDeviceCredentials, saveDeviceCredentials } from "@/lib/device";
 import { fail, ok, type Result } from "@/lib/result";
-import { scanResultSchema, tokenFromQr, type ScanResult } from "@/lib/scan";
+import {
+  checkInResultSchema,
+  redeemResultSchema,
+  scanResultSchema,
+  tokenFromQr,
+  type CheckInResult,
+  type RedeemResult,
+  type ScanResult,
+} from "@/lib/scan";
 import { createClient } from "@/lib/supabase/server";
 
 /** Who uses the island app. Reception scans from the booking page, not here. */
@@ -36,16 +44,13 @@ export async function registerDevice(formData: FormData): Promise<Result<null>> 
 }
 
 async function scan(call: "scan_ticket" | "scan_reference", value: string): Promise<Result<ScanResult>> {
-  const auth = await authorize([...ISLAND]);
-  if (!auth.ok) return auth;
-  const device = await readDeviceCredentials();
-  if (!device) return fail("This device is not registered. Ask a supervisor to register it.");
+  const ctx = await islandContext();
+  if (!ctx.ok) return ctx;
   const supabase = await createClient();
-  const credentials = { p_device_id: device.deviceId, p_device_secret: device.secret };
   const { data, error } =
     call === "scan_ticket"
-      ? await supabase.rpc("scan_ticket", { p_token: value, ...credentials })
-      : await supabase.rpc("scan_reference", { p_reference: value, ...credentials });
+      ? await supabase.rpc("scan_ticket", { p_token: value, ...ctx.data })
+      : await supabase.rpc("scan_reference", { p_reference: value, ...ctx.data });
   if (error) return fail(friendlyDbError(error, "The ticket could not be checked. Try again."));
   const parsed = scanResultSchema.safeParse(data);
   if (!parsed.success) return fail("The ticket could not be read. Try again.");
@@ -67,4 +72,70 @@ export async function scanReference(reference: string): Promise<Result<ScanResul
   const parsed = z.string().trim().min(1, "Type the booking reference.").max(40).safeParse(reference);
   if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Type the booking reference.");
   return scan("scan_reference", parsed.data);
+}
+
+/** The signed-in island user and this device's credentials, or the reason there are none. */
+async function islandContext() {
+  const auth = await authorize([...ISLAND]);
+  if (!auth.ok) return auth;
+  const device = await readDeviceCredentials();
+  if (!device) return fail("This device is not registered. Ask a supervisor to register it.");
+  return ok({ p_device_id: device.deviceId, p_device_secret: device.secret });
+}
+
+const checkInSchema = z.object({ bookingId: z.uuid(), clientUuid: z.uuid() });
+
+/** The party has arrived. A second check-in keeps the first time; it is not an error. */
+export async function checkInParty(input: z.input<typeof checkInSchema>): Promise<Result<CheckInResult>> {
+  const ctx = await islandContext();
+  if (!ctx.ok) return ctx;
+  const parsed = checkInSchema.safeParse(input);
+  if (!parsed.success) return fail("This check-in could not be sent. Scan the ticket again.");
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("check_in_booking", {
+    p_booking_id: parsed.data.bookingId,
+    p_client_uuid: parsed.data.clientUuid,
+    ...ctx.data,
+  });
+  if (error) return fail(friendlyDbError(error, "The check-in did not go through. Try again."));
+  return ok(checkInResultSchema.parse(data));
+}
+
+const redeemSchema = z.object({
+  bookingActivityId: z.uuid(),
+  quantity: z.number().int().min(1).max(500),
+  clientUuid: z.uuid(),
+});
+
+/** Redeems part or all of one entitlement. The request id comes from the device, so a retry lands once. */
+export async function redeemEntitlement(input: z.input<typeof redeemSchema>): Promise<Result<RedeemResult>> {
+  const ctx = await islandContext();
+  if (!ctx.ok) return ctx;
+  const parsed = redeemSchema.safeParse(input);
+  if (!parsed.success) return fail("Choose how many to redeem.");
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("redeem_activity", {
+    p_booking_activity_id: parsed.data.bookingActivityId,
+    p_quantity: parsed.data.quantity,
+    p_client_uuid: parsed.data.clientUuid,
+    ...ctx.data,
+  });
+  if (error) return fail(friendlyDbError(error, "The redemption did not go through. Try again."));
+  return ok(redeemResultSchema.parse(data));
+}
+
+/** The UNDO on a row, within 30 seconds of redeeming. After that it needs a supervisor. */
+export async function undoRedemption(redemptionId: string): Promise<Result<RedeemResult>> {
+  const ctx = await islandContext();
+  if (!ctx.ok) return ctx;
+  const id = z.uuid().safeParse(redemptionId);
+  if (!id.success) return fail("That redemption could not be found.");
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("reverse_redemption", {
+    p_redemption_id: id.data,
+    p_reason: "Undo within 30 s",
+    ...ctx.data,
+  });
+  if (error) return fail(friendlyDbError(error, "The undo did not go through. Ask a supervisor."));
+  return ok(redeemResultSchema.parse(data));
 }

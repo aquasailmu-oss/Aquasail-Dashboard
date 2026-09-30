@@ -225,6 +225,12 @@ office sidebar, installable as a PWA (`/island.webmanifest`, icons drawn by
   ticket URL (`tokenFromQr()`); anything else is NOT FOUND without a query.
   ENTER REFERENCE (`scan_reference()`: "0042" means today's booking 0042)
   shares `scan_payload()` with `scan_ticket()`, so both answer identically.
+- **Check-in and redemption** (WP-28) are separate actions on the verdict:
+  CHECK IN once per party, then each entitlement row redeems in place with a
+  stepper that defaults to everything remaining. No confirm dialog; instead
+  UNDO shows on the row for 30 seconds (the database allows the redeemer a
+  minute, for a slow connection). Every tap carries a request id made on
+  the device before the call, so a retry lands once.
 - **Verdicts** fill the screen in the verdict's colour with near-black text,
   56px+ targets, 18px+ text and every action in the bottom half.
 

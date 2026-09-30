@@ -1,6 +1,7 @@
 import { expect, type Locator, type Page } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 import jsQR from "jsqr";
+import { createHash, randomBytes } from "node:crypto";
 import type { Database } from "@/lib/database.types";
 
 /** The demo accounts from supabase/seed.sql. */
@@ -89,4 +90,28 @@ export async function decodeQr(svg: Locator): Promise<string | null> {
     return Array.from(ctx.getImageData(0, 0, size, size).data);
   }, px);
   return jsQR(Uint8ClampedArray.from(pixels), px, px)?.data ?? null;
+}
+
+/**
+ * Makes this browser a registered island tablet: a device row with a known
+ * secret, and the httpOnly cookie the app would have set on registering it.
+ */
+export async function useIslandDevice(page: Page, label: string): Promise<void> {
+  const secret = randomBytes(32).toString("hex");
+  const { data: location } = await db.from("locations").select("id").eq("code", "ISLAND").single();
+  const { data: device, error } = await db
+    .from("staff_devices")
+    .insert({
+      label,
+      location_id: location!.id,
+      device_secret_hash: createHash("sha256").update(secret).digest("hex"),
+    })
+    .select("id")
+    .single();
+  if (error) throw error;
+  await page
+    .context()
+    .addCookies([
+      { name: "aquasail_device", value: `${device.id}:${secret}`, url: "http://localhost:3000", httpOnly: true },
+    ]);
 }

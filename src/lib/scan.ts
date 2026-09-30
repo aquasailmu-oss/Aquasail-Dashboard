@@ -84,3 +84,26 @@ export function partySize(r: { adults: number; children: number; infants: number
       .join(", ") || "No one"
   );
 }
+
+/** What redeem_activity() and reverse_redemption() return (migration 0020). */
+export const redeemResultSchema = z.object({
+  redemption_id: z.string(),
+  booking_activity_id: z.string(),
+  entitlement_quantity: z.number().int(),
+  redeemed_total: z.number().int(),
+  remaining: z.number().int(),
+});
+export type RedeemResult = z.infer<typeof redeemResultSchema>;
+
+/** What check_in_booking() returns: the arrival, and the entitlements to show straight after. */
+export const checkInResultSchema = z.object({
+  checked_in_at: z.string(),
+  checked_in_by_name: z.string().nullable(),
+  already_checked_in: z.boolean(),
+  entitlements: z.array(entitlementSchema),
+});
+export type CheckInResult = z.infer<typeof checkInResultSchema>;
+
+export function partyCount(r: { adults: number; children: number; infants: number }): number {
+  return r.adults + r.children + r.infants;
+}

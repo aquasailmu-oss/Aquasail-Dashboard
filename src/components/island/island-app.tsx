@@ -168,7 +168,13 @@ export function IslandApp({
         </div>
       )}
       {screen.kind === "result" && (
-        <VerdictView result={screen.result} onScanNext={scanNext} onEnterReference={enterReference} />
+        <VerdictView
+          result={screen.result}
+          onScanNext={scanNext}
+          onEnterReference={enterReference}
+          staffName={staffName}
+          locationName={locationName}
+        />
       )}
       {flash && <div aria-hidden className="pointer-events-none fixed inset-0 z-50 bg-white" />}
     </div>

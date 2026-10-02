@@ -2,8 +2,8 @@ import { expect, test } from "@playwright/test";
 import { login, logout } from "./helpers";
 
 const NAV = {
-  receptionist: ["Today", "New booking", "Bookings", "Clients", "Daily register"],
-  accountant: ["Today", "Bookings", "Clients", "Daily register", "Reports", "Export", "Audit log"],
+  receptionist: ["Today", "New booking", "Bookings", "Clients", "Operations", "Daily register"],
+  accountant: ["Today", "Bookings", "Clients", "Operations", "Daily register", "Reports", "Export", "Audit log"],
 } as const;
 
 test("signed-out visitors are sent to sign in, and a wrong password is explained", async ({ page }) => {

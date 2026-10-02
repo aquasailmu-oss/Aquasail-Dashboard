@@ -14,7 +14,7 @@ pricing, fleet tracking, and daily reconciliation.
 | ----- | ----------------------------------------------------- | -------------------- |
 | V0    | Foundation: repo, schema, RLS, auth, role-aware shell | Done (WP-01–09)      |
 | V1    | Core booking system                                   | Done (WP-10–21, 17b) |
-| V2    | Digital ticketing and redemption                      | In progress (WP-35)  |
+| V2    | Digital ticketing and redemption                      | Done (WP-22–36)      |
 | V3–V4 | Accounting, capacity/analytics                        | Planned              |
 
 ## Running it
@@ -64,6 +64,7 @@ leave empty files, so check `git status` after freeing space.
 
 - [docs/USER_GUIDE_RECEPTION.md](docs/USER_GUIDE_RECEPTION.md): the desk, step by step
 - [docs/USER_GUIDE_ADMIN.md](docs/USER_GUIDE_ADMIN.md): catalogue, prices, operators, users, audit
+- [docs/USER_GUIDE_ISLAND.md](docs/USER_GUIDE_ISLAND.md): island staff, verdicts, offline, supervisor tools
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): schema, pricing engine, permissions, design reasons
 - [docs/RELEASE.md](docs/RELEASE.md): CI, migrate-then-deploy, rollback, Vercel variables
 - [docs/BACKUP.md](docs/BACKUP.md): PITR, nightly encrypted dump, restore and rehearsals

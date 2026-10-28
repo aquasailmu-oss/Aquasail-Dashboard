@@ -15,7 +15,7 @@ test("amend updates the balance and the audit trail; cancel strikes through, nev
   await page.waitForURL(/\/confirmation$/);
   const reference = (await page.getByTestId("booking-reference").textContent())!.trim();
   await page.getByRole("link", { name: "View booking" }).click();
-  await expect(page.getByText(/Balance due\s*Rs 0/)).toBeVisible();
+  await expect(page.locator("tfoot tr").filter({ hasText: "Balance due" })).toContainText("Rs 0");
 
   await page.getByRole("link", { name: "Amend", exact: true }).click();
   await page.fill("#children", "1");
@@ -23,7 +23,7 @@ test("amend updates the balance and the audit trail; cancel strikes through, nev
   await page.getByRole("button", { name: "Save changes" }).click();
   await page.waitForURL(/\/bookings\/[0-9a-f-]{36}\?amended=/);
   await expect(page.getByRole("status")).toContainText("Changes saved. Total was Rs 6,800, now Rs 9,300.");
-  await expect(page.getByText(/Balance due\s*Rs 2,500/)).toBeVisible();
+  await expect(page.locator("tfoot tr").filter({ hasText: "Balance due" })).toContainText("Rs 2,500");
   const bookingUrl = page.url().split("?")[0];
   await logout(page);
 

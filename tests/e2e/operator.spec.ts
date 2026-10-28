@@ -21,7 +21,7 @@ test("operator pays: DO NOT COLLECT, unpaid, receivable on the booking", async (
   expect(booking?.payer).toBe("operator");
   expect(booking?.payments).toEqual([]);
   await page.getByRole("link", { name: "View booking" }).click();
-  await expect(page.getByText("Receivable from Beachcomber Hotel:")).toContainText("Rs 3,000");
+  await expect(page.locator("p").filter({ hasText: "Receivable from Beachcomber Hotel:" })).toContainText("Rs 3,000");
   await logout(page);
 });
 

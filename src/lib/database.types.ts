@@ -1147,8 +1147,8 @@ export type Database = {
         | "card"
         | "bank_transfer"
         | "operator_account"
-        | "pre_book"
         | "other"
+        | "pre_book"
       price_audience: "walk_in" | "operator"
     }
     CompositeTypes: {
@@ -1288,8 +1288,8 @@ export const Constants = {
         "card",
         "bank_transfer",
         "operator_account",
-        "pre_book",
         "other",
+        "pre_book",
       ],
       price_audience: ["walk_in", "operator"],
     },

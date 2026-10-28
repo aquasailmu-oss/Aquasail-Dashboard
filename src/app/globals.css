@@ -74,8 +74,8 @@
   --color-brand-blue: var(--brand-blue);
   --color-brand-mid: var(--brand-mid);
 
-  --font-sans: var(--font-source-sans), system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-display: var(--font-jost), "Futura", "Century Gothic", system-ui, sans-serif;
+  --font-sans: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "Futura", "Century Gothic", system-ui, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
   --radius-sm: 4px;

@@ -36,9 +36,7 @@ jobs:
           npm test
 
       - name: Start local Supabase (migrations + seed)
-        # The test suite doesn't send or inspect email. Skip Mailpit/Inbucket
-        # so CI doesn't fail when its default host port (54324) is occupied.
-        run: npx supabase start --exclude mailpit
+        run: npx supabase start
 
       - name: Write .env.local from the local stack
         run: |

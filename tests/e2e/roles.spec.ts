@@ -2,8 +2,8 @@ import { expect, test } from "@playwright/test";
 import { login, logout } from "./helpers";
 
 const NAV = {
-  receptionist: ["Today", "New booking", "Bookings", "Clients", "Daily register"],
-  accountant: ["Today", "Bookings", "Clients", "Daily register", "Reports", "Export", "Audit log"],
+  receptionist: ["Today", "New booking", "Bookings", "Daily register"],
+  accountant: ["Today", "Bookings", "Daily register", "Reports", "Export", "Audit log"],
   activity_staff: ["Scan"],
 } as const;
 

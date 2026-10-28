@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { bookingByReference, db, expectTotal, login, logout, tag } from "./helpers";
+import { bookingByReference, db, expectTotal, login, logout, selectBookingOperator, tag } from "./helpers";
 
 test("operator pays: DO NOT COLLECT, unpaid, receivable on the booking", async ({ page }) => {
   await login(page, "receptionist");
@@ -31,6 +31,7 @@ test("returning customer by phone: the match banner, and no second client", asyn
   await db.from("clients").insert({ first_name: "Existing", last_name: last, phone_e164: phone });
   await login(page, "receptionist");
   await page.goto("/bookings/new");
+  await selectBookingOperator(page);
   await page.fill("#first_name", "Someone");
   await page.fill("#phone", phone.slice(4));
   const banner = page.locator("section[aria-label='Existing customer found']");

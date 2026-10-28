@@ -43,6 +43,11 @@ export async function logout(page: Page) {
   await page.waitForURL("**/login");
 }
 
+/** Choose a client-pays operator whose prices follow the walk-in retail table. */
+export async function selectBookingOperator(page: Page) {
+  await page.getByRole("radio", { name: /Sofitel Merville/ }).check();
+}
+
 /** The live quote total once it has settled. */
 export async function expectTotal(page: Page, text: string) {
   await expect(page.getByTestId("quote-total")).toHaveText(text);

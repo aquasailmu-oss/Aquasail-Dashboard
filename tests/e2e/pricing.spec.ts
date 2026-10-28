@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { addDays, db, expectTotal, login, logout, tag, today } from "./helpers";
+import { addDays, db, expectTotal, login, logout, selectBookingOperator, tag, today } from "./helpers";
 
 test("price history: a new price from tomorrow leaves today unchanged and prices tomorrow's booking", async ({
   page,
@@ -31,6 +31,7 @@ test("price history: a new price from tomorrow leaves today unchanged and prices
 
   const book = async (date: string) => {
     await page.goto("/bookings/new");
+    await selectBookingOperator(page);
     await page.fill("#first_name", `Price${tag()}`);
     await page.selectOption("#add-activity", { label: name });
     await page.getByRole("button", { name: "Add" }).click();

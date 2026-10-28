@@ -1,5 +1,15 @@
 import { expect, test } from "@playwright/test";
-import { bookingByReference, db, expectTotal, login, logout, stubPrint, tag, today } from "./helpers";
+import {
+  bookingByReference,
+  db,
+  expectTotal,
+  login,
+  logout,
+  selectBookingOperator,
+  stubPrint,
+  tag,
+  today,
+} from "./helpers";
 
 async function cashToday(): Promise<number> {
   const start = new Date(`${today()}T00:00:00+04:00`);
@@ -14,20 +24,22 @@ async function cashToday(): Promise<number> {
 }
 const rs = (c: number) => `Rs ${(c / 100).toLocaleString("en-US", { maximumFractionDigits: 2 })}`;
 
-test("walk-in, keyboard only: 4 adults, catamaran + lunch, cash, ticket, on Today", async ({ page }) => {
+test("operator booking: 4 adults, catamaran + lunch, cash, ticket, on Today", async ({ page }) => {
   const name = `Walkin${tag()}`;
   await stubPrint(page);
   await login(page, "receptionist");
   const cashBefore = await cashToday();
 
   await page.goto("/bookings/new");
+  await selectBookingOperator(page);
   await expect(page.getByText("Rs 3,200 / adult")).toBeVisible();
+  await page.locator("#first_name").focus();
   await expect(page.locator("#first_name")).toBeFocused();
   const started = Date.now();
   await page.keyboard.type("Anna");
   await page.keyboard.press("Tab");
   await page.keyboard.type(name);
-  for (let i = 0; i < 4; i++) await page.keyboard.press("Tab"); // phone, email, country → Walk-in
+  for (let i = 0; i < 4; i++) await page.keyboard.press("Tab"); // phone, email, country → packages
   await page.keyboard.press("1"); // Island Explorer: catamaran, snorkelling, lunch
   await expect(page.getByText("Assign a boat")).toBeVisible();
   await page.focus("#adults");
@@ -67,6 +79,7 @@ test("walk-in, keyboard only: 4 adults, catamaran + lunch, cash, ticket, on Toda
 test("discount cap: reception refused at 30%, admin allowed with the reason stored", async ({ page }) => {
   await login(page, "receptionist");
   await page.goto("/bookings/new");
+  await selectBookingOperator(page);
   await page.fill("#first_name", `Cap${tag()}`);
   await page.getByText("Adrenaline Combo", { exact: true }).click();
   await expectTotal(page, "Rs 3,400");
@@ -78,6 +91,7 @@ test("discount cap: reception refused at 30%, admin allowed with the reason stor
 
   await login(page, "admin");
   await page.goto("/bookings/new");
+  await selectBookingOperator(page);
   await page.fill("#first_name", `AdminCap${tag()}`);
   await page.getByText("Adrenaline Combo", { exact: true }).click();
   await page.fill("#discount_value", "30");
@@ -96,6 +110,7 @@ test("idempotency: submitting twice rapidly creates one booking", async ({ page 
   const last = `Twice${tag()}`;
   await login(page, "receptionist");
   await page.goto("/bookings/new");
+  await selectBookingOperator(page);
   await page.fill("#first_name", "Double");
   await page.fill("#last_name", last);
   await page.getByText("Adrenaline Combo", { exact: true }).click();

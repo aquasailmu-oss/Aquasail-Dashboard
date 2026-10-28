@@ -1,10 +1,11 @@
 import { expect, test } from "@playwright/test";
-import { expectTotal, login, logout, tag } from "./helpers";
+import { expectTotal, login, logout, selectBookingOperator, tag } from "./helpers";
 
 test("amend updates the balance and the audit trail; cancel strikes through, never deletes", async ({ page }) => {
   const last = `Amend${tag()}`;
   await login(page, "receptionist");
   await page.goto("/bookings/new");
+  await selectBookingOperator(page);
   await page.fill("#first_name", "Change");
   await page.fill("#last_name", last);
   await page.getByText("Adrenaline Combo", { exact: true }).click();

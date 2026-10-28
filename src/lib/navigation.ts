@@ -29,7 +29,9 @@ export function navFor(role: Role): NavItem[] {
 
 /** Where a role lands after signing in. */
 export function landingPath(role: Role): string {
-  return role === "activity_staff" ? "/scan" : "/bookings/new";
+  if (role === "activity_staff") return "/scan";
+  if (role === "accountant") return "/today";
+  return "/bookings/new";
 }
 
 /** Only same-site paths are honoured as a post-login destination. */

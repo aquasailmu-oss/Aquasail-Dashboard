@@ -106,7 +106,7 @@ const createSchema = z.object({
   resource_id: z.uuid().nullable(),
   payment: z
     .object({
-      method: z.enum(["cash", "card", "bank_transfer", "other"]),
+      method: z.enum(["cash", "card", "bank_transfer", "other", "pre_book"]),
       received: z.string(),
       reference: z.string().trim().max(100),
     })
@@ -126,6 +126,7 @@ export async function createBooking(input: CreateBookingInput): Promise<Result<{
 
   const date = parseDateInput(d.service_date);
   if (!date) return fail("Choose the service date.");
+  if (!d.operator_id) return fail("Choose a tour operator before creating the booking.");
   if (d.participants.adult + d.participants.child + d.participants.infant === 0) {
     return fail("Add at least one participant.");
   }

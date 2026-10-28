@@ -1147,6 +1147,7 @@ export type Database = {
         | "card"
         | "bank_transfer"
         | "operator_account"
+        | "pre_book"
         | "other"
       price_audience: "walk_in" | "operator"
     }
@@ -1287,6 +1288,7 @@ export const Constants = {
         "card",
         "bank_transfer",
         "operator_account",
+        "pre_book",
         "other",
       ],
       price_audience: ["walk_in", "operator"],

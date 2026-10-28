@@ -32,13 +32,14 @@ import { cn } from "@/lib/utils";
 
 type WizardOperator = { id: string; name: string; payer: "client" | "operator" };
 
-type PaymentMethod = "cash" | "card" | "bank_transfer" | "other";
+type PaymentMethod = "cash" | "card" | "bank_transfer" | "other" | "pre_book";
 
 const PAYMENT_METHODS: { value: PaymentMethod; label: string }[] = [
   { value: "cash", label: "Cash" },
   { value: "card", label: "Card" },
   { value: "bank_transfer", label: "Bank transfer" },
   { value: "other", label: "Other" },
+  { value: "pre_book", label: "Pre-book" },
 ];
 
 /** Number keys pick packages unless the user is typing into a field. */
@@ -194,7 +195,7 @@ export function BookingWizard({
   // Amount received is the total until reception types their own. Derived,
   // not copied in an effect, so an instant Ctrl+Enter still records payment.
   const total = quote && !quoteError ? quote.charged_total_cents : null;
-  const receivedValue = receivedTouched ? received : total !== null ? String(fromCents(total)) : "";
+  const receivedValue = method === "pre_book" ? "" : receivedTouched ? received : total !== null ? String(fromCents(total)) : "";
 
   const receivedCents = tryCents(receivedValue);
   const changeDue =
@@ -214,6 +215,7 @@ export function BookingWizard({
 
   const blocker = (() => {
     if (!chosenClient && !client.first_name.trim()) return "Enter the client's first name.";
+    if (!operatorId) return "Choose a tour operator before creating the booking.";
     if (lines.length === 0) return size === 0 ? "Add at least one participant." : "Choose a package or activity.";
     if (quoteError) return quoteError;
     if (!quote || quoteStale) return "Working out the price…";
@@ -239,7 +241,7 @@ export function BookingWizard({
         meeting_point: meetingPoint,
         notes,
         resource_id: needsBoat ? boatId : null,
-        payment: payerIsOperator ? null : { method, received: receivedValue, reference: paymentRef },
+        payment: payerIsOperator || method === "pre_book" ? null : { method, received: receivedValue, reference: paymentRef },
         expected_total_cents: quote.charged_total_cents,
       });
       if (result.ok) return openAfterSave(`/bookings/${result.data.id}/confirmation`);
@@ -384,7 +386,7 @@ export function BookingWizard({
         <Section n={2} title="Source">
           <fieldset className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
             <legend className="sr-only">Booking source</legend>
-            {[{ id: null, name: "Walk-in", payer: "client" as const }, ...operators].map((o) => {
+            {operators.map((o) => {
               const selected = operatorId === o.id;
               return (
                 <label

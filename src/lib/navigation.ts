@@ -9,7 +9,6 @@ const NAV_ITEMS: readonly NavItem[] = [
   { href: "/today", label: "Today", roles: OFFICE },
   { href: "/bookings/new", label: "New booking", roles: ["admin", "receptionist"] },
   { href: "/bookings", label: "Bookings", roles: OFFICE },
-  { href: "/clients", label: "Clients", roles: OFFICE },
   { href: "/register", label: "Daily register", roles: OFFICE },
   { href: "/reports", label: "Reports", roles: ["admin", "accountant"] },
   { href: "/export", label: "Export", roles: ["admin", "accountant"] },
@@ -30,7 +29,7 @@ export function navFor(role: Role): NavItem[] {
 
 /** Where a role lands after signing in. */
 export function landingPath(role: Role): string {
-  return role === "activity_staff" ? "/scan" : "/today";
+  return role === "activity_staff" ? "/scan" : "/bookings/new";
 }
 
 /** Only same-site paths are honoured as a post-login destination. */

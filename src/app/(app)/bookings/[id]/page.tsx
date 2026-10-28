@@ -25,6 +25,7 @@ const METHOD = {
   card: "Card",
   bank_transfer: "Bank transfer",
   operator_account: "Operator account",
+  pre_book: "Pre-book",
   other: "Other",
 } as const;
 

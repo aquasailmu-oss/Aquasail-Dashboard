@@ -195,7 +195,8 @@ export function BookingWizard({
   // Amount received is the total until reception types their own. Derived,
   // not copied in an effect, so an instant Ctrl+Enter still records payment.
   const total = quote && !quoteError ? quote.charged_total_cents : null;
-  const receivedValue = method === "pre_book" ? "" : receivedTouched ? received : total !== null ? String(fromCents(total)) : "";
+  const receivedValue =
+    method === "pre_book" ? "" : receivedTouched ? received : total !== null ? String(fromCents(total)) : "";
 
   const receivedCents = tryCents(receivedValue);
   const changeDue =
@@ -241,7 +242,8 @@ export function BookingWizard({
         meeting_point: meetingPoint,
         notes,
         resource_id: needsBoat ? boatId : null,
-        payment: payerIsOperator || method === "pre_book" ? null : { method, received: receivedValue, reference: paymentRef },
+        payment:
+          payerIsOperator || method === "pre_book" ? null : { method, received: receivedValue, reference: paymentRef },
         expected_total_cents: quote.charged_total_cents,
       });
       if (result.ok) return openAfterSave(`/bookings/${result.data.id}/confirmation`);

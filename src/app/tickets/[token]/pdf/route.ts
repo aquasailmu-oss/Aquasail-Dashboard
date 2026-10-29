@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from "pdf-lib";
 import { authorize } from "@/lib/auth";
-import { formatDateLong, formatTime } from "@/lib/dates";
+import { formatDateLong, formatDateTime, formatTime } from "@/lib/dates";
 import { createClient } from "@/lib/supabase/server";
 import { getTicket } from "@/lib/tickets";
 
@@ -11,6 +11,23 @@ const BLACK = rgb(0, 0, 0);
 
 /** The standard PDF fonts only cover Latin-1; anything else prints as "?" rather than failing. */
 const safe = (s: string) => s.replace(/[^\x20-\x7E\xA0-\xFF]/g, "?");
+
+function wrapText(value: string, font: PDFFont, size: number, maxWidth: number): string[] {
+  const words = safe(value).split(/\s+/).filter(Boolean);
+  const lines: string[] = [];
+  let line = "";
+  for (const word of words) {
+    const candidate = line ? `${line} ${word}` : word;
+    if (line && font.widthOfTextAtSize(candidate, size) > maxWidth) {
+      lines.push(line);
+      line = word;
+    } else {
+      line = candidate;
+    }
+  }
+  if (line) lines.push(line);
+  return lines;
+}
 
 /**
  * The same ticket as /tickets/[token], as a PDF, for attaching to emails in
@@ -26,7 +43,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ tok
 
   const pdf = await PDFDocument.create();
   pdf.setTitle(`Ticket ${t.reference}`);
-  const page = pdf.addPage(A5);
+  let page = pdf.addPage(A5);
   const regular = await pdf.embedFont(StandardFonts.Helvetica);
   const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
   const mono = await pdf.embedFont(StandardFonts.CourierBold);
@@ -114,6 +131,37 @@ export async function GET(_request: Request, { params }: { params: Promise<{ tok
     const q = `x ${e.quantity}`;
     text(page, q, W - M - bold.widthOfTextAtSize(q, 11), y, 11, bold);
     y -= 18;
+  }
+
+  y -= 6;
+  text(page, "CUSTOMER DISCLAIMER", M, y, 7, bold);
+  y -= 12;
+  const disclaimerLines = wrapText(t.disclaimerText, regular, 7, W - M * 2);
+  for (const line of disclaimerLines) {
+    if (y < M + 105) {
+      page = pdf.addPage(A5);
+      y = H - M;
+      text(page, "CUSTOMER DISCLAIMER (CONTINUED)", M, y, 7, bold);
+      y -= 16;
+    }
+    text(page, line, M, y, 7, regular);
+    y -= 9;
+  }
+  if (y < M + 70) {
+    page = pdf.addPage(A5);
+    y = H - M - 16;
+  }
+  if (t.signatureData && t.signerName && t.signedAt) {
+    const encoded = t.signatureData.split(",")[1];
+    if (encoded) {
+      const signature = await pdf.embedPng(Buffer.from(encoded, "base64"));
+      const size = signature.scaleToFit(150, 36);
+      page.drawImage(signature, { x: M, y: y - size.height, width: size.width, height: size.height });
+      y -= size.height + 2;
+    }
+    text(page, `Signed by ${t.signerName} · ${formatDateTime(t.signedAt)}`, M, y, 7, regular);
+  } else {
+    text(page, "UNSIGNED - customer acknowledgement pending", M, y, 8, bold);
   }
 
   // Reference and footer at the bottom.

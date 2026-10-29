@@ -13,6 +13,10 @@ export type TicketData = {
   reference: string;
   cancelled: boolean;
   printedCount: number;
+  disclaimerText: string;
+  signatureData: string | null;
+  signerName: string | null;
+  signedAt: string | null;
   companyName: string;
   companyPhone: string;
   footer: string;
@@ -36,7 +40,7 @@ export async function getTicket(token: string): Promise<TicketData | null> {
     supabase
       .from("tickets")
       .select(
-        "token, printed_count, bookings(id, reference, status, service_date, departure_time, meeting_point, clients(first_name, last_name), resources(name), booking_participants(participant_type, count), booking_items(sort_order, packages(name), activities(name)), booking_activities(quantity, activities(name, sort_order)))",
+        "token, printed_count, signature_data, signer_name, signed_at, disclaimer_text, bookings(id, reference, status, service_date, departure_time, meeting_point, clients(first_name, last_name), resources(name), booking_participants(participant_type, count), booking_items(sort_order, packages(name), activities(name)), booking_activities(quantity, activities(name, sort_order)))",
       )
       .eq("token", token)
       .maybeSingle(),
@@ -72,6 +76,10 @@ export async function getTicket(token: string): Promise<TicketData | null> {
     reference: b.reference,
     cancelled: b.status === "cancelled",
     printedCount: t.printed_count,
+    disclaimerText: t.disclaimer_text ?? settings.ticket_disclaimer_text,
+    signatureData: t.signature_data,
+    signerName: t.signer_name,
+    signedAt: t.signed_at,
     companyName: settings.company_name,
     companyPhone: settings.company_phone,
     footer: settings.ticket_footer_text,

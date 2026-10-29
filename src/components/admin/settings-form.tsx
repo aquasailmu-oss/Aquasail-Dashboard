@@ -16,6 +16,7 @@ type EditableSettings = {
   company_email: string;
   default_meeting_point: string;
   ticket_footer_text: string;
+  ticket_disclaimer_text: string;
   currency_label: string;
   max_discount_percent_receptionist: number;
 };
@@ -71,6 +72,19 @@ export function SettingsForm({ settings }: { settings: EditableSettings }) {
           </Field>
           <Field id="ticket_footer_text" label="Ticket footer" hint="Printed at the bottom of every ticket.">
             <Textarea id="ticket_footer_text" name="ticket_footer_text" defaultValue={settings.ticket_footer_text} />
+          </Field>
+          <Field
+            id="ticket_disclaimer_text"
+            label="Customer disclaimer"
+            hint="Shown on tickets and accepted when the customer signs. Replace the marked placeholder with approved wording."
+          >
+            <Textarea
+              id="ticket_disclaimer_text"
+              name="ticket_disclaimer_text"
+              defaultValue={settings.ticket_disclaimer_text}
+              rows={5}
+              required
+            />
           </Field>
         </CardContent>
       </Card>

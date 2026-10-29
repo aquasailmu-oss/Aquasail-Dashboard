@@ -111,6 +111,16 @@ const createSchema = z.object({
       reference: z.string().trim().max(100),
     })
     .nullable(),
+  signature: z
+    .object({
+      signer_name: z.string().trim().min(1).max(160),
+      image_data: z
+        .string()
+        .regex(/^data:image\/png;base64,[A-Za-z0-9+/]+=*$/)
+        .max(500_000),
+      disclaimer_text: z.string().trim().min(1).max(5000),
+    })
+    .nullable(),
   expected_total_cents: z.number().int().min(0),
 });
 
@@ -194,6 +204,30 @@ export async function createBooking(input: CreateBookingInput): Promise<Result<{
   if (error) return fail(friendlyDbError(error, "The booking could not be saved. Nothing was charged; try again."));
 
   const result = data as { booking_id: string };
+  if (d.signature) {
+    const { data: signedTicket, error: signatureError } = await supabase
+      .from("tickets")
+      .update({
+        signature_data: d.signature.image_data,
+        signer_name: d.signature.signer_name,
+        signed_at: new Date().toISOString(),
+        disclaimer_text: d.signature.disclaimer_text,
+      })
+      .eq("booking_id", result.booking_id)
+      .select("id")
+      .maybeSingle();
+    if (signatureError) {
+      return fail(
+        friendlyDbError(
+          signatureError,
+          "The booking was saved, but the signature could not be stored. Open it and try again.",
+        ),
+      );
+    }
+    if (!signedTicket) {
+      return fail("The booking was saved, but its ticket could not be found for the signature. Open it and try again.");
+    }
+  }
   revalidatePath("/today");
   revalidatePath("/bookings");
   return ok({ id: result.booking_id });

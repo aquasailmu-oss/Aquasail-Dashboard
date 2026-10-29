@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { PrintControls } from "@/components/tickets/print-controls";
 import { requireRole } from "@/lib/auth";
-import { formatDateLong, formatTime } from "@/lib/dates";
+import { formatDateLong, formatDateTime, formatTime } from "@/lib/dates";
 import { formatPhone } from "@/lib/phone";
 import { getTicket } from "@/lib/tickets";
 
@@ -116,6 +116,32 @@ export default async function TicketPage({
               </li>
             ))}
           </ul>
+        </section>
+
+        <section className="border-t border-black pt-3" data-testid="ticket-acknowledgement">
+          <h2 className="text-xs font-semibold tracking-wide uppercase">Customer disclaimer</h2>
+          <p className="mt-1 text-xs whitespace-pre-wrap">{t.disclaimerText}</p>
+          {t.signatureData && t.signerName && t.signedAt ? (
+            <div className="mt-2 flex items-end justify-between gap-4">
+              <div>
+                {/* Signature image is captured locally and saved with this ticket. */}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={t.signatureData}
+                  alt={`Signature of ${t.signerName}`}
+                  className="h-12 max-w-48 object-contain"
+                />
+                <p className="text-xs">
+                  Signed by {t.signerName} · {formatDateTime(t.signedAt)}
+                </p>
+              </div>
+              <span className="text-xs font-semibold">ACKNOWLEDGED</span>
+            </div>
+          ) : (
+            <p className="mt-2 border border-dashed border-black p-2 text-xs font-semibold">
+              UNSIGNED — customer acknowledgement pending
+            </p>
+          )}
         </section>
 
         <div className="mt-auto text-center">

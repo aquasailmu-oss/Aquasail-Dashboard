@@ -17,6 +17,7 @@ import {
   type WizardPackage,
 } from "@/components/booking/purchase-picker";
 import { ClientMatchBanner } from "@/components/clients/client-match-banner";
+import { SignatureCapture } from "@/components/booking/signature-capture";
 import { PayerBanner } from "@/components/shared/payer-banner";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -85,6 +86,7 @@ export function BookingWizard({
   operators,
   boats,
   defaultMeetingPoint,
+  disclaimerText,
   today,
 }: {
   packages: WizardPackage[];
@@ -92,6 +94,7 @@ export function BookingWizard({
   operators: WizardOperator[];
   boats: Boat[];
   defaultMeetingPoint: string;
+  disclaimerText: string;
   today: string;
 }) {
   const idempotencyKey = useRef<string>(crypto.randomUUID());
@@ -100,6 +103,9 @@ export function BookingWizard({
   const [client, setClient] = useState({ first_name: "", last_name: "", phone: "", email: "", country: "" });
   const [chosenClient, setChosenClient] = useState<ClientMatch | null>(null);
   const [matches, setMatches] = useState<ClientMatch[]>([]);
+  const [signatureData, setSignatureData] = useState<string | null>(null);
+  const [signerName, setSignerName] = useState("");
+  const [acknowledged, setAcknowledged] = useState(false);
   // 2. Source
   const [operatorId, setOperatorId] = useState<string | null>(null);
   // 3. What they bought
@@ -204,6 +210,10 @@ export function BookingWizard({
       ? cents(receivedCents - total)
       : null;
   const payerIsOperator = operator?.payer === "operator";
+  const currentClientName = chosenClient
+    ? `${chosenClient.first_name} ${chosenClient.last_name}`.trim()
+    : `${client.first_name} ${client.last_name}`.trim();
+  const effectiveSignerName = signerName.trim() || currentClientName;
 
   const togglePackage = useCallback(
     (id: string) =>
@@ -222,6 +232,10 @@ export function BookingWizard({
     if (!quote || quoteStale) return "Working out the price…";
     if (discountActive && !discount.reason.trim()) return "Give a reason for the discount.";
     if (needsBoat && !boatId) return "Pick a boat: this booking includes the catamaran.";
+    if (!acknowledged && method !== "pre_book" && !payerIsOperator) {
+      return "Get the customer’s signature before completing the booking, or choose Pre-book to save it unsigned.";
+    }
+    if (acknowledged && !effectiveSignerName) return "Enter the signer's name.";
     return null;
   })();
 
@@ -244,6 +258,10 @@ export function BookingWizard({
         resource_id: needsBoat ? boatId : null,
         payment:
           payerIsOperator || method === "pre_book" ? null : { method, received: receivedValue, reference: paymentRef },
+        signature:
+          acknowledged && signatureData
+            ? { signer_name: effectiveSignerName, image_data: signatureData, disclaimer_text: disclaimerText }
+            : null,
         expected_total_cents: quote.charged_total_cents,
       });
       if (result.ok) return openAfterSave(`/bookings/${result.data.id}/confirmation`);
@@ -271,6 +289,10 @@ export function BookingWizard({
     method,
     receivedValue,
     paymentRef,
+    acknowledged,
+    signatureData,
+    effectiveSignerName,
+    disclaimerText,
   ]);
 
   // Keyboard: Ctrl/Cmd+Enter submits anywhere; 1–9 pick a package tile when not typing.
@@ -293,8 +315,13 @@ export function BookingWizard({
     return () => window.removeEventListener("keydown", onKey);
   }, [submit, packages, togglePackage]);
 
-  const setField = (name: keyof typeof client) => (e: React.ChangeEvent<HTMLInputElement>) =>
+  const setField = (name: keyof typeof client) => (e: React.ChangeEvent<HTMLInputElement>) => {
     setClient((c) => ({ ...c, [name]: e.target.value }));
+    if (name === "first_name" || name === "last_name") {
+      setSignatureData(null);
+      setAcknowledged(false);
+    }
+  };
 
   return (
     <form
@@ -326,7 +353,16 @@ export function BookingWizard({
                   {chosenClient.booking_count} previous booking{chosenClient.booking_count === 1 ? "" : "s"}
                 </span>
               </div>
-              <Button type="button" variant="outline" size="sm" onClick={() => setChosenClient(null)}>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setChosenClient(null);
+                  setSignatureData(null);
+                  setAcknowledged(false);
+                }}
+              >
                 Change client
               </Button>
             </div>
@@ -378,10 +414,21 @@ export function BookingWizard({
                 onUse={(m) => {
                   setChosenClient(m);
                   setMatches([]);
+                  setSignatureData(null);
+                  setAcknowledged(false);
                 }}
               />
             </>
           )}
+          <SignatureCapture
+            key={chosenClient?.id ?? currentClientName}
+            disclaimer={disclaimerText}
+            signerName={signerName || currentClientName}
+            onSignerNameChange={setSignerName}
+            onSignatureChange={setSignatureData}
+            acknowledged={acknowledged}
+            onAcknowledgedChange={setAcknowledged}
+          />
         </Section>
 
         {/* 2. SOURCE */}

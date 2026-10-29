@@ -8,6 +8,8 @@ const SETTING_DEFAULTS = {
   company_email: "",
   default_meeting_point: "Marina jetty, Grand Baie",
   ticket_footer_text: "Thank you for sailing with AquaSail. See you on the water.",
+  ticket_disclaimer_text:
+    "DISCLAIMER PLACEHOLDER — Replace this text with AquaSail's approved customer disclaimer before use.",
   currency_label: "Rs",
   max_discount_percent_receptionist: 10,
   logo_path: "",

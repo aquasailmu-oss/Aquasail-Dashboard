@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { expectTotal, login, logout, selectBookingOperator, tag } from "./helpers";
+import { expectTotal, login, logout, selectBookingOperator, signAndAcknowledge, tag } from "./helpers";
 
 test("amend updates the balance and the audit trail; cancel strikes through, never deletes", async ({ page }) => {
   const last = `Amend${tag()}`;
@@ -11,6 +11,7 @@ test("amend updates the balance and the audit trail; cancel strikes through, nev
   await page.getByText("Adrenaline Combo", { exact: true }).click();
   await page.fill("#adults", "2");
   await expectTotal(page, "Rs 6,800");
+  await signAndAcknowledge(page);
   await page.getByRole("button", { name: "Create booking" }).click();
   await page.waitForURL(/\/confirmation$/);
   const reference = (await page.getByTestId("booking-reference").textContent())!.trim();

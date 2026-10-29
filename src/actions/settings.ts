@@ -17,6 +17,7 @@ const settingsSchema = z.object({
   company_email: z.union([z.literal(""), z.email("Enter a valid company email, or leave it empty.")]),
   default_meeting_point: optionalText(200),
   ticket_footer_text: optionalText(500),
+  ticket_disclaimer_text: z.string().trim().min(1, "Enter the customer disclaimer text.").max(5000),
   currency_label: z.string().trim().min(1, "Enter a currency label, e.g. Rs.").max(8, "Keep the label short, e.g. Rs."),
   max_discount_percent_receptionist: z.coerce
     .number({ error: "Enter the discount limit as a whole number." })

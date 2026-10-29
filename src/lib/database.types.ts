@@ -828,23 +828,35 @@ export type Database = {
       tickets: {
         Row: {
           booking_id: string
+          disclaimer_text: string | null
           id: string
           issued_at: string
           printed_count: number
+          signature_data: string | null
+          signed_at: string | null
+          signer_name: string | null
           token: string
         }
         Insert: {
           booking_id: string
+          disclaimer_text?: string | null
           id?: string
           issued_at?: string
           printed_count?: number
+          signature_data?: string | null
+          signed_at?: string | null
+          signer_name?: string | null
           token?: string
         }
         Update: {
           booking_id?: string
+          disclaimer_text?: string | null
           id?: string
           issued_at?: string
           printed_count?: number
+          signature_data?: string | null
+          signed_at?: string | null
+          signer_name?: string | null
           token?: string
         }
         Relationships: [

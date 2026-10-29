@@ -48,6 +48,16 @@ export async function selectBookingOperator(page: Page) {
   await page.getByRole("radio", { name: /Sofitel Merville/ }).check();
 }
 
+export async function signAndAcknowledge(page: Page) {
+  const pad = await page.locator("#customer_signature").boundingBox();
+  expect(pad).not.toBeNull();
+  await page.mouse.move(pad!.x + 20, pad!.y + pad!.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(pad!.x + 160, pad!.y + pad!.height / 2, { steps: 8 });
+  await page.mouse.up();
+  await page.getByRole("checkbox", { name: /I have read and agree/ }).check();
+}
+
 /** The live quote total once it has settled. */
 export async function expectTotal(page: Page, text: string) {
   await expect(page.getByTestId("quote-total")).toHaveText(text);

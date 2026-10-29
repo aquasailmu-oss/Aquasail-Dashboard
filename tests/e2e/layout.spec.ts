@@ -22,6 +22,11 @@ for (const width of [768, 1024]) {
       await expect(
         page.getByRole(path === "/bookings/new" ? "button" : "link", { name: new RegExp(action) }).first(),
       ).toBeVisible();
+      if (path === `/bookings/${booking.id}`) {
+        await page.getByRole("link", { name: "Print ticket" }).click();
+        await expect(page.getByTestId("ticket-acknowledgement")).toContainText("UNSIGNED");
+        await page.goBack();
+      }
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
       expect(overflow, `${path} scrolls sideways at ${width}px`).toBeLessThanOrEqual(0);
     }

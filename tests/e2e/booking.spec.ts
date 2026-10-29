@@ -6,6 +6,7 @@ import {
   login,
   logout,
   selectBookingOperator,
+  signAndAcknowledge,
   stubPrint,
   tag,
   today,
@@ -24,7 +25,7 @@ async function cashToday(): Promise<number> {
 }
 const rs = (c: number) => `Rs ${(c / 100).toLocaleString("en-US", { maximumFractionDigits: 2 })}`;
 
-test("operator booking: 4 adults, catamaran + lunch, cash, ticket, on Today", async ({ page }) => {
+test("signed operator booking: 4 adults, catamaran + lunch, cash, ticket, on Today", async ({ page }) => {
   const name = `Walkin${tag()}`;
   await stubPrint(page);
   await login(page, "receptionist");
@@ -39,12 +40,15 @@ test("operator booking: 4 adults, catamaran + lunch, cash, ticket, on Today", as
   await page.keyboard.type("Anna");
   await page.keyboard.press("Tab");
   await page.keyboard.type(name);
-  for (let i = 0; i < 4; i++) await page.keyboard.press("Tab"); // phone, email, country → packages
-  await page.keyboard.press("1"); // Island Explorer: catamaran, snorkelling, lunch
+  await page.getByText("Island Explorer", { exact: true }).click();
   await expect(page.getByText("Assign a boat")).toBeVisible();
   await page.focus("#adults");
   await page.keyboard.type("4");
   await expectTotal(page, "Rs 12,800");
+  await expect(page.getByRole("checkbox", { name: /I have read and agree/ })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Create booking" })).toBeDisabled();
+  await signAndAcknowledge(page);
+  await expect(page.getByRole("button", { name: "Create booking" })).toBeEnabled();
   await page.focus("input[name=boat]");
   await page.keyboard.press("Space");
   await page.keyboard.press("Control+Enter");
@@ -60,11 +64,27 @@ test("operator booking: 4 adults, catamaran + lunch, cash, ticket, on Today", as
     "LUNCH×4",
     "SNORKEL×4",
   ]);
+  const { data: savedTicket } = await db
+    .from("tickets")
+    .select("signature_data, signer_name, signed_at, disclaimer_text")
+    .eq("booking_id", booking!.id)
+    .single();
+  expect(savedTicket?.signature_data).toMatch(/^data:image\/png;base64,/);
+  expect(savedTicket?.signer_name).toBe(`Anna ${name}`);
+  expect(savedTicket?.signed_at).toBeTruthy();
+  expect(savedTicket?.disclaimer_text).toContain("DISCLAIMER PLACEHOLDER");
 
   await page.getByRole("link", { name: "Print ticket" }).click();
   await page.waitForURL(/\/tickets\/[0-9a-f]{32}\?print=1$/);
   await expect(page.getByText("Printed 1 time")).toBeVisible();
   await expect(page.getByTestId("ticket-reference")).toHaveText(reference);
+  await expect(page.getByTestId("ticket-acknowledgement")).toContainText(`Signed by Anna ${name}`);
+  await expect(page.getByTestId("ticket-acknowledgement")).toContainText("DISCLAIMER PLACEHOLDER");
+  const token = page.url().match(/\/tickets\/([0-9a-f]{32})/)?.[1];
+  expect(token).toBeTruthy();
+  const ticketPdf = await page.request.get(`/tickets/${token}/pdf`);
+  expect(ticketPdf.status()).toBe(200);
+  expect(ticketPdf.headers()["content-type"]).toContain("application/pdf");
 
   await page.goto("/today");
   await expect(page.locator("tbody tr", { hasText: reference })).toBeVisible();
@@ -73,6 +93,26 @@ test("operator booking: 4 adults, catamaran + lunch, cash, ticket, on Today", as
     .getByText("Cash collected", { exact: true })
     .locator("xpath=following-sibling::div[1]");
   await expect(cash).toHaveText(rs(cashBefore + 1280000));
+  await logout(page);
+});
+
+test("an unsigned pre-book can be saved and its ticket is clearly marked unsigned", async ({ page }) => {
+  await login(page, "receptionist");
+  await page.goto("/bookings/new");
+  await selectBookingOperator(page);
+  await page.fill("#first_name", `Prebook${tag()}`);
+  await page.getByText("Sunset Cruise", { exact: true }).click();
+  await expectTotal(page, "Rs 2,100");
+  await page.selectOption("#method", "pre_book");
+  await expect(page.getByRole("checkbox", { name: /I have read and agree/ })).toBeDisabled();
+  await page.getByRole("button", { name: "Create booking" }).click();
+  await page.waitForURL(/\/confirmation$/);
+
+  const reference = (await page.getByTestId("booking-reference").textContent())!.trim();
+  const booking = await bookingByReference(reference);
+  expect(booking?.payments).toEqual([]);
+  await page.getByRole("link", { name: "Print ticket" }).click();
+  await expect(page.getByTestId("ticket-acknowledgement")).toContainText("UNSIGNED");
   await logout(page);
 });
 
@@ -97,6 +137,7 @@ test("discount cap: reception refused at 30%, admin allowed with the reason stor
   await page.fill("#discount_value", "30");
   await page.fill("#discount_reason", "Friend of the owner");
   await expectTotal(page, "Rs 2,380");
+  await signAndAcknowledge(page);
   await page.keyboard.press("Control+Enter");
   await page.waitForURL(/\/confirmation$/);
   const booking = await bookingByReference((await page.getByTestId("booking-reference").textContent())!.trim());
@@ -115,6 +156,7 @@ test("idempotency: submitting twice rapidly creates one booking", async ({ page 
   await page.fill("#last_name", last);
   await page.getByText("Adrenaline Combo", { exact: true }).click();
   await expectTotal(page, "Rs 3,400");
+  await signAndAcknowledge(page);
   await page.keyboard.press("Control+Enter");
   await page.keyboard.press("Control+Enter");
   await page

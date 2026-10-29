@@ -1,5 +1,14 @@
 import { expect, test } from "@playwright/test";
-import { bookingByReference, db, expectTotal, login, logout, selectBookingOperator, tag } from "./helpers";
+import {
+  bookingByReference,
+  db,
+  expectTotal,
+  login,
+  logout,
+  selectBookingOperator,
+  signAndAcknowledge,
+  tag,
+} from "./helpers";
 
 test("operator pays: DO NOT COLLECT, unpaid, receivable on the booking", async ({ page }) => {
   await login(page, "receptionist");
@@ -40,6 +49,7 @@ test("returning customer by phone: the match banner, and no second client", asyn
   await expect(page.locator("#first_name")).toHaveCount(0);
   await page.getByText("Adrenaline Combo", { exact: true }).click();
   await expectTotal(page, "Rs 3,400");
+  await signAndAcknowledge(page);
   await page.getByRole("button", { name: "Create booking" }).click();
   await page.waitForURL(/\/confirmation$/);
   const { count } = await db.from("clients").select("id", { count: "exact", head: true }).eq("phone_e164", phone);

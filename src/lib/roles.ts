@@ -7,6 +7,7 @@ export const ROLE_LABELS: Record<Role, string> = {
   accountant: "Accountant",
   receptionist: "Receptionist",
   activity_staff: "Activity staff",
+  activity_supervisor: "Activity supervisor",
 };
 
 /** What each role is for, shown where an admin picks one. */
@@ -14,5 +15,6 @@ export const ROLE_DESCRIPTIONS: Record<Role, string> = {
   receptionist: "Creates bookings and takes payments.",
   accountant: "Reads bookings, prices and the audit log; exports.",
   activity_staff: "Island staff: scans tickets (V2). Sees no money or contact details.",
+  activity_supervisor: "Supervises island staff and ticket handling (V2). Sees no money or customer contact details.",
   admin: "Everything, including prices, users and settings.",
 };

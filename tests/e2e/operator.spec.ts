@@ -1,11 +1,32 @@
 import { expect, test } from "@playwright/test";
 import { bookingByReference, db, expectTotal, login, logout, selectBookingOperator, tag } from "./helpers";
 
+test("new booking asks for an active operator before showing the booking form", async ({ page }) => {
+  await login(page, "receptionist");
+  await page.goto("/bookings/new");
+
+  await expect(page.getByRole("heading", { name: "Choose a tour operator" })).toBeVisible();
+  await expect(page.locator("#first_name")).toHaveCount(0);
+
+  const continueButton = page.getByRole("button", { name: "Continue to booking" });
+  await expect(continueButton).toBeDisabled();
+  const operator = page.getByRole("radio", { name: /Sofitel Merville/ });
+  await operator.check();
+  const operatorId = await operator.inputValue();
+  await expect(continueButton).toBeEnabled();
+  await continueButton.click();
+
+  await page.waitForURL(new RegExp(`/bookings/new\\?operator=${operatorId}$`));
+  await expect(page.locator("#first_name")).toBeVisible();
+  await expect(page.getByText("Sofitel Merville", { exact: true })).toBeVisible();
+  await logout(page);
+});
+
 test("operator pays: DO NOT COLLECT, unpaid, receivable on the booking", async ({ page }) => {
   await login(page, "receptionist");
   await page.goto("/bookings/new");
+  await selectBookingOperator(page, /Beachcomber Hotel/);
   await page.fill("#first_name", `Beach${tag()}`);
-  await page.getByRole("radio", { name: /Beachcomber Hotel/ }).check();
   await expect(page.locator("main [role=alert]", { hasText: "Do not collect payment" }).first()).toBeVisible();
   await page.getByText("Sunset Cruise", { exact: true }).click();
   await page.fill("#adults", "2");

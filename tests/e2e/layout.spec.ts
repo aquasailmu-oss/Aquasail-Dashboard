@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { db, login } from "./helpers";
+import { db, login, selectBookingOperator } from "./helpers";
 
 // Reception uses tablets too (build plan WP-20): no sideways scrolling, main actions reachable.
 for (const width of [768, 1024]) {
@@ -15,13 +15,17 @@ for (const width of [768, 1024]) {
     const booking = { id: ticket!.booking_id };
     for (const [path, action] of [
       ["/today", "New booking"],
-      ["/bookings/new", "Create booking"],
+      ["/bookings/new", "Continue to booking"],
       [`/bookings/${booking.id}`, "Print ticket"],
     ] as const) {
       await page.goto(path);
       await expect(
         page.getByRole(path === "/bookings/new" ? "button" : "link", { name: new RegExp(action) }).first(),
       ).toBeVisible();
+      if (path === "/bookings/new") {
+        await selectBookingOperator(page);
+        await expect(page.locator("#first_name")).toBeVisible();
+      }
       if (path === `/bookings/${booking.id}`) {
         await page.getByRole("link", { name: "Print ticket" }).click();
         await expect(page.getByTestId("ticket-acknowledgement")).toContainText(/\d+ of \d+ participant waivers signed/);

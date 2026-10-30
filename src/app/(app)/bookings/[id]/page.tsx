@@ -44,7 +44,7 @@ export default async function BookingPage({
   const { data: b } = await supabase
     .from("bookings")
     .select(
-      "*, clients(id, first_name, last_name, phone_e164, email), tour_operators(name, settlement_model), resources(name), booking_items(*, packages(name), activities(name)), booking_participants(participant_type, count), booking_activities(id, quantity, activities(name, sort_order)), payments(*), tickets(token, printed_count), booking_waivers(id, participant_type, participant_name, signer_name, signer_relationship, signed_at)",
+      "*, clients(id, first_name, last_name, phone_e164, email), tour_operators(name, settlement_model), resources(name), booking_items(*, packages(name), activities(name)), booking_participants(participant_type, count), booking_activities(id, quantity, activities(name, sort_order)), payments(*), tickets(token, printed_count, issued_at), booking_waivers(id, participant_type, participant_name, signer_name, signer_relationship, signed_at)",
     )
     .eq("id", id)
     .maybeSingle();
@@ -59,6 +59,7 @@ export default async function BookingPage({
   const seesMoneyBehind = user.role !== "receptionist"; // operator net and commission (build plan §8)
   const canWrite = user.role !== "accountant";
   const cancelled = b.status === "cancelled";
+  const ticket = [...b.tickets].sort((a, c) => c.issued_at.localeCompare(a.issued_at))[0];
   const past = b.service_date < businessDate();
   const canAmend = canWrite && !cancelled && (user.role === "admin" || !past);
   const items = [...b.booking_items].sort((a, c) => a.sort_order - c.sort_order);
@@ -92,12 +93,12 @@ export default async function BookingPage({
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          {b.tickets && !cancelled && (
+          {ticket && !cancelled && (
             <Button asChild variant="outline">
-              <Link href={`/tickets/${b.tickets.token}?print=1`}>
+              <Link href={`/tickets/${ticket.token}?print=1`}>
                 <PrinterIcon /> Print ticket
-                {b.tickets.printed_count > 0 && (
-                  <span className="text-muted-foreground text-sm">({b.tickets.printed_count})</span>
+                {ticket.printed_count > 0 && (
+                  <span className="text-muted-foreground text-sm">({ticket.printed_count})</span>
                 )}
               </Link>
             </Button>

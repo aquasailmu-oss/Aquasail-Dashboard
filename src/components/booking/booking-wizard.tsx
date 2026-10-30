@@ -30,7 +30,7 @@ import type { Quote } from "@/lib/pricing/types";
 import { openAfterSave } from "@/lib/navigate";
 import { cn } from "@/lib/utils";
 
-type WizardOperator = { id: string; name: string; payer: "client" | "operator" };
+type WizardOperator = { id: string; name: string; payer: "client" | "operator"; logoUrl: string | null };
 
 type PaymentMethod = "cash" | "card" | "bank_transfer" | "other" | "pre_book";
 
@@ -83,6 +83,7 @@ export function BookingWizard({
   packages,
   activities,
   operators,
+  initialOperatorId,
   boats,
   defaultMeetingPoint,
   today,
@@ -90,6 +91,7 @@ export function BookingWizard({
   packages: WizardPackage[];
   activities: WizardActivity[];
   operators: WizardOperator[];
+  initialOperatorId: string;
   boats: Boat[];
   defaultMeetingPoint: string;
   today: string;
@@ -101,7 +103,8 @@ export function BookingWizard({
   const [chosenClient, setChosenClient] = useState<ClientMatch | null>(null);
   const [matches, setMatches] = useState<ClientMatch[]>([]);
   // 2. Source
-  const [operatorId, setOperatorId] = useState<string | null>(null);
+  const [operatorId, setOperatorId] = useState(initialOperatorId);
+  const [changingOperator, setChangingOperator] = useState(false);
   // 3. What they bought
   const [purchase, setPurchase] = useState<Purchase>({
     packageIds: [],
@@ -396,43 +399,75 @@ export function BookingWizard({
         </Section>
 
         {/* 2. SOURCE */}
-        <Section n={2} title="Source">
-          <fieldset className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            <legend className="sr-only">Booking source</legend>
-            {operators.map((o) => {
-              const selected = operatorId === o.id;
-              return (
-                <label
-                  key={o.id ?? "walk_in"}
-                  className={cn(
-                    "flex min-h-14 cursor-pointer items-center gap-3 rounded-md border-2 px-3 py-2",
-                    selected ? "border-primary bg-accent" : "border-border",
-                  )}
-                >
-                  <input
-                    type="radio"
-                    name="source"
-                    checked={selected}
-                    onChange={() => setOperatorId(o.id)}
-                    className="accent-primary size-5 shrink-0"
-                  />
-                  <span>
-                    <span className="block font-semibold">{o.name}</span>
-                    {o.id && (
-                      <span
-                        className={cn(
-                          "text-sm",
-                          o.payer === "operator" ? "text-destructive font-semibold" : "text-muted-foreground",
+        <Section n={2} title="Tour operator">
+          {changingOperator ? (
+            <div className="flex flex-col gap-4">
+              <fieldset className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                <legend className="sr-only">Change tour operator</legend>
+                {operators.map((option) => {
+                  const selected = operatorId === option.id;
+                  return (
+                    <label
+                      key={option.id}
+                      className={cn(
+                        "flex min-h-20 cursor-pointer items-center gap-3 rounded-lg border-2 p-3",
+                        selected ? "border-primary bg-accent" : "border-border",
+                      )}
+                    >
+                      <input
+                        type="radio"
+                        name="booking_operator"
+                        checked={selected}
+                        onChange={() => setOperatorId(option.id)}
+                        className="accent-primary size-5 shrink-0"
+                      />
+                      <div className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-md border bg-white p-1">
+                        {option.logoUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element -- operator logos are stored in Supabase Storage
+                          <img src={option.logoUrl} alt="" aria-hidden className="size-full object-contain" />
+                        ) : (
+                          <UserCheckIcon className="text-primary/70 size-6" aria-hidden />
                         )}
-                      >
-                        {o.payer === "operator" ? "Operator pays" : "Customer pays"}
+                      </div>
+                      <span className="min-w-0">
+                        <span className="block font-semibold">{option.name}</span>
+                        <span className="text-muted-foreground text-sm">
+                          {option.payer === "operator" ? "Operator pays" : "Customer pays"}
+                        </span>
                       </span>
-                    )}
-                  </span>
-                </label>
-              );
-            })}
-          </fieldset>
+                    </label>
+                  );
+                })}
+              </fieldset>
+              <div>
+                <Button type="button" variant="outline" onClick={() => setChangingOperator(false)}>
+                  Done
+                </Button>
+              </div>
+            </div>
+          ) : operator ? (
+            <div className="bg-card flex flex-wrap items-center justify-between gap-4 rounded-lg border p-4">
+              <div className="flex min-w-0 items-center gap-4">
+                <div className="flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-white p-2">
+                  {operator.logoUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element -- operator logos are stored in Supabase Storage
+                    <img src={operator.logoUrl} alt={`${operator.name} logo`} className="size-full object-contain" />
+                  ) : (
+                    <UserCheckIcon className="text-primary/70 size-8" aria-hidden />
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <p className="truncate font-semibold">{operator.name}</p>
+                  <p className="text-muted-foreground text-sm">
+                    {operator.payer === "operator" ? "Operator pays" : "Customer pays"}
+                  </p>
+                </div>
+              </div>
+              <Button type="button" variant="outline" onClick={() => setChangingOperator(true)}>
+                Change operator
+              </Button>
+            </div>
+          ) : null}
           {operator && <PayerBanner operatorName={operator.name} payer={operator.payer} />}
         </Section>
 

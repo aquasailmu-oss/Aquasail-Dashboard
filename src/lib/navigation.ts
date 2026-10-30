@@ -13,7 +13,7 @@ const NAV_ITEMS: readonly NavItem[] = [
   { href: "/reports", label: "Reports", roles: ["admin", "accountant"] },
   { href: "/export", label: "Export", roles: ["admin", "accountant"] },
   { href: "/admin/audit", label: "Audit log", roles: ["admin", "accountant"] },
-  { href: "/scan", label: "Scan", roles: ["activity_staff"] },
+  { href: "/scan", label: "Scan", roles: ["activity_staff", "activity_supervisor"] },
   { href: "/admin/activities", label: "Activities", roles: ["admin"], section: "Admin" },
   { href: "/admin/packages", label: "Packages", roles: ["admin"], section: "Admin" },
   { href: "/admin/operators", label: "Operators", roles: ["admin"], section: "Admin" },
@@ -29,7 +29,7 @@ export function navFor(role: Role): NavItem[] {
 
 /** Where a role lands after signing in. */
 export function landingPath(role: Role): string {
-  if (role === "activity_staff") return "/scan";
+  if (role === "activity_staff" || role === "activity_supervisor") return "/scan";
   if (role === "accountant") return "/today";
   return "/bookings/new";
 }

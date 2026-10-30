@@ -18,7 +18,10 @@ const nextConfig: NextConfig = {
   experimental: {
     // forbidden() renders src/app/forbidden.tsx with a real 403 for the wrong role.
     authInterrupts: true,
-    ...(codespaceOrigins && { serverActions: { allowedOrigins: codespaceOrigins } }),
+    serverActions: {
+      bodySizeLimit: "2mb",
+      ...(codespaceOrigins && { allowedOrigins: codespaceOrigins }),
+    },
   },
 };
 

@@ -1,4 +1,4 @@
-import { PlusIcon } from "lucide-react";
+import { Building2Icon, PlusIcon } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { setOperatorActive } from "@/actions/operators";
@@ -73,12 +73,27 @@ export default async function OperatorsPage() {
                 <TableRow key={o.id} className={o.is_active ? undefined : "text-muted-foreground"}>
                   <TableCell className="font-mono">{o.code}</TableCell>
                   <TableCell>
-                    <Link
-                      href={`/admin/operators/${o.id}`}
-                      className="text-accent-foreground inline-flex min-h-11 items-center font-semibold hover:underline"
-                    >
-                      {o.name}
-                    </Link>
+                    <div className="flex items-center gap-3">
+                      <div className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-md border bg-white p-1">
+                        {o.logo_path ? (
+                          // eslint-disable-next-line @next/next/no-img-element -- operator logos are stored in Supabase Storage
+                          <img
+                            src={supabase.storage.from("operator-logos").getPublicUrl(o.logo_path).data.publicUrl}
+                            alt=""
+                            aria-hidden
+                            className="size-full object-contain"
+                          />
+                        ) : (
+                          <Building2Icon className="text-primary/70 size-5" aria-hidden />
+                        )}
+                      </div>
+                      <Link
+                        href={`/admin/operators/${o.id}`}
+                        className="text-accent-foreground inline-flex min-h-11 items-center font-semibold hover:underline"
+                      >
+                        {o.name}
+                      </Link>
+                    </div>
                   </TableCell>
                   <TableCell className="whitespace-nowrap">
                     {SETTLEMENT_MODELS[o.settlement_model as SettlementModel].label}

@@ -44,8 +44,10 @@ export async function logout(page: Page) {
 }
 
 /** Choose a client-pays operator whose prices follow the walk-in retail table. */
-export async function selectBookingOperator(page: Page) {
-  await page.getByRole("radio", { name: /Sofitel Merville/ }).check();
+export async function selectBookingOperator(page: Page, name: RegExp = /Sofitel Merville/) {
+  await page.getByRole("radio", { name }).check();
+  await page.getByRole("button", { name: "Continue to booking" }).click();
+  await expect(page.locator("#first_name")).toBeVisible();
 }
 
 export async function signPublicWaiver(

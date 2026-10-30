@@ -468,6 +468,11 @@ export type Database = {
           cancelled_at: string | null
           cancelled_by: string | null
           charged_total_cents: number
+          checked_in_at: string | null
+          checked_in_by: string | null
+          checked_in_client_uuid: string | null
+          checked_in_device_id: string | null
+          checked_in_location_id: string | null
           client_id: string
           commission_total_cents: number
           created_at: string
@@ -494,6 +499,11 @@ export type Database = {
           cancelled_at?: string | null
           cancelled_by?: string | null
           charged_total_cents?: number
+          checked_in_at?: string | null
+          checked_in_by?: string | null
+          checked_in_client_uuid?: string | null
+          checked_in_device_id?: string | null
+          checked_in_location_id?: string | null
           client_id: string
           commission_total_cents?: number
           created_at?: string
@@ -520,6 +530,11 @@ export type Database = {
           cancelled_at?: string | null
           cancelled_by?: string | null
           charged_total_cents?: number
+          checked_in_at?: string | null
+          checked_in_by?: string | null
+          checked_in_client_uuid?: string | null
+          checked_in_device_id?: string | null
+          checked_in_location_id?: string | null
           client_id?: string
           commission_total_cents?: number
           created_at?: string
@@ -547,6 +562,27 @@ export type Database = {
             columns: ["cancelled_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_checked_in_by_fkey"
+            columns: ["checked_in_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_checked_in_device_id_fkey"
+            columns: ["checked_in_device_id"]
+            isOneToOne: false
+            referencedRelation: "staff_devices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_checked_in_location_id_fkey"
+            columns: ["checked_in_location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
             referencedColumns: ["id"]
           },
           {
@@ -632,6 +668,131 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      locations: {
+        Row: {
+          code: string
+          created_at: string
+          id: string
+          is_active: boolean
+          location_type: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          location_type: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          location_type?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      message_log: {
+        Row: {
+          attempt: number
+          booking_id: string
+          channel: string
+          cost_cents: number | null
+          created_at: string
+          delivered_at: string | null
+          error_code: string | null
+          error_detail: string | null
+          id: string
+          provider: string | null
+          provider_message_id: string | null
+          read_at: string | null
+          sent_at: string | null
+          sent_by: string | null
+          status: string
+          template: string | null
+          ticket_id: string | null
+          to_address: string | null
+          updated_at: string
+        }
+        Insert: {
+          attempt?: number
+          booking_id: string
+          channel: string
+          cost_cents?: number | null
+          created_at?: string
+          delivered_at?: string | null
+          error_code?: string | null
+          error_detail?: string | null
+          id?: string
+          provider?: string | null
+          provider_message_id?: string | null
+          read_at?: string | null
+          sent_at?: string | null
+          sent_by?: string | null
+          status?: string
+          template?: string | null
+          ticket_id?: string | null
+          to_address?: string | null
+          updated_at?: string
+        }
+        Update: {
+          attempt?: number
+          booking_id?: string
+          channel?: string
+          cost_cents?: number | null
+          created_at?: string
+          delivered_at?: string | null
+          error_code?: string | null
+          error_detail?: string | null
+          id?: string
+          provider?: string | null
+          provider_message_id?: string | null
+          read_at?: string | null
+          sent_at?: string | null
+          sent_by?: string | null
+          status?: string
+          template?: string | null
+          ticket_id?: string | null
+          to_address?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_log_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "booking_register"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "message_log_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "message_log_sent_by_fkey"
+            columns: ["sent_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "message_log_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "tickets"
             referencedColumns: ["id"]
           },
         ]
@@ -937,53 +1098,272 @@ export type Database = {
         }
         Relationships: []
       }
+      staff_devices: {
+        Row: {
+          created_at: string
+          device_secret_hash: string
+          id: string
+          is_active: boolean
+          label: string
+          last_seen_at: string | null
+          location_id: string | null
+          registered_at: string
+          registered_by: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          device_secret_hash: string
+          id?: string
+          is_active?: boolean
+          label: string
+          last_seen_at?: string | null
+          location_id?: string | null
+          registered_at?: string
+          registered_by?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          device_secret_hash?: string
+          id?: string
+          is_active?: boolean
+          label?: string
+          last_seen_at?: string | null
+          location_id?: string | null
+          registered_at?: string
+          registered_by?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_devices_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staff_devices_registered_by_fkey"
+            columns: ["registered_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ticket_redemptions: {
+        Row: {
+          activity_id: string
+          booking_activity_id: string
+          booking_id: string
+          client_uuid: string
+          device_id: string | null
+          id: string
+          is_over_redemption: boolean
+          is_provisional: boolean
+          is_reversal: boolean
+          location_id: string | null
+          note: string | null
+          occurred_at_device: string | null
+          quantity_redeemed: number
+          redeemed_at: string
+          redeemed_by: string | null
+          reverses_redemption_id: string | null
+          review_note: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          synced_at: string
+        }
+        Insert: {
+          activity_id: string
+          booking_activity_id: string
+          booking_id: string
+          client_uuid: string
+          device_id?: string | null
+          id?: string
+          is_over_redemption?: boolean
+          is_provisional?: boolean
+          is_reversal?: boolean
+          location_id?: string | null
+          note?: string | null
+          occurred_at_device?: string | null
+          quantity_redeemed: number
+          redeemed_at?: string
+          redeemed_by?: string | null
+          reverses_redemption_id?: string | null
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          synced_at?: string
+        }
+        Update: {
+          activity_id?: string
+          booking_activity_id?: string
+          booking_id?: string
+          client_uuid?: string
+          device_id?: string | null
+          id?: string
+          is_over_redemption?: boolean
+          is_provisional?: boolean
+          is_reversal?: boolean
+          location_id?: string | null
+          note?: string | null
+          occurred_at_device?: string | null
+          quantity_redeemed?: number
+          redeemed_at?: string
+          redeemed_by?: string | null
+          reverses_redemption_id?: string | null
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          synced_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ticket_redemptions_activity_id_fkey"
+            columns: ["activity_id"]
+            isOneToOne: false
+            referencedRelation: "activities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ticket_redemptions_booking_activity_id_fkey"
+            columns: ["booking_activity_id"]
+            isOneToOne: false
+            referencedRelation: "booking_activities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ticket_redemptions_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "booking_register"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ticket_redemptions_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ticket_redemptions_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "staff_devices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ticket_redemptions_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ticket_redemptions_redeemed_by_fkey"
+            columns: ["redeemed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ticket_redemptions_reverses_redemption_id_fkey"
+            columns: ["reverses_redemption_id"]
+            isOneToOne: false
+            referencedRelation: "ticket_redemptions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ticket_redemptions_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tickets: {
         Row: {
           booking_id: string
+          delivered_channels: Json
           disclaimer_text: string | null
           id: string
           issued_at: string
           printed_count: number
+          reissued_from_ticket_id: string | null
+          revoke_reason: string | null
+          revoked_at: string | null
+          revoked_by: string | null
           signature_data: string | null
           signed_at: string | null
           signer_name: string | null
           token: string
+          token_hash: string | null
         }
         Insert: {
           booking_id: string
+          delivered_channels?: Json
           disclaimer_text?: string | null
           id?: string
           issued_at?: string
           printed_count?: number
+          reissued_from_ticket_id?: string | null
+          revoke_reason?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
           signature_data?: string | null
           signed_at?: string | null
           signer_name?: string | null
           token?: string
+          token_hash?: string | null
         }
         Update: {
           booking_id?: string
+          delivered_channels?: Json
           disclaimer_text?: string | null
           id?: string
           issued_at?: string
           printed_count?: number
+          reissued_from_ticket_id?: string | null
+          revoke_reason?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
           signature_data?: string | null
           signed_at?: string | null
           signer_name?: string | null
           token?: string
+          token_hash?: string | null
         }
         Relationships: [
           {
             foreignKeyName: "tickets_booking_id_fkey"
             columns: ["booking_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "booking_register"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "tickets_booking_id_fkey"
             columns: ["booking_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tickets_reissued_from_ticket_id_fkey"
+            columns: ["reissued_from_ticket_id"]
+            isOneToOne: false
+            referencedRelation: "tickets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tickets_revoked_by_fkey"
+            columns: ["revoked_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -998,6 +1378,7 @@ export type Database = {
           default_commission_rate: number | null
           id: string
           is_active: boolean
+          logo_path: string | null
           name: string
           notes: string | null
           payer: string
@@ -1013,6 +1394,7 @@ export type Database = {
           default_commission_rate?: number | null
           id?: string
           is_active?: boolean
+          logo_path?: string | null
           name: string
           notes?: string | null
           payer?: string
@@ -1028,6 +1410,7 @@ export type Database = {
           default_commission_rate?: number | null
           id?: string
           is_active?: boolean
+          logo_path?: string | null
           name?: string
           notes?: string | null
           payer?: string
@@ -1145,11 +1528,40 @@ export type Database = {
         Args: { p_client_id: string; p_note: string }
         Returns: string
       }
+      apply_reversal: {
+        Args: {
+          p_device: Database["public"]["Tables"]["staff_devices"]["Row"]
+          p_location_id: string
+          p_reason: string
+          p_redemption_id: string
+        }
+        Returns: Json
+      }
+      assert_booking_usable: {
+        Args: {
+          p_booking: Database["public"]["Tables"]["bookings"]["Row"]
+          p_date: string
+        }
+        Returns: undefined
+      }
       auth_role: {
         Args: never
         Returns: Database["public"]["Enums"]["app_role"]
       }
+      booking_entitlements: { Args: { p_booking_id: string }; Returns: Json }
       build_quote: { Args: { input: Json }; Returns: Json }
+      check_in_booking: {
+        Args: {
+          p_booking_id: string
+          p_client_uuid: string
+          p_device_id?: string
+          p_device_secret?: string
+          p_from_queue?: boolean
+          p_location_id?: string
+          p_occurred_at_device?: string
+        }
+        Returns: Json
+      }
       create_booking: { Args: { payload: Json }; Returns: Json }
       create_booking_waiver_link: {
         Args: { p_booking_id: string; p_token: string }
@@ -1157,6 +1569,30 @@ export type Database = {
       }
       custom_access_token_hook: { Args: { event: Json }; Returns: Json }
       daily_register: { Args: { p_date: string }; Returns: Json }
+      day_manifest: {
+        Args: { p_device_id: string; p_device_secret: string }
+        Returns: Json
+      }
+      deactivate_device: {
+        Args: {
+          p_device_id: string
+          p_device_secret: string
+          p_target_device_id: string
+        }
+        Returns: Json
+      }
+      device_info: {
+        Args: { p_device_id: string; p_device_secret: string }
+        Returns: Json
+      }
+      device_list: {
+        Args: { p_device_id: string; p_device_secret: string }
+        Returns: Json
+      }
+      event_business_date: {
+        Args: { p_from_queue: boolean; p_occurred_at_device: string }
+        Returns: string
+      }
       find_similar_clients: {
         Args: {
           p_email?: string
@@ -1184,6 +1620,17 @@ export type Database = {
       }
       health_check: { Args: never; Returns: Json }
       is_admin: { Args: never; Returns: boolean }
+      log_delivery_attempt: {
+        Args: {
+          p_booking_id: string
+          p_channel: string
+          p_provider: string
+          p_template: string
+          p_ticket_id: string
+          p_to_address: string
+        }
+        Returns: string
+      }
       mark_ticket_printed: { Args: { p_token: string }; Returns: number }
       next_booking_reference: {
         Args: { p_service_date: string }
@@ -1205,6 +1652,50 @@ export type Database = {
           set_at: string
           set_by: string
         }[]
+      }
+      redeem_activity: {
+        Args: {
+          p_booking_activity_id: string
+          p_client_uuid: string
+          p_device_id?: string
+          p_device_secret?: string
+          p_from_queue?: boolean
+          p_location_id?: string
+          p_note?: string
+          p_occurred_at_device?: string
+          p_quantity: number
+        }
+        Returns: Json
+      }
+      redemption_report: {
+        Args: { p_from: string; p_to: string }
+        Returns: Json
+      }
+      redemption_result: {
+        Args: {
+          p_already_applied: boolean
+          p_redemption: Database["public"]["Tables"]["ticket_redemptions"]["Row"]
+        }
+        Returns: Json
+      }
+      register_device: {
+        Args: { p_label: string; p_location_id: string }
+        Returns: Json
+      }
+      reissue_ticket: {
+        Args: { p_booking_id: string; p_reason: string }
+        Returns: Json
+      }
+      resolve_over_redemption: {
+        Args: {
+          p_action: string
+          p_device_id?: string
+          p_device_secret?: string
+          p_location_id?: string
+          p_note: string
+          p_redemption_id: string
+        }
+        Returns: Json
       }
       resolve_price_rule: {
         Args: {
@@ -1237,11 +1728,46 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      reverse_redemption: {
+        Args: {
+          p_device_id?: string
+          p_device_secret?: string
+          p_location_id?: string
+          p_reason: string
+          p_redemption_id: string
+        }
+        Returns: Json
+      }
+      review_queue: {
+        Args: { p_device_id: string; p_device_secret: string }
+        Returns: Json
+      }
       revoke_booking_waiver_links: {
         Args: { p_booking_id: string }
         Returns: undefined
       }
+      revoke_ticket: {
+        Args: { p_reason: string; p_ticket_id: string }
+        Returns: undefined
+      }
       save_package: { Args: { payload: Json }; Returns: string }
+      scan_payload: { Args: { p_ticket_id: string }; Returns: Json }
+      scan_reference: {
+        Args: {
+          p_device_id?: string
+          p_device_secret?: string
+          p_reference: string
+        }
+        Returns: Json
+      }
+      scan_ticket: {
+        Args: {
+          p_device_id?: string
+          p_device_secret?: string
+          p_token: string
+        }
+        Returns: Json
+      }
       set_price: {
         Args: {
           p_activity_id?: string
@@ -1258,6 +1784,10 @@ export type Database = {
         Returns: string
       }
       set_prices_bulk: { Args: { changes: Json }; Returns: number }
+      shift_summary: {
+        Args: { p_device_id: string; p_device_secret: string }
+        Returns: Json
+      }
       staff_names: {
         Args: { p_ids: string[] }
         Returns: {
@@ -1279,14 +1809,63 @@ export type Database = {
         }
         Returns: Json
       }
+      sync_queued_item: {
+        Args: {
+          p_device_id: string
+          p_device_secret: string
+          p_payload: Json
+          p_type: string
+        }
+        Returns: Json
+      }
       today_mauritius: { Args: never; Returns: string }
+      update_delivery_status: {
+        Args: {
+          p_error_code?: string
+          p_error_detail?: string
+          p_log_id: string
+          p_provider_message_id?: string
+          p_status: string
+        }
+        Returns: undefined
+      }
+      update_delivery_webhook: {
+        Args: { p_event: string; p_provider_message_id: string }
+        Returns: undefined
+      }
+      verified_device: {
+        Args: { p_device_id: string; p_device_secret: string }
+        Returns: {
+          created_at: string
+          device_secret_hash: string
+          id: string
+          is_active: boolean
+          label: string
+          last_seen_at: string | null
+          location_id: string | null
+          registered_at: string
+          registered_by: string | null
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "staff_devices"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       withdraw_scheduled_price: {
         Args: { p_rule_id: string }
         Returns: undefined
       }
     }
     Enums: {
-      app_role: "admin" | "accountant" | "receptionist" | "activity_staff"
+      app_role:
+        | "admin"
+        | "accountant"
+        | "receptionist"
+        | "activity_staff"
+        | "activity_supervisor"
       booking_status: "confirmed" | "cancelled" | "no_show" | "completed"
       participant_type: "adult" | "child" | "infant"
       payment_method:
@@ -1427,7 +2006,13 @@ export const Constants = {
   },
   public: {
     Enums: {
-      app_role: ["admin", "accountant", "receptionist", "activity_staff"],
+      app_role: [
+        "admin",
+        "accountant",
+        "receptionist",
+        "activity_staff",
+        "activity_supervisor",
+      ],
       booking_status: ["confirmed", "cancelled", "no_show", "completed"],
       participant_type: ["adult", "child", "infant"],
       payment_method: [

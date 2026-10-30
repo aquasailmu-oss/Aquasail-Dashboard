@@ -152,13 +152,17 @@ const TABLES: Record<TableName, true> = {
   booking_sequences: true,
   bookings: true,
   clients: true,
+  locations: true,
+  message_log: true,
   package_activities: true,
   packages: true,
   payments: true,
   price_rules: true,
   profiles: true,
   resources: true,
+  staff_devices: true,
   tickets: true,
+  ticket_redemptions: true,
   tour_operators: true,
 };
 export const ALL_TABLES = Object.keys(TABLES) as TableName[];

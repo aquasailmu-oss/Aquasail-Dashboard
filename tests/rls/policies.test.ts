@@ -120,6 +120,15 @@ describe("activity_staff", () => {
       expectRefused(await staff.client.from(table).select("*"));
     },
   );
+
+  it("reads locations but no device, redemption, or delivery records", async () => {
+    const locations = await staff.client.from("locations").select("id, code, name");
+    expect(locations.error).toBeNull();
+    expect(locations.data?.length).toBeGreaterThan(0);
+    expectRefused(await staff.client.from("staff_devices").select("id"));
+    expectRefused(await staff.client.from("ticket_redemptions").select("id"));
+    expectRefused(await staff.client.from("message_log").select("id"));
+  });
 });
 
 describe("accountant", () => {

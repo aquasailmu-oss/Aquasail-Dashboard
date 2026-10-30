@@ -18,7 +18,14 @@ export default async function EditOperatorPage({ params }: { params: Promise<{ i
     <>
       <PageHeader title={`Edit ${o.name}`} />
       <OperatorForm
-        operator={{ ...o, settlement_model: o.settlement_model as SettlementModel, payer: o.payer as Payer }}
+        operator={{
+          ...o,
+          logo_url: o.logo_path
+            ? supabase.storage.from("operator-logos").getPublicUrl(o.logo_path).data.publicUrl
+            : null,
+          settlement_model: o.settlement_model as SettlementModel,
+          payer: o.payer as Payer,
+        }}
       />
     </>
   );

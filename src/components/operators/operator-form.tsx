@@ -27,6 +27,7 @@ type Operator = {
   default_commission_rate: number | null;
   payer: Payer;
   notes: string | null;
+  logo_url?: string | null;
 };
 
 function Choice({
@@ -123,6 +124,33 @@ export function OperatorForm({ operator }: { operator?: Operator }) {
           <div className="flex flex-col gap-2 sm:col-span-2">
             <Label htmlFor="contact_email">Contact email</Label>
             <Input id="contact_email" name="contact_email" type="email" defaultValue={operator?.contact_email ?? ""} />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Operator logo</CardTitle>
+          <CardDescription>
+            Shown when staff select this operator for a new booking. PNG, JPEG or WebP, up to 1 MB.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          {operator?.logo_url ? (
+            // eslint-disable-next-line @next/next/no-img-element -- operator logos are stored in Supabase Storage
+            <img
+              src={operator.logo_url}
+              alt={`${operator.name} logo`}
+              className="size-28 rounded-lg border bg-white object-contain p-3"
+            />
+          ) : (
+            <p className="text-muted-foreground text-sm">
+              No logo uploaded. The booking screen will show a fallback icon.
+            </p>
+          )}
+          <div className="flex max-w-xl flex-col gap-2">
+            <Label htmlFor="logo">{operator?.logo_url ? "Replace logo" : "Upload logo"}</Label>
+            <Input id="logo" name="logo" type="file" accept="image/png,image/jpeg,image/webp" />
           </div>
         </CardContent>
       </Card>

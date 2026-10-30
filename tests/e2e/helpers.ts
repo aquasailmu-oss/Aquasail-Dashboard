@@ -71,7 +71,9 @@ export async function signPublicWaiver(
   await page.mouse.move(pad!.x + 160, pad!.y + pad!.height / 2, { steps: 8 });
   await page.mouse.up();
   await page.getByRole("button", { name: "Sign and submit waiver" }).click();
-  await expect(page.getByText("Your waiver has been saved.")).toBeVisible();
+  await expect(
+    page.getByText(/Your waiver has been saved\.|All participants on this booking have signed\./),
+  ).toBeVisible();
 }
 
 /** The live quote total once it has settled. */

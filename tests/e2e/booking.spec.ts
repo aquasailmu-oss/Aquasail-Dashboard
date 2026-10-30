@@ -49,9 +49,9 @@ test("signed operator booking: 4 adults, catamaran + lunch, cash, ticket, on Tod
   await page.focus("#adults");
   await page.keyboard.type("4");
   await expectTotal(page, "Rs 12,800");
-  await expect(page.getByRole("button", { name: "Create booking" })).toBeEnabled();
   await page.focus("input[name=boat]");
   await page.keyboard.press("Space");
+  await expect(page.getByRole("button", { name: "Create booking" })).toBeEnabled();
   await page.keyboard.press("Control+Enter");
   await page.waitForURL(/\/confirmation$/);
   expect(Date.now() - started, "a keyboard-only booking well under the 45 s target").toBeLessThan(45_000);
@@ -110,6 +110,7 @@ test("a pre-book can be saved and its ticket shows the waiver count", async ({ p
   await page.fill("#first_name", `Prebook${tag()}`);
   await page.getByText("Sunset Cruise", { exact: true }).click();
   await expectTotal(page, "Rs 2,100");
+  await page.getByRole("radio", { name: /Catamaran B/ }).check();
   await page.selectOption("#method", "pre_book");
   await page.getByRole("button", { name: "Create booking" }).click();
   await page.waitForURL(/\/confirmation$/);
@@ -119,6 +120,7 @@ test("a pre-book can be saved and its ticket shows the waiver count", async ({ p
   expect(booking?.payments).toEqual([]);
   await page.getByRole("link", { name: "Print ticket" }).click();
   await expect(page.getByTestId("ticket-acknowledgement")).toContainText("0 of 1 participant waivers signed");
+  await page.goto("/today");
   await logout(page);
 });
 
@@ -133,6 +135,7 @@ test("a booking QR records individual adult and guardian signatures and caps the
   await page.getByText("Sunset Cruise", { exact: true }).click();
   await page.fill("#adults", "1");
   await page.fill("#children", "1");
+  await page.getByRole("radio", { name: /Catamaran B/ }).check();
   await page.getByRole("button", { name: "Create booking" }).click();
   await page.waitForURL(/\/confirmation$/);
   await page.getByRole("button", { name: /Generate waiver QR/ }).click();

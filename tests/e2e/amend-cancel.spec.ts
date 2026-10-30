@@ -15,6 +15,7 @@ test("amend updates the balance and the audit trail; cancel strikes through, nev
   await page.waitForURL(/\/confirmation$/);
   const reference = (await page.getByTestId("booking-reference").textContent())!.trim();
   await page.getByRole("link", { name: "View booking" }).click();
+  await expect(page).toHaveURL(/\/bookings\/[0-9a-f-]{36}$/);
   await expect(page.locator("tfoot tr").filter({ hasText: "Balance due" })).toContainText("Rs 0");
 
   await page.getByRole("link", { name: "Amend", exact: true }).click();

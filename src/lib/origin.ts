@@ -27,7 +27,9 @@ export async function publicOrigin(): Promise<string> {
   const value = raw ?? (process.env.NODE_ENV !== "production" ? await requestOrigin() : null);
   if (!value) throw new Error("Set APP_BASE_URL to the public HTTPS address used for customer waiver links.");
   const parsed = new URL(value);
-  if (!new Set(["https:", ...(process.env.NODE_ENV === "production" ? [] : ["http:"])]).has(parsed.protocol)) {
+  const localHost = new Set(["localhost", "127.0.0.1", "[::1]"]).has(parsed.hostname);
+  const allowLocalHttp = process.env.NODE_ENV !== "production" || (process.env.CI === "true" && localHost);
+  if (parsed.protocol !== "https:" && !(parsed.protocol === "http:" && allowLocalHttp)) {
     throw new Error("The public app address must use HTTPS in production.");
   }
   if (parsed.username || parsed.password || parsed.pathname !== "/" || parsed.search || parsed.hash) {

@@ -72,7 +72,7 @@ export default async function ConfirmationPage({ params }: { params: Promise<{ i
               </Button>
             )}
             <Button asChild size="lg" variant="outline">
-              <Link href={`/bookings/${b.id}`}>View booking</Link>
+              <a href={`/bookings/${b.id}`}>View booking</a>
             </Button>
           </div>
           <div className="flex flex-wrap justify-center gap-3">

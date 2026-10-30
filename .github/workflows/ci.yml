@@ -59,6 +59,8 @@ jobs:
           git diff --exit-code src/lib/database.types.ts
 
       - name: End-to-end tests (production build)
+        env:
+          APP_BASE_URL: http://localhost:3000
         run: |
           npx playwright install --with-deps chromium
           npm run test:e2e

@@ -350,6 +350,118 @@ export type Database = {
         }
         Relationships: []
       }
+      booking_waiver_links: {
+        Row: {
+          booking_id: string
+          created_at: string
+          created_by: string
+          disclaimer_text: string
+          expires_on: string
+          id: string
+          revoked_at: string | null
+          token_hash: string
+        }
+        Insert: {
+          booking_id: string
+          created_at?: string
+          created_by?: string
+          disclaimer_text: string
+          expires_on: string
+          id?: string
+          revoked_at?: string | null
+          token_hash: string
+        }
+        Update: {
+          booking_id?: string
+          created_at?: string
+          created_by?: string
+          disclaimer_text?: string
+          expires_on?: string
+          id?: string
+          revoked_at?: string | null
+          token_hash?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_waiver_links_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "booking_register"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_waiver_links_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_waiver_links_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      booking_waivers: {
+        Row: {
+          booking_id: string
+          disclaimer_text: string
+          guardian_authority_confirmed: boolean
+          id: string
+          participant_name: string
+          participant_type: Database["public"]["Enums"]["participant_type"]
+          signature_data: string
+          signed_at: string
+          signer_name: string
+          signer_relationship: string
+          submission_id: string
+        }
+        Insert: {
+          booking_id: string
+          disclaimer_text: string
+          guardian_authority_confirmed?: boolean
+          id?: string
+          participant_name: string
+          participant_type: Database["public"]["Enums"]["participant_type"]
+          signature_data: string
+          signed_at?: string
+          signer_name: string
+          signer_relationship: string
+          submission_id?: string
+        }
+        Update: {
+          booking_id?: string
+          disclaimer_text?: string
+          guardian_authority_confirmed?: boolean
+          id?: string
+          participant_name?: string
+          participant_type?: Database["public"]["Enums"]["participant_type"]
+          signature_data?: string
+          signed_at?: string
+          signer_name?: string
+          signer_relationship?: string
+          submission_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_waivers_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "booking_register"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_waivers_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bookings: {
         Row: {
           cancellation_reason: string | null
@@ -876,97 +988,6 @@ export type Database = {
           },
         ]
       }
-      booking_waiver_links: {
-        Row: {
-          booking_id: string
-          created_at: string
-          created_by: string
-          disclaimer_text: string
-          expires_on: string
-          id: string
-          revoked_at: string | null
-          token_hash: string
-        }
-        Insert: {
-          booking_id: string
-          created_at?: string
-          created_by?: string
-          disclaimer_text: string
-          expires_on: string
-          id?: string
-          revoked_at?: string | null
-          token_hash: string
-        }
-        Update: {
-          booking_id?: string
-          created_at?: string
-          created_by?: string
-          disclaimer_text?: string
-          expires_on?: string
-          id?: string
-          revoked_at?: string | null
-          token_hash?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "booking_waiver_links_booking_id_fkey"
-            columns: ["booking_id"]
-            isOneToOne: false
-            referencedRelation: "bookings"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      booking_waivers: {
-        Row: {
-          booking_id: string
-          disclaimer_text: string
-          guardian_authority_confirmed: boolean
-          id: string
-          participant_name: string
-          participant_type: Database["public"]["Enums"]["participant_type"]
-          signature_data: string
-          signed_at: string
-          signer_name: string
-          signer_relationship: string
-          submission_id: string
-        }
-        Insert: {
-          booking_id: string
-          disclaimer_text: string
-          guardian_authority_confirmed?: boolean
-          id?: string
-          participant_name: string
-          participant_type: Database["public"]["Enums"]["participant_type"]
-          signature_data: string
-          signed_at?: string
-          signer_name: string
-          signer_relationship: string
-          submission_id?: string
-        }
-        Update: {
-          booking_id?: string
-          disclaimer_text?: string
-          guardian_authority_confirmed?: boolean
-          id?: string
-          participant_name?: string
-          participant_type?: Database["public"]["Enums"]["participant_type"]
-          signature_data?: string
-          signed_at?: string
-          signer_name?: string
-          signer_relationship?: string
-          submission_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "booking_waivers_booking_id_fkey"
-            columns: ["booking_id"]
-            isOneToOne: false
-            referencedRelation: "bookings"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       tour_operators: {
         Row: {
           code: string
@@ -1130,7 +1151,10 @@ export type Database = {
       }
       build_quote: { Args: { input: Json }; Returns: Json }
       create_booking: { Args: { payload: Json }; Returns: Json }
-      create_booking_waiver_link: { Args: { p_booking_id: string; p_token: string }; Returns: string }
+      create_booking_waiver_link: {
+        Args: { p_booking_id: string; p_token: string }
+        Returns: string
+      }
       custom_access_token_hook: { Args: { event: Json }; Returns: Json }
       daily_register: { Args: { p_date: string }; Returns: Json }
       find_similar_clients: {
@@ -1153,32 +1177,17 @@ export type Database = {
           phone_e164: string
         }[]
       }
+      get_booking_waiver: { Args: { p_token: string }; Returns: Json }
       has_role: {
         Args: { roles: Database["public"]["Enums"]["app_role"][] }
         Returns: boolean
       }
-      get_booking_waiver: { Args: { p_token: string }; Returns: Json }
       health_check: { Args: never; Returns: Json }
       is_admin: { Args: never; Returns: boolean }
       mark_ticket_printed: { Args: { p_token: string }; Returns: number }
       next_booking_reference: {
         Args: { p_service_date: string }
         Returns: string
-      }
-      revoke_booking_waiver_links: { Args: { p_booking_id: string }; Returns: undefined }
-      submit_booking_waiver: {
-        Args: {
-          p_acknowledged: boolean
-          p_guardian_authority_confirmed: boolean
-          p_participant_name: string
-          p_participant_type: string
-          p_signature_data: string
-          p_signer_name: string
-          p_signer_relationship: string
-          p_submission_id: string
-          p_token: string
-        }
-        Returns: Json
       }
       price_rule_history: {
         Args: { p_activity_id?: string; p_package_id?: string }
@@ -1228,6 +1237,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      revoke_booking_waiver_links: {
+        Args: { p_booking_id: string }
+        Returns: undefined
+      }
       save_package: { Args: { payload: Json }; Returns: string }
       set_price: {
         Args: {
@@ -1251,6 +1264,20 @@ export type Database = {
           full_name: string
           id: string
         }[]
+      }
+      submit_booking_waiver: {
+        Args: {
+          p_acknowledged: boolean
+          p_guardian_authority_confirmed: boolean
+          p_participant_name: string
+          p_participant_type: string
+          p_signature_data: string
+          p_signer_name: string
+          p_signer_relationship: string
+          p_submission_id: string
+          p_token: string
+        }
+        Returns: Json
       }
       today_mauritius: { Args: never; Returns: string }
       withdraw_scheduled_price: {

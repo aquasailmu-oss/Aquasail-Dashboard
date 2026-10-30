@@ -17,6 +17,7 @@ type Activity = {
   description: string | null;
   is_redeemable: boolean;
   default_duration_minutes: number | null;
+  participants_per_unit: number;
   sort_order: number;
 };
 
@@ -31,6 +32,22 @@ export function ActivityForm({ activity, nextSortOrder }: { activity?: Activity;
       {result && !result.ok && <Alert variant="destructive">{result.error}</Alert>}
       {activity && <input type="hidden" name="id" value={activity.id} />}
       <div className="grid gap-5 sm:grid-cols-2">
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="participants_per_unit">Participants per ride/unit</Label>
+          <Input
+            id="participants_per_unit"
+            name="participants_per_unit"
+            type="number"
+            inputMode="numeric"
+            min={1}
+            max={20}
+            defaultValue={activity?.participants_per_unit ?? 1}
+            required
+          />
+          <p className="text-muted-foreground text-sm">
+            For example, set Parasailing Double to 2. Create single and double as separate activities.
+          </p>
+        </div>
         <div className="flex flex-col gap-2">
           <Label htmlFor="code">Code</Label>
           {activity ? (

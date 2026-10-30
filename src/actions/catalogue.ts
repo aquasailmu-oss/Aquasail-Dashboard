@@ -33,6 +33,11 @@ const activitySchema = z.object({
       .min(1, "The duration must be at least 1 minute.")
       .max(1440, "The duration cannot be more than a day."),
   ]),
+  participants_per_unit: z.coerce
+    .number()
+    .int()
+    .min(1, "An activity must include at least one participant per unit.")
+    .max(20, "The maximum is 20 participants per unit."),
   sort_order: z.coerce.number({ error: "Enter a sort order number." }).int("Enter a whole number.").min(0).max(9999),
 });
 
@@ -46,6 +51,7 @@ export async function saveActivity(formData: FormData): Promise<Result<{ id: str
     description: parsed.data.description || null,
     is_redeemable: parsed.data.is_redeemable === "on",
     default_duration_minutes: parsed.data.default_duration_minutes === "" ? null : parsed.data.default_duration_minutes,
+    participants_per_unit: parsed.data.participants_per_unit,
     sort_order: parsed.data.sort_order,
   };
 

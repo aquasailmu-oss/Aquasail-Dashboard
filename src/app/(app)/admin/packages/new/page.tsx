@@ -11,7 +11,7 @@ export default async function NewPackagePage() {
   const supabase = await createClient();
   const { data: activities } = await supabase
     .from("activities")
-    .select("id, code, name, is_active")
+    .select("id, code, name, is_active, participants_per_unit")
     .order("sort_order")
     .order("name");
   return (

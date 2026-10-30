@@ -128,7 +128,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ tok
   y -= 16;
   for (const e of t.entitlements) {
     text(page, e.name, M, y, 11, regular);
-    const q = `x ${e.quantity}`;
+    const q = e.units !== e.quantity ? `x ${e.quantity} pax (${e.units} units)` : `x ${e.quantity} pax`;
     text(page, q, W - M - bold.widthOfTextAtSize(q, 11), y, 11, bold);
     y -= 18;
   }

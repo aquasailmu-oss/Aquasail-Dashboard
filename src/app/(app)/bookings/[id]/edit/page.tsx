@@ -19,7 +19,7 @@ export default async function AmendBookingPage({ params }: { params: Promise<{ i
   const { data: b } = await supabase
     .from("bookings")
     .select(
-      "id, reference, service_date, operator_id, departure_time, meeting_point, notes, resource_id, status, payer, charged_total_cents, discount_total_cents, booking_items(line_type, package_id, activity_id, discount_reason), booking_participants(participant_type, count), payments(amount_cents)",
+      "id, reference, service_date, operator_id, departure_time, meeting_point, notes, resource_id, status, payer, charged_total_cents, discount_total_cents, booking_items(line_type, package_id, activity_id, participant_type, quantity, discount_reason), booking_participants(participant_type, count), payments(amount_cents)",
     )
     .eq("id", id)
     .maybeSingle();
@@ -57,12 +57,31 @@ export default async function AmendBookingPage({ params }: { params: Promise<{ i
       .eq("is_active", true)
       .order("sort_order")
       .order("name"),
-    supabase.from("activities").select("id, name, code").eq("is_active", true).order("sort_order").order("name"),
+    supabase
+      .from("activities")
+      .select("id, name, code, participants_per_unit")
+      .eq("is_active", true)
+      .order("sort_order")
+      .order("name"),
     supabase.from("resources").select("id, name, capacity").eq("is_active", true).order("sort_order").order("name"),
   ]);
   const count = (t: "adult" | "child" | "infant") =>
     b.booking_participants.find((p) => p.participant_type === t)?.count ?? 0;
   const unique = (xs: (string | null)[]) => [...new Set(xs.filter((x): x is string => !!x))];
+  const itemParticipants = (lineType: "package" | "activity") =>
+    Object.fromEntries(
+      b.booking_items
+        .filter((item) => item.line_type === lineType)
+        .reduce((totals, item) => {
+          const id = lineType === "package" ? item.package_id : item.activity_id;
+          if (!id) return totals;
+          const count = totals.get(id) ?? { adult: 0, child: 0, infant: 0 };
+          count[item.participant_type] += item.quantity;
+          totals.set(id, count);
+          return totals;
+        }, new Map<string, { adult: number; child: number; infant: number }>())
+        .entries(),
+    );
 
   return (
     <>
@@ -91,6 +110,8 @@ export default async function AmendBookingPage({ params }: { params: Promise<{ i
         initial={{
           packageIds: unique(b.booking_items.filter((i) => i.line_type === "package").map((i) => i.package_id)),
           activityIds: unique(b.booking_items.filter((i) => i.line_type === "activity").map((i) => i.activity_id)),
+          packageParticipants: itemParticipants("package"),
+          activityParticipants: itemParticipants("activity"),
           participants: { adult: count("adult"), child: count("child"), infant: count("infant") },
         }}
         packages={(packages.data ?? []).map((p) => {

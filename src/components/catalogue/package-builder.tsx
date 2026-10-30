@@ -16,7 +16,7 @@ import { cents, formatRs } from "@/lib/money";
 import { openAfterSave } from "@/lib/navigate";
 import { cn } from "@/lib/utils";
 
-type ActivityOption = { id: string; code: string; name: string; is_active: boolean };
+type ActivityOption = { id: string; code: string; name: string; is_active: boolean; participants_per_unit: number };
 type Line = { activity_id: string; quantity_per_participant: number; is_optional: boolean };
 type ExistingPackage = {
   id: string;
@@ -160,7 +160,9 @@ export function PackageBuilder({ pkg, activities }: { pkg?: ExistingPackage; act
           <CardHeader>
             <CardTitle>What’s included</CardTitle>
             <CardDescription>
-              Per participant. Optional activities are not included in the price or the ticket unless chosen.
+              Included participant entitlements for each package participant. Parasailing Double, for example, is one
+              participant entitlement per person and groups into two-person rides on the ticket. Optional activities are
+              not included unless chosen.
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
@@ -177,14 +179,14 @@ export function PackageBuilder({ pkg, activities }: { pkg?: ExistingPackage; act
                         {a && !a.is_active && <span className="text-warning ml-2 text-sm">deactivated</span>}
                       </span>
                       <label className="flex items-center gap-2 text-sm">
-                        Qty
+                        Participants per package participant
                         <Input
                           type="number"
                           inputMode="numeric"
                           min={1}
                           max={20}
                           className="w-20"
-                          aria-label={`Quantity of ${a?.name} per participant`}
+                          aria-label={`Participants of ${a?.name} per package participant`}
                           value={line.quantity_per_participant}
                           onChange={(e) =>
                             update(i, {
@@ -262,6 +264,7 @@ export function PackageBuilder({ pkg, activities }: { pkg?: ExistingPackage; act
                   >
                     <PlusIcon />
                     {a.name}
+                    {a.participants_per_unit > 1 ? ` · ${a.participants_per_unit} pax/unit` : ""}
                   </Button>
                 ))}
                 {available.length === 0 && <p className="text-muted-foreground text-sm">No more activities match.</p>}

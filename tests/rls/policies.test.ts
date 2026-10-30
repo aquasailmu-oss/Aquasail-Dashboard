@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { beforeAll, describe, expect, it } from "vitest";
 import {
   ALL_TABLES,
@@ -291,6 +292,100 @@ describe("booking waivers", () => {
       }),
       "Your role does not allow this.",
     );
+  });
+});
+
+describe("booking pre-registrations", () => {
+  it("can be read by office staff but not written directly", async () => {
+    const readable = await receptionist.client.from("booking_pre_registrations").select("id").limit(1);
+    expect(readable.error).toBeNull();
+    expectRefused(
+      await receptionist.client
+        .from("booking_pre_registrations")
+        .insert({
+          client_id: fx.client.id,
+          operator_id: fx.operator.id,
+          service_date: fx.today,
+        })
+        .select(),
+    );
+    expectRefused(
+      await admin.client
+        .from("booking_pre_registrations")
+        .update({ status: "cancelled" })
+        .eq("id", "00000000-0000-0000-0000-000000000000")
+        .select(),
+    );
+  });
+
+  it("an accountant cannot create a pre-registration", async () => {
+    expectRaised(
+      await accountant.client.rpc("create_booking_pre_registration", {
+        p_first_name: "Accountant",
+        p_last_name: "Denied",
+        p_operator_id: fx.operator.id,
+        p_service_date: fx.today,
+      }),
+      "Only reception or an admin can pre-register a client.",
+    );
+  });
+
+  it("allows reception to create and complete only the matching booking", async () => {
+    const created = await receptionist.client.rpc("create_booking_pre_registration", {
+      p_first_name: fx.client.first_name,
+      p_last_name: fx.client.last_name,
+      p_operator_id: fx.operator.id,
+      p_service_date: fx.today,
+      p_client_id: fx.client.id,
+      ...(fx.client.phone_e164 ? { p_phone_e164: fx.client.phone_e164 } : {}),
+      ...(fx.client.email ? { p_email: fx.client.email } : {}),
+      ...(fx.client.country ? { p_country: fx.client.country } : {}),
+      p_notes: "RLS completion test",
+    });
+    expect(created.error).toBeNull();
+    const { id: registrationId, idempotency_key: idempotencyKey } = created.data as {
+      id: string;
+      idempotency_key: string;
+    };
+
+    async function insertBooking(key: string, suffix: string) {
+      const { data, error } = await service
+        .from("bookings")
+        .insert({
+          reference: `RLS-${fx.tag}-PR-${suffix}`,
+          client_id: fx.client.id,
+          source_type: "operator",
+          operator_id: fx.operator.id,
+          service_date: fx.today,
+          idempotency_key: key,
+        })
+        .select("id")
+        .single();
+      if (error) throw error;
+      return data.id;
+    }
+
+    const wrongBookingId = await insertBooking(randomUUID(), "WRONG");
+    expectRaised(
+      await receptionist.client.rpc("complete_booking_pre_registration", {
+        p_registration_id: registrationId,
+        p_booking_id: wrongBookingId,
+      }),
+      "The booking does not match this pre-registration.",
+    );
+
+    const matchingBookingId = await insertBooking(idempotencyKey, "MATCH");
+    const completed = await receptionist.client.rpc("complete_booking_pre_registration", {
+      p_registration_id: registrationId,
+      p_booking_id: matchingBookingId,
+    });
+    expect(completed.error).toBeNull();
+    const saved = await service
+      .from("booking_pre_registrations")
+      .select("status, booking_id")
+      .eq("id", registrationId)
+      .single();
+    expect(saved.data).toEqual({ status: "completed", booking_id: matchingBookingId });
   });
 });
 

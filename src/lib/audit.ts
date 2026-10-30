@@ -46,6 +46,7 @@ const LABELS: Record<string, string> = {
   is_optional: "Optional",
   default_duration_minutes: "Usual duration (minutes)",
   quantity_per_participant: "Quantity per participant",
+  participants_per_unit: "Participants per ride/unit",
   printed_count: "Times printed",
   received_at: "Received",
   cancelled_at: "Cancelled at",

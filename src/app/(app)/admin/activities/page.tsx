@@ -21,7 +21,7 @@ export default async function ActivitiesPage() {
   const { data: activities, error } = await supabase
     .from("activities")
     .select(
-      "id, code, name, is_redeemable, default_duration_minutes, is_active, package_activities(packages(name, is_active))",
+      "id, code, name, is_redeemable, default_duration_minutes, participants_per_unit, is_active, package_activities(packages(name, is_active))",
     )
     .order("sort_order")
     .order("name");
@@ -52,6 +52,7 @@ export default async function ActivitiesPage() {
                 <TableHead>Order</TableHead>
                 <TableHead>Code</TableHead>
                 <TableHead>Name</TableHead>
+                <TableHead>Pax per unit</TableHead>
                 <TableHead>Duration</TableHead>
                 <TableHead>Island redeems</TableHead>
                 <TableHead>In active packages</TableHead>
@@ -74,6 +75,7 @@ export default async function ActivitiesPage() {
                     </TableCell>
                     <TableCell className="font-mono">{a.code}</TableCell>
                     <TableCell className="font-semibold">{a.name}</TableCell>
+                    <TableCell>{a.participants_per_unit}</TableCell>
                     <TableCell className="whitespace-nowrap">
                       {a.default_duration_minutes ? `${a.default_duration_minutes} min` : "—"}
                     </TableCell>

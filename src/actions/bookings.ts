@@ -74,6 +74,7 @@ export async function bookingContext(input: z.input<typeof contextSchema>): Prom
 
 const createSchema = z.object({
   idempotency_key: z.uuid(),
+  pre_registration_id: z.uuid().nullable().optional(),
   client_id: z.uuid().nullable(),
   client: z.object({
     first_name: z.string().trim().max(80),
@@ -194,8 +195,20 @@ export async function createBooking(input: CreateBookingInput): Promise<Result<{
   if (error) return fail(friendlyDbError(error, "The booking could not be saved. Nothing was charged; try again."));
 
   const result = data as { booking_id: string };
+  if (d.pre_registration_id) {
+    const { error: registrationError } = await supabase.rpc("complete_booking_pre_registration", {
+      p_registration_id: d.pre_registration_id,
+      p_booking_id: result.booking_id,
+    });
+    if (registrationError) {
+      return fail(
+        "The booking was created, but the pre-registration could not be closed. Submit again to finish linking it.",
+      );
+    }
+  }
   revalidatePath("/today");
   revalidatePath("/bookings");
+  revalidatePath("/pre-registrations");
   return ok({ id: result.booking_id });
 }
 

@@ -44,6 +44,7 @@ export type Database = {
           is_active: boolean
           is_redeemable: boolean
           name: string
+          participants_per_unit: number
           sort_order: number
           updated_at: string
         }
@@ -56,6 +57,7 @@ export type Database = {
           is_active?: boolean
           is_redeemable?: boolean
           name: string
+          participants_per_unit?: number
           sort_order?: number
           updated_at?: string
         }
@@ -68,6 +70,7 @@ export type Database = {
           is_active?: boolean
           is_redeemable?: boolean
           name?: string
+          participants_per_unit?: number
           sort_order?: number
           updated_at?: string
         }
@@ -331,6 +334,91 @@ export type Database = {
             columns: ["booking_id"]
             isOneToOne: false
             referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      booking_pre_registrations: {
+        Row: {
+          booking_id: string | null
+          client_id: string
+          created_at: string
+          created_by: string
+          id: string
+          idempotency_key: string
+          notes: string | null
+          operator_id: string
+          service_date: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          booking_id?: string | null
+          client_id: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          idempotency_key?: string
+          notes?: string | null
+          operator_id: string
+          service_date: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          booking_id?: string | null
+          client_id?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          idempotency_key?: string
+          notes?: string | null
+          operator_id?: string
+          service_date?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_pre_registrations_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: true
+            referencedRelation: "booking_register"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_pre_registrations_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: true
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_pre_registrations_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_summaries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_pre_registrations_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_pre_registrations_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_pre_registrations_operator_id_fkey"
+            columns: ["operator_id"]
+            isOneToOne: false
+            referencedRelation: "tour_operators"
             referencedColumns: ["id"]
           },
         ]
@@ -1562,7 +1650,25 @@ export type Database = {
         }
         Returns: Json
       }
+      complete_booking_pre_registration: {
+        Args: { p_booking_id: string; p_registration_id: string }
+        Returns: undefined
+      }
       create_booking: { Args: { payload: Json }; Returns: Json }
+      create_booking_pre_registration: {
+        Args: {
+          p_client_id?: string
+          p_country?: string
+          p_email?: string
+          p_first_name: string
+          p_last_name: string
+          p_notes?: string
+          p_operator_id: string
+          p_phone_e164?: string
+          p_service_date: string
+        }
+        Returns: Json
+      }
       create_booking_waiver_link: {
         Args: { p_booking_id: string; p_token: string }
         Returns: string

@@ -8,6 +8,7 @@ const OFFICE: readonly Role[] = ["admin", "accountant", "receptionist"];
 const NAV_ITEMS: readonly NavItem[] = [
   { href: "/today", label: "Today", roles: OFFICE },
   { href: "/bookings/new", label: "New booking", roles: ["admin", "receptionist"] },
+  { href: "/pre-registrations", label: "Pre-registrations", roles: ["admin", "receptionist"] },
   { href: "/bookings", label: "Bookings", roles: OFFICE },
   { href: "/register", label: "Daily register", roles: OFFICE },
   { href: "/reports", label: "Reports", roles: ["admin", "accountant"] },

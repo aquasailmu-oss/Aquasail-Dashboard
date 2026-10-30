@@ -153,6 +153,11 @@ export default async function BookingsPage({
               </Button>
             )}
             {user.role !== "accountant" && (
+              <Button asChild variant="outline">
+                <Link href="/pre-registrations">Pre-registrations</Link>
+              </Button>
+            )}
+            {user.role !== "accountant" && (
               <Button asChild>
                 <Link href="/bookings/new">
                   <PlusIcon /> New booking

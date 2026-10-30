@@ -1,4 +1,5 @@
 import "server-only";
+import { summarizeActivityParticipants } from "@/lib/activity-summary";
 import { getSettings } from "@/lib/settings";
 import { createClient } from "@/lib/supabase/server";
 
@@ -30,7 +31,7 @@ export type TicketData = {
   meetingPoint: string;
   boat: string | null;
   items: string[];
-  entitlements: { name: string; quantity: number }[];
+  entitlements: { activityId: string; name: string; quantity: number; units: number }[];
 };
 
 const TYPE = { adult: ["adult", "adults"], child: ["child", "children"], infant: ["infant", "infants"] } as const;
@@ -42,7 +43,7 @@ export async function getTicket(token: string): Promise<TicketData | null> {
     supabase
       .from("tickets")
       .select(
-        "token, printed_count, signature_data, signer_name, signed_at, disclaimer_text, bookings(id, reference, status, service_date, departure_time, meeting_point, clients(first_name, last_name), resources(name), booking_participants(participant_type, count), booking_waivers(id), booking_items(sort_order, packages(name), activities(name)), booking_activities(quantity, activities(name, sort_order)))",
+        "token, printed_count, signature_data, signer_name, signed_at, disclaimer_text, bookings(id, reference, status, service_date, departure_time, meeting_point, clients(first_name, last_name), resources(name), booking_participants(participant_type, count), booking_waivers(id), booking_items(sort_order, packages(name), activities(name)), booking_activities(activity_id, quantity, activities(name, sort_order, participants_per_unit)))",
       )
       .eq("token", token)
       .maybeSingle(),
@@ -61,17 +62,7 @@ export async function getTicket(token: string): Promise<TicketData | null> {
     .join(", ");
   const requiredWaivers = b.booking_participants.reduce((sum, p) => sum + p.count, 0);
 
-  const entitlements = new Map<string, { name: string; quantity: number; order: number }>();
-  for (const e of b.booking_activities) {
-    if (!e.activities) continue;
-    const row = entitlements.get(e.activities.name) ?? {
-      name: e.activities.name,
-      quantity: 0,
-      order: e.activities.sort_order,
-    };
-    row.quantity += e.quantity;
-    entitlements.set(e.activities.name, row);
-  }
+  const entitlements = summarizeActivityParticipants(b.booking_activities);
 
   return {
     token: t.token,
@@ -102,8 +93,6 @@ export async function getTicket(token: string): Promise<TicketData | null> {
           .map((i) => i.packages?.name ?? i.activities?.name ?? ""),
       ),
     ].filter(Boolean),
-    entitlements: [...entitlements.values()]
-      .sort((x, y) => x.order - y.order)
-      .map(({ name, quantity }) => ({ name, quantity })),
+    entitlements,
   };
 }

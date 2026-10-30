@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PayerBanner } from "@/components/shared/payer-banner";
 import { WaiverManager } from "@/components/waivers/waiver-manager";
+import { latestTicket } from "@/lib/booking-tickets";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { requireRole } from "@/lib/auth";
@@ -26,7 +27,7 @@ export default async function ConfirmationPage({ params }: { params: Promise<{ i
     .eq("id", id)
     .maybeSingle();
   if (!b) notFound();
-  const ticket = [...b.tickets].sort((a, c) => c.issued_at.localeCompare(a.issued_at))[0];
+  const ticket = latestTicket(b.tickets);
   const paid = b.payments.reduce((sum, p) => sum + p.amount_cents, 0);
   const due = b.charged_total_cents - paid;
 

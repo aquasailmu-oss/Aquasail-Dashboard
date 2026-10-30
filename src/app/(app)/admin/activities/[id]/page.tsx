@@ -13,7 +13,7 @@ export default async function EditActivityPage({ params }: { params: Promise<{ i
   const supabase = await createClient();
   const { data: activity } = await supabase
     .from("activities")
-    .select("id, code, name, description, is_redeemable, default_duration_minutes, sort_order")
+    .select("id, code, name, description, is_redeemable, default_duration_minutes, participants_per_unit, sort_order")
     .eq("id", id)
     .maybeSingle();
   if (!activity) notFound();

@@ -31,6 +31,13 @@ import { openAfterSave } from "@/lib/navigate";
 import { cn } from "@/lib/utils";
 
 type WizardOperator = { id: string; name: string; payer: "client" | "operator"; logoUrl: string | null };
+type PreRegistration = {
+  id: string;
+  idempotencyKey: string;
+  serviceDate: string;
+  notes: string | null;
+  client: ClientMatch;
+};
 
 type PaymentMethod = "cash" | "card" | "bank_transfer" | "other" | "pre_book";
 
@@ -87,6 +94,7 @@ export function BookingWizard({
   boats,
   defaultMeetingPoint,
   today,
+  preRegistration,
 }: {
   packages: WizardPackage[];
   activities: WizardActivity[];
@@ -95,12 +103,19 @@ export function BookingWizard({
   boats: Boat[];
   defaultMeetingPoint: string;
   today: string;
+  preRegistration?: PreRegistration;
 }) {
-  const idempotencyKey = useRef<string>(crypto.randomUUID());
+  const idempotencyKey = useRef<string>(preRegistration?.idempotencyKey ?? crypto.randomUUID());
 
   // 1. Client
-  const [client, setClient] = useState({ first_name: "", last_name: "", phone: "", email: "", country: "" });
-  const [chosenClient, setChosenClient] = useState<ClientMatch | null>(null);
+  const [client, setClient] = useState({
+    first_name: preRegistration?.client.first_name ?? "",
+    last_name: preRegistration?.client.last_name ?? "",
+    phone: preRegistration?.client.phone_e164 ?? "",
+    email: preRegistration?.client.email ?? "",
+    country: preRegistration?.client.country ?? "",
+  });
+  const [chosenClient, setChosenClient] = useState<ClientMatch | null>(preRegistration?.client ?? null);
   const [matches, setMatches] = useState<ClientMatch[]>([]);
   // 2. Source
   const [operatorId, setOperatorId] = useState(initialOperatorId);
@@ -109,12 +124,14 @@ export function BookingWizard({
   const [purchase, setPurchase] = useState<Purchase>({
     packageIds: [],
     activityIds: [],
+    packageParticipants: {},
+    activityParticipants: {},
     participants: { adult: 1, child: 0, infant: 0 },
   });
-  const [serviceDate, setServiceDate] = useState(today);
+  const [serviceDate, setServiceDate] = useState(preRegistration?.serviceDate ?? today);
   const [departureTime, setDepartureTime] = useState("");
   const [meetingPoint, setMeetingPoint] = useState(defaultMeetingPoint);
-  const [notes, setNotes] = useState("");
+  const [notes, setNotes] = useState(preRegistration?.notes ?? "");
   // 4. Boat
   const [boatId, setBoatId] = useState<string | null>(null);
   // 5. Payment
@@ -212,6 +229,9 @@ export function BookingWizard({
       setPurchase((p) => ({
         ...p,
         packageIds: p.packageIds.includes(id) ? p.packageIds.filter((x) => x !== id) : [...p.packageIds, id],
+        packageParticipants: p.packageIds.includes(id)
+          ? Object.fromEntries(Object.entries(p.packageParticipants).filter(([key]) => key !== id))
+          : { ...p.packageParticipants, [id]: { ...p.participants } },
       })),
     [],
   );
@@ -219,7 +239,8 @@ export function BookingWizard({
   const blocker = (() => {
     if (!chosenClient && !client.first_name.trim()) return "Enter the client's first name.";
     if (!operatorId) return "Choose a tour operator before creating the booking.";
-    if (lines.length === 0) return size === 0 ? "Add at least one participant." : "Choose a package or activity.";
+    if (size === 0) return "Add at least one person to the booking.";
+    if (lines.length === 0) return "Choose a package or activity and enter its pax.";
     if (quoteError) return quoteError;
     if (!quote || quoteStale) return "Working out the price…";
     if (discountActive && !discount.reason.trim()) return "Give a reason for the discount.";
@@ -233,6 +254,7 @@ export function BookingWizard({
     startSubmit(async () => {
       const result = await createBooking({
         idempotency_key: idempotencyKey.current,
+        pre_registration_id: preRegistration?.id ?? null,
         client_id: chosenClient?.id ?? null,
         client,
         service_date: serviceDate,
@@ -273,6 +295,7 @@ export function BookingWizard({
     method,
     receivedValue,
     paymentRef,
+    preRegistration?.id,
   ]);
 
   // Keyboard: Ctrl/Cmd+Enter submits anywhere; 1–9 pick a package tile when not typing.
@@ -318,8 +341,9 @@ export function BookingWizard({
         {/* 1. CLIENT */}
         <Section n={1} title="Client">
           <p className="text-muted-foreground text-sm">
-            Enter the main booking contact here. After saving, create a booking QR code so every participant can sign
-            their own waiver.
+            {preRegistration
+              ? "Confirm the pre-registered client, choose their activities and participant counts, then finish the booking and waiver."
+              : "Enter the main booking contact here. After saving, create a booking QR code so every participant can sign their own waiver."}
           </p>
           {chosenClient ? (
             <div className="bg-success-surface flex flex-wrap items-center justify-between gap-3 rounded-md px-4 py-3">
@@ -330,19 +354,23 @@ export function BookingWizard({
                 </span>
                 <span className="text-muted-foreground text-sm">
                   {[formatPhone(chosenClient.phone_e164), chosenClient.email].filter(Boolean).join(" · ")} ·{" "}
-                  {chosenClient.booking_count} previous booking{chosenClient.booking_count === 1 ? "" : "s"}
+                  {preRegistration
+                    ? "Pre-registered client"
+                    : `${chosenClient.booking_count} previous booking${chosenClient.booking_count === 1 ? "" : "s"}`}
                 </span>
               </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setChosenClient(null);
-                }}
-              >
-                Change client
-              </Button>
+              {!preRegistration && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setChosenClient(null);
+                  }}
+                >
+                  Change client
+                </Button>
+              )}
             </div>
           ) : (
             <>

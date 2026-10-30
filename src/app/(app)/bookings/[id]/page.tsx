@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CancelBookingDialog, CorrectPaymentDialog, RecordPaymentDialog } from "@/components/booking/booking-dialogs";
 import { WaiverManager } from "@/components/waivers/waiver-manager";
+import { latestTicket } from "@/lib/booking-tickets";
 import { BookingStatusBadge } from "@/components/shared/booking-status-badge";
 import { PayerBanner } from "@/components/shared/payer-banner";
 import { Alert } from "@/components/ui/alert";
@@ -59,7 +60,7 @@ export default async function BookingPage({
   const seesMoneyBehind = user.role !== "receptionist"; // operator net and commission (build plan §8)
   const canWrite = user.role !== "accountant";
   const cancelled = b.status === "cancelled";
-  const ticket = [...b.tickets].sort((a, c) => c.issued_at.localeCompare(a.issued_at))[0];
+  const ticket = latestTicket(b.tickets);
   const past = b.service_date < businessDate();
   const canAmend = canWrite && !cancelled && (user.role === "admin" || !past);
   const items = [...b.booking_items].sort((a, c) => a.sort_order - c.sort_order);

@@ -110,9 +110,11 @@ export default async function TicketPage({
           </h2>
           <ul className="mt-2 grid gap-1">
             {t.entitlements.map((e) => (
-              <li key={e.name} className="flex justify-between border-b border-dotted border-black/40 pb-1">
+              <li key={e.activityId} className="flex justify-between border-b border-dotted border-black/40 pb-1">
                 <span>{e.name}</span>
-                <span className="font-semibold tabular-nums">× {e.quantity}</span>
+                <span className="font-semibold tabular-nums">
+                  × {e.quantity} pax{e.units !== e.quantity ? ` · ${e.units} units` : ""}
+                </span>
               </li>
             ))}
           </ul>

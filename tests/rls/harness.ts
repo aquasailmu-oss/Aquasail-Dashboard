@@ -73,6 +73,7 @@ export async function createFixtures() {
       .select()
       .single(),
   );
+  const operator = must(await service.from("tour_operators").select("id").eq("is_active", true).limit(1).single());
   const activity = must(
     await service
       .from("activities")
@@ -117,7 +118,7 @@ export async function createFixtures() {
       .select()
       .single(),
   );
-  return { tag, today, client, activity, price, todayBooking, pastBooking, payment };
+  return { tag, today, client, operator, activity, price, todayBooking, pastBooking, payment };
 }
 
 /**
@@ -149,6 +150,7 @@ const TABLES: Record<TableName, true> = {
   booking_participants: true,
   booking_waiver_links: true,
   booking_waivers: true,
+  booking_pre_registrations: true,
   booking_sequences: true,
   bookings: true,
   clients: true,

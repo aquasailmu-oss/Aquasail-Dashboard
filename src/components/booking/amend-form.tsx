@@ -113,12 +113,14 @@ export function AmendForm({
 
   const total = quote && !quoteError ? quote.charged_total_cents : null;
   const blocker =
-    lines.length === 0
-      ? "Choose a package or activity, and at least one participant."
-      : (quoteError ??
-        (!quote || stale ? "Working out the price…" : null) ??
-        (discountActive && !discount.reason.trim() ? "Give a reason for the discount." : null) ??
-        (needsBoat && !boatId ? "Pick a boat: this booking includes the catamaran." : null));
+    partySize(purchase.participants) === 0
+      ? "Keep at least one person on the booking."
+      : lines.length === 0
+        ? "Choose a package or activity and enter its pax."
+        : (quoteError ??
+          (!quote || stale ? "Working out the price…" : null) ??
+          (discountActive && !discount.reason.trim() ? "Give a reason for the discount." : null) ??
+          (needsBoat && !boatId ? "Pick a boat: this booking includes the catamaran." : null));
 
   function save() {
     if (blocker || total === null) return;

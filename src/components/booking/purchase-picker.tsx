@@ -16,17 +16,34 @@ export type WizardPackage = {
   includes: string[];
   codes: string[];
 };
-export type WizardActivity = { id: string; name: string; code: string };
+export type WizardActivity = { id: string; name: string; code: string; participants_per_unit: number };
 export type Participants = { adult: number; child: number; infant: number };
+export type Purchase = {
+  packageIds: string[];
+  activityIds: string[];
+  packageParticipants: Record<string, Participants>;
+  activityParticipants: Record<string, Participants>;
+  /** Booking headcount for waivers and boat capacity; distinct from purchased line pax. */
+  participants: Participants;
+};
 
-/** What was bought: packages and standalone activities, each for every participant. */
-export type Purchase = { packageIds: string[]; activityIds: string[]; participants: Participants };
+const TYPES = ["adult", "child", "infant"] as const;
+const EMPTY_PARTICIPANTS: Participants = { adult: 0, child: 0, infant: 0 };
 
-export function purchaseLines({ packageIds, activityIds, participants }: Purchase): QuoteLineInput[] {
-  const types = (["adult", "child", "infant"] as const).filter((t) => participants[t] > 0);
-  const line = (target_type: "package" | "activity", target_id: string) =>
-    types.map((t) => ({ target_type, target_id, participant_type: t, quantity: participants[t] }));
-  return [...packageIds.flatMap((id) => line("package", id)), ...activityIds.flatMap((id) => line("activity", id))];
+export function purchaseLines(purchase: Purchase): QuoteLineInput[] {
+  const output: QuoteLineInput[] = [];
+  for (const [target_type, ids, counts] of [
+    ["package", purchase.packageIds, purchase.packageParticipants],
+    ["activity", purchase.activityIds, purchase.activityParticipants],
+  ] as const) {
+    for (const target_id of ids) {
+      for (const participant_type of TYPES) {
+        const quantity = counts[target_id]?.[participant_type] ?? 0;
+        if (quantity > 0) output.push({ target_type, target_id, participant_type, quantity });
+      }
+    }
+  }
+  return output;
 }
 
 /** Anything including the catamaran (directly or in a package) needs a boat. */
@@ -43,7 +60,35 @@ export function purchaseNeedsBoat(
 
 export const partySize = (p: Participants) => p.adult + p.child + p.infant;
 
-/** Package tiles (1–9), standalone activities and participant counts. */
+function PaxCounts({
+  prefix,
+  value,
+  onChange,
+}: {
+  prefix: string;
+  value: Participants;
+  onChange: (next: Participants) => void;
+}) {
+  return (
+    <div className="border-t pt-2">
+      <p className="text-muted-foreground mb-1 text-xs font-semibold tracking-wide uppercase">
+        Participants for this item
+      </p>
+      {TYPES.map((type) => (
+        <Stepper
+          key={type}
+          id={`${prefix}-${type}`}
+          label={type === "adult" ? "Adults" : type === "child" ? "Children" : "Infants"}
+          hint={type === "child" ? "(2–11)" : type === "infant" ? "(under 2)" : undefined}
+          value={value[type]}
+          onChange={(count) => onChange({ ...value, [type]: count })}
+        />
+      ))}
+    </div>
+  );
+}
+
+/** Each purchased line has independent pax quantities; booking headcount remains separate for waivers/capacity. */
 export function PurchasePicker({
   packages,
   activities,
@@ -59,112 +104,180 @@ export function PurchasePicker({
 }) {
   const [adding, setAdding] = useState("");
   const byActivity = new Map(activities.map((a) => [a.id, a]));
-  const toggle = (id: string) =>
+  const initialPax = value.participants;
+  const togglePackage = (id: string) => {
+    const selected = value.packageIds.includes(id);
+    const packageParticipants = { ...value.packageParticipants };
+    if (selected) delete packageParticipants[id];
+    else packageParticipants[id] = { ...initialPax };
     onChange({
       ...value,
-      packageIds: value.packageIds.includes(id) ? value.packageIds.filter((x) => x !== id) : [...value.packageIds, id],
+      packageIds: selected ? value.packageIds.filter((x) => x !== id) : [...value.packageIds, id],
+      packageParticipants,
     });
-  const setCount = (type: keyof Participants) => (count: number) =>
-    onChange({ ...value, participants: { ...value.participants, [type]: count } });
+  };
+  const updatePax = (kind: "package" | "activity", id: string, next: Participants) =>
+    onChange({
+      ...value,
+      [kind === "package" ? "packageParticipants" : "activityParticipants"]: {
+        ...(kind === "package" ? value.packageParticipants : value.activityParticipants),
+        [id]: next,
+      },
+    });
+  const addActivity = (id: string) => {
+    onChange({
+      ...value,
+      activityIds: [...value.activityIds, id],
+      activityParticipants: { ...value.activityParticipants, [id]: { ...initialPax } },
+    });
+    setAdding("");
+  };
+  const removeActivity = (id: string) => {
+    const activityParticipants = { ...value.activityParticipants };
+    delete activityParticipants[id];
+    onChange({ ...value, activityIds: value.activityIds.filter((x) => x !== id), activityParticipants });
+  };
+  const setBookingCount = (type: keyof Participants) => (count: number) => {
+    const previous = value.participants[type];
+    const followBookingCount = (counts: Record<string, Participants>) =>
+      Object.fromEntries(
+        Object.entries(counts).map(([id, pax]) => [id, pax[type] === previous ? { ...pax, [type]: count } : pax]),
+      );
+    onChange({
+      ...value,
+      participants: { ...value.participants, [type]: count },
+      packageParticipants: followBookingCount(value.packageParticipants),
+      activityParticipants: followBookingCount(value.activityParticipants),
+    });
+  };
 
   return (
-    <>
-      <fieldset className="grid gap-3 sm:grid-cols-2">
-        <legend className="sr-only">Packages</legend>
-        {packages.map((p, i) => {
-          const selected = value.packageIds.includes(p.id);
-          const price = tilePrices[p.id];
-          return (
-            <label
-              key={p.id}
-              className={cn(
-                "has-focus-visible:outline-ring relative flex cursor-pointer flex-col gap-1 rounded-md border-2 p-3 pr-10 has-focus-visible:outline-3 has-focus-visible:outline-offset-2",
-                selected ? "border-primary bg-accent" : "border-border",
-              )}
-            >
-              <input type="checkbox" className="sr-only" checked={selected} onChange={() => toggle(p.id)} />
-              {i < 9 && (
-                <kbd className="bg-secondary text-muted-foreground absolute top-2 right-2 rounded px-2 py-0.5 text-sm font-semibold">
-                  {i + 1}
-                </kbd>
-              )}
-              <span className="font-semibold">{p.name}</span>
-              {p.includes.length > 0 && <span className="text-muted-foreground text-sm">{p.includes.join(" · ")}</span>}
-              <span className={cn("text-sm font-semibold", price === null ? "text-warning" : "text-primary")}>
-                {price === undefined ? " " : price === null ? "Price not set" : `${formatRs(price)} / adult`}
-              </span>
-            </label>
-          );
-        })}
-      </fieldset>
-
-      {value.activityIds.length > 0 && (
-        <ul className="flex flex-col gap-2">
-          {value.activityIds.map((id) => (
-            <li key={id} className="flex items-center justify-between rounded-md border px-3 py-1">
-              <span className="font-semibold">{byActivity.get(id)?.name ?? "Activity no longer on sale"}</span>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                aria-label={`Remove ${byActivity.get(id)?.name ?? "activity"}`}
-                onClick={() => onChange({ ...value, activityIds: value.activityIds.filter((x) => x !== id) })}
+    <div className="flex flex-col gap-6">
+      <section aria-labelledby="combo-packages-heading" className="flex flex-col gap-3">
+        <h3 id="combo-packages-heading" className="font-semibold">
+          Combo Packages
+        </h3>
+        <fieldset className="grid gap-3 sm:grid-cols-2">
+          <legend className="sr-only">Combo Packages</legend>
+          {packages.map((p, i) => {
+            const selected = value.packageIds.includes(p.id);
+            const price = tilePrices[p.id];
+            return (
+              <div
+                key={p.id}
+                className={cn("rounded-md border-2 p-3", selected ? "border-primary bg-accent" : "border-border")}
               >
-                <XIcon />
-              </Button>
-            </li>
-          ))}
-        </ul>
-      )}
-      <div className="flex items-end gap-2">
-        <div className="flex flex-1 flex-col gap-2">
-          <Label htmlFor="add-activity">Add a standalone activity</Label>
-          <select
-            id="add-activity"
-            className="border-input bg-card min-h-11 rounded-md border px-3"
-            value={adding}
-            onChange={(e) => setAdding(e.target.value)}
-          >
-            <option value="">Choose an activity…</option>
-            {activities
-              .filter((a) => !value.activityIds.includes(a.id))
-              .map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.name}
-                </option>
-              ))}
-          </select>
-        </div>
-        <Button
-          type="button"
-          variant="outline"
-          disabled={!adding}
-          onClick={() => {
-            onChange({ ...value, activityIds: [...value.activityIds, adding] });
-            setAdding("");
-          }}
-        >
-          <PlusIcon /> Add
-        </Button>
-      </div>
+                <label className="relative flex cursor-pointer flex-col gap-1 pr-8">
+                  <input type="checkbox" className="sr-only" checked={selected} onChange={() => togglePackage(p.id)} />
+                  {i < 9 && (
+                    <kbd className="bg-secondary text-muted-foreground absolute top-0 right-0 rounded px-2 py-0.5 text-sm font-semibold">
+                      {i + 1}
+                    </kbd>
+                  )}
+                  <span className="font-semibold">{p.name}</span>
+                  {p.includes.length > 0 && (
+                    <span className="text-muted-foreground text-sm">{p.includes.join(" · ")}</span>
+                  )}
+                  <span className={cn("text-sm font-semibold", price === null ? "text-warning" : "text-primary")}>
+                    {price === undefined ? " " : price === null ? "Price not set" : `${formatRs(price)} / adult`}
+                  </span>
+                </label>
+                {selected && (
+                  <PaxCounts
+                    prefix={`package-${p.id}`}
+                    value={value.packageParticipants[p.id] ?? EMPTY_PARTICIPANTS}
+                    onChange={(next) => updatePax("package", p.id, next)}
+                  />
+                )}
+              </div>
+            );
+          })}
+        </fieldset>
+      </section>
 
-      <div className="border-t pt-3">
-        <Stepper id="adults" label="Adults" value={value.participants.adult} onChange={setCount("adult")} />
-        <Stepper
-          id="children"
-          label="Children"
-          hint="(2–11)"
-          value={value.participants.child}
-          onChange={setCount("child")}
-        />
-        <Stepper
-          id="infants"
-          label="Infants"
-          hint="(under 2)"
-          value={value.participants.infant}
-          onChange={setCount("infant")}
-        />
-      </div>
-    </>
+      <section aria-labelledby="standalone-activities-heading" className="flex flex-col gap-3 border-t pt-5">
+        <h3 id="standalone-activities-heading" className="font-semibold">
+          Standalone Activities
+        </h3>
+        <div className="flex items-end gap-2">
+          <div className="flex flex-1 flex-col gap-2">
+            <Label htmlFor="add-activity">Choose an activity or variant</Label>
+            <select
+              id="add-activity"
+              className="border-input bg-card min-h-11 rounded-md border px-3"
+              value={adding}
+              onChange={(e) => setAdding(e.target.value)}
+            >
+              <option value="">Choose an activity…</option>
+              {activities
+                .filter((a) => !value.activityIds.includes(a.id))
+                .map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.name}
+                  </option>
+                ))}
+            </select>
+          </div>
+          <Button type="button" variant="outline" disabled={!adding} onClick={() => addActivity(adding)}>
+            <PlusIcon /> Add
+          </Button>
+        </div>
+        {value.activityIds.length > 0 ? (
+          <ul className="flex flex-col gap-3">
+            {value.activityIds.map((id) => {
+              const activity = byActivity.get(id);
+              return (
+                <li key={id} className="rounded-md border p-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="font-semibold">{activity?.name ?? "Activity no longer on sale"}</span>
+                    {activity && activity.participants_per_unit > 1 && (
+                      <span className="text-muted-foreground text-sm">
+                        {activity.participants_per_unit} participants per unit
+                      </span>
+                    )}
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      aria-label={`Remove ${activity?.name ?? "activity"}`}
+                      onClick={() => removeActivity(id)}
+                    >
+                      <XIcon />
+                    </Button>
+                  </div>
+                  <PaxCounts
+                    prefix={`activity-${id}`}
+                    value={value.activityParticipants[id] ?? EMPTY_PARTICIPANTS}
+                    onChange={(next) => updatePax("activity", id, next)}
+                  />
+                </li>
+              );
+            })}
+          </ul>
+        ) : (
+          <p className="text-muted-foreground text-sm">No standalone activities selected.</p>
+        )}
+      </section>
+
+      <section aria-labelledby="booking-participants-heading" className="border-t pt-4">
+        <h3 id="booking-participants-heading" className="font-semibold">
+          People on this booking
+        </h3>
+        <p className="text-muted-foreground text-sm">
+          This is the guest count for waivers and boat capacity. New items use these counts by default; set pax
+          separately on each purchased item above.
+        </p>
+        {TYPES.map((type) => (
+          <Stepper
+            key={type}
+            id={type === "adult" ? "adults" : type === "child" ? "children" : "infants"}
+            label={type === "adult" ? "Adults" : type === "child" ? "Children" : "Infants"}
+            hint={type === "child" ? "(2–11)" : type === "infant" ? "(under 2)" : undefined}
+            value={value.participants[type]}
+            onChange={setBookingCount(type)}
+          />
+        ))}
+      </section>
+    </div>
   );
 }

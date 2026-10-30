@@ -19,7 +19,11 @@ export default async function EditPackagePage({ params }: { params: Promise<{ id
       )
       .eq("id", id)
       .maybeSingle(),
-    supabase.from("activities").select("id, code, name, is_active").order("sort_order").order("name"),
+    supabase
+      .from("activities")
+      .select("id, code, name, is_active, participants_per_unit")
+      .order("sort_order")
+      .order("name"),
   ]);
   if (!pkg) notFound();
 

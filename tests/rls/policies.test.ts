@@ -262,8 +262,16 @@ describe("booking waivers", () => {
         })
         .select(),
     );
-    expectRefused(await admin.client.from("booking_waivers").update({ participant_name: "Changed" }).select());
-    expectRefused(await admin.client.from("booking_waivers").delete().select());
+    expectRefused(
+      await admin.client
+        .from("booking_waivers")
+        .update({ participant_name: "Changed" })
+        .eq("id", "00000000-0000-0000-0000-000000000000")
+        .select(),
+    );
+    expectRefused(
+      await admin.client.from("booking_waivers").delete().eq("id", "00000000-0000-0000-0000-000000000000").select(),
+    );
   });
 
   it("an accountant cannot issue a public waiver link", async () => {

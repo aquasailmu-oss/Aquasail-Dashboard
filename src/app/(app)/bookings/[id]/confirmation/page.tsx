@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PayerBanner } from "@/components/shared/payer-banner";
+import { WaiverManager } from "@/components/waivers/waiver-manager";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { requireRole } from "@/lib/auth";
@@ -20,7 +21,7 @@ export default async function ConfirmationPage({ params }: { params: Promise<{ i
   const { data: b } = await supabase
     .from("bookings")
     .select(
-      "id, reference, service_date, departure_time, charged_total_cents, payer, clients(first_name, last_name), tour_operators(name), payments(amount_cents), tickets(token)",
+      "id, reference, service_date, departure_time, charged_total_cents, payer, clients(first_name, last_name), tour_operators(name), payments(amount_cents), tickets(token), booking_participants(participant_type, count), booking_waivers(id, participant_type, participant_name, signer_name, signer_relationship, signed_at)",
     )
     .eq("id", id)
     .maybeSingle();
@@ -29,59 +30,74 @@ export default async function ConfirmationPage({ params }: { params: Promise<{ i
   const due = b.charged_total_cents - paid;
 
   return (
-    <Card className="mx-auto max-w-2xl">
-      <CardContent className="flex flex-col items-center gap-5 pt-8 text-center">
-        <CircleCheckBigIcon className="text-success size-14" aria-hidden />
-        <div>
-          <h1 className="font-display text-2xl font-semibold">Booking created</h1>
-          <p className="text-muted-foreground">
-            {b.clients?.first_name} {b.clients?.last_name} · {formatDateLong(b.service_date)}
-            {b.departure_time && ` · ${formatTime(b.departure_time)}`}
-          </p>
-        </div>
-        <div className="font-mono text-4xl font-semibold tracking-wide" data-testid="booking-reference">
-          {b.reference}
-        </div>
-        <div className="text-lg">
-          Total <span className="font-semibold">{formatRs(cents(b.charged_total_cents))}</span>
-          {b.payer === "client" && (
-            <>
-              {" · "}
-              {due <= 0 ? (
-                <span className="text-success font-semibold">Paid</span>
-              ) : (
-                <span className="text-warning font-semibold">Balance due {formatRs(cents(due))}</span>
-              )}
-            </>
+    <>
+      <Card className="mx-auto max-w-2xl">
+        <CardContent className="flex flex-col items-center gap-5 pt-8 text-center">
+          <CircleCheckBigIcon className="text-success size-14" aria-hidden />
+          <div>
+            <h1 className="font-display text-2xl font-semibold">Booking created</h1>
+            <p className="text-muted-foreground">
+              {b.clients?.first_name} {b.clients?.last_name} · {formatDateLong(b.service_date)}
+              {b.departure_time && ` · ${formatTime(b.departure_time)}`}
+            </p>
+          </div>
+          <div className="font-mono text-4xl font-semibold tracking-wide" data-testid="booking-reference">
+            {b.reference}
+          </div>
+          <div className="text-lg">
+            Total <span className="font-semibold">{formatRs(cents(b.charged_total_cents))}</span>
+            {b.payer === "client" && (
+              <>
+                {" · "}
+                {due <= 0 ? (
+                  <span className="text-success font-semibold">Paid</span>
+                ) : (
+                  <span className="text-warning font-semibold">Balance due {formatRs(cents(due))}</span>
+                )}
+              </>
+            )}
+          </div>
+          {b.payer === "operator" && b.tour_operators && (
+            <PayerBanner operatorName={b.tour_operators.name} payer="operator" />
           )}
-        </div>
-        {b.payer === "operator" && b.tour_operators && (
-          <PayerBanner operatorName={b.tour_operators.name} payer="operator" />
-        )}
-        <div className="flex w-full flex-wrap justify-center gap-3">
-          <Button asChild size="lg" autoFocus>
-            <Link href="/bookings/new">
-              <PlusIcon /> New booking
-            </Link>
-          </Button>
-          {b.tickets && (
-            <Button asChild size="lg" variant="outline">
-              <Link href={`/tickets/${b.tickets.token}?print=1`}>Print ticket</Link>
+          <div className="flex w-full flex-wrap justify-center gap-3">
+            <Button asChild size="lg" autoFocus>
+              <Link href="/bookings/new">
+                <PlusIcon /> New booking
+              </Link>
             </Button>
-          )}
-          <Button asChild size="lg" variant="outline">
-            <Link href={`/bookings/${b.id}`}>View booking</Link>
-          </Button>
-        </div>
-        <div className="flex flex-wrap justify-center gap-3">
-          <Button type="button" variant="ghost" disabled title="Available in V2">
-            <MessageCircleIcon /> Send WhatsApp <span className="text-xs">(V2)</span>
-          </Button>
-          <Button type="button" variant="ghost" disabled title="Available in V2">
-            <MailIcon /> Send email <span className="text-xs">(V2)</span>
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
+            {b.tickets && (
+              <Button asChild size="lg" variant="outline">
+                <Link href={`/tickets/${b.tickets.token}?print=1`}>Print ticket</Link>
+              </Button>
+            )}
+            <Button asChild size="lg" variant="outline">
+              <Link href={`/bookings/${b.id}`}>View booking</Link>
+            </Button>
+          </div>
+          <div className="flex flex-wrap justify-center gap-3">
+            <Button type="button" variant="ghost" disabled title="Available in V2">
+              <MessageCircleIcon /> Send WhatsApp <span className="text-xs">(V2)</span>
+            </Button>
+            <Button type="button" variant="ghost" disabled title="Available in V2">
+              <MailIcon /> Send email <span className="text-xs">(V2)</span>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+      <div className="mx-auto mt-6 max-w-2xl">
+        <WaiverManager
+          bookingId={b.id}
+          serviceDate={b.service_date}
+          required={{
+            adult: b.booking_participants.find((p) => p.participant_type === "adult")?.count ?? 0,
+            child: b.booking_participants.find((p) => p.participant_type === "child")?.count ?? 0,
+            infant: b.booking_participants.find((p) => p.participant_type === "infant")?.count ?? 0,
+          }}
+          signers={b.booking_waivers}
+          canManage
+        />
+      </div>
+    </>
   );
 }

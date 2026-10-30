@@ -24,7 +24,7 @@ for (const width of [768, 1024]) {
       ).toBeVisible();
       if (path === `/bookings/${booking.id}`) {
         await page.getByRole("link", { name: "Print ticket" }).click();
-        await expect(page.getByTestId("ticket-acknowledgement")).toContainText("UNSIGNED");
+        await expect(page.getByTestId("ticket-acknowledgement")).toContainText(/\d+ of \d+ participant waivers signed/);
         await page.goBack();
       }
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);

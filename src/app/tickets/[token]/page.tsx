@@ -119,28 +119,38 @@ export default async function TicketPage({
         </section>
 
         <section className="border-t border-black pt-3" data-testid="ticket-acknowledgement">
-          <h2 className="text-xs font-semibold tracking-wide uppercase">Customer disclaimer</h2>
-          <p className="mt-1 text-xs whitespace-pre-wrap">{t.disclaimerText}</p>
           {t.signatureData && t.signerName && t.signedAt ? (
-            <div className="mt-2 flex items-end justify-between gap-4">
-              <div>
-                {/* Signature image is captured locally and saved with this ticket. */}
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={t.signatureData}
-                  alt={`Signature of ${t.signerName}`}
-                  className="h-12 max-w-48 object-contain"
-                />
-                <p className="text-xs">
-                  Signed by {t.signerName} · {formatDateTime(t.signedAt)}
-                </p>
+            <>
+              <h2 className="text-xs font-semibold tracking-wide uppercase">Legacy customer disclaimer</h2>
+              <p className="mt-1 text-xs whitespace-pre-wrap">{t.disclaimerText}</p>
+              <div className="mt-2 flex items-end justify-between gap-4">
+                <div>
+                  {/* Signature image is captured locally and saved with this ticket. */}
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={t.signatureData}
+                    alt={`Signature of ${t.signerName}`}
+                    className="h-12 max-w-48 object-contain"
+                  />
+                  <p className="text-xs">
+                    Signed by {t.signerName} · {formatDateTime(t.signedAt)}
+                  </p>
+                </div>
+                <span className="text-xs font-semibold">ACKNOWLEDGED</span>
               </div>
-              <span className="text-xs font-semibold">ACKNOWLEDGED</span>
-            </div>
+            </>
           ) : (
-            <p className="mt-2 border border-dashed border-black p-2 text-xs font-semibold">
-              UNSIGNED — customer acknowledgement pending
-            </p>
+            <>
+              <h2 className="text-xs font-semibold tracking-wide uppercase">Participant waivers</h2>
+              <p className="mt-1 text-xs font-semibold">
+                {t.waiverCount} of {t.requiredWaivers} participant waivers signed.
+              </p>
+              {t.waiverCount < t.requiredWaivers && (
+                <p className="mt-2 border border-dashed border-black p-2 text-xs font-semibold">
+                  OUTSTANDING — collect the remaining participant waivers before the activity.
+                </p>
+              )}
+            </>
           )}
         </section>
 

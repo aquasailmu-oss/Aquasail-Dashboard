@@ -48,7 +48,6 @@ export default async function NewBookingPage() {
         operators={operators.data.map((o) => ({ ...o, payer: o.payer as "client" | "operator" }))}
         boats={boats.data}
         defaultMeetingPoint={settings.default_meeting_point}
-        disclaimerText={settings.ticket_disclaimer_text}
         today={businessDate()}
       />
     </>

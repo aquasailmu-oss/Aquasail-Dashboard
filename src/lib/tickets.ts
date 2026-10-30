@@ -17,6 +17,8 @@ export type TicketData = {
   signatureData: string | null;
   signerName: string | null;
   signedAt: string | null;
+  waiverCount: number;
+  requiredWaivers: number;
   companyName: string;
   companyPhone: string;
   footer: string;
@@ -40,7 +42,7 @@ export async function getTicket(token: string): Promise<TicketData | null> {
     supabase
       .from("tickets")
       .select(
-        "token, printed_count, signature_data, signer_name, signed_at, disclaimer_text, bookings(id, reference, status, service_date, departure_time, meeting_point, clients(first_name, last_name), resources(name), booking_participants(participant_type, count), booking_items(sort_order, packages(name), activities(name)), booking_activities(quantity, activities(name, sort_order)))",
+        "token, printed_count, signature_data, signer_name, signed_at, disclaimer_text, bookings(id, reference, status, service_date, departure_time, meeting_point, clients(first_name, last_name), resources(name), booking_participants(participant_type, count), booking_waivers(id), booking_items(sort_order, packages(name), activities(name)), booking_activities(quantity, activities(name, sort_order)))",
       )
       .eq("token", token)
       .maybeSingle(),
@@ -57,6 +59,7 @@ export async function getTicket(token: string): Promise<TicketData | null> {
     })
     .filter(Boolean)
     .join(", ");
+  const requiredWaivers = b.booking_participants.reduce((sum, p) => sum + p.count, 0);
 
   const entitlements = new Map<string, { name: string; quantity: number; order: number }>();
   for (const e of b.booking_activities) {
@@ -80,6 +83,8 @@ export async function getTicket(token: string): Promise<TicketData | null> {
     signatureData: t.signature_data,
     signerName: t.signer_name,
     signedAt: t.signed_at,
+    waiverCount: b.booking_waivers.length,
+    requiredWaivers,
     companyName: settings.company_name,
     companyPhone: settings.company_phone,
     footer: settings.ticket_footer_text,

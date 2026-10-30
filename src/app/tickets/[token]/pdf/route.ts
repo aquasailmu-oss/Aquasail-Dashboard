@@ -134,24 +134,24 @@ export async function GET(_request: Request, { params }: { params: Promise<{ tok
   }
 
   y -= 6;
-  text(page, "CUSTOMER DISCLAIMER", M, y, 7, bold);
-  y -= 12;
-  const disclaimerLines = wrapText(t.disclaimerText, regular, 7, W - M * 2);
-  for (const line of disclaimerLines) {
-    if (y < M + 105) {
-      page = pdf.addPage(A5);
-      y = H - M;
-      text(page, "CUSTOMER DISCLAIMER (CONTINUED)", M, y, 7, bold);
-      y -= 16;
-    }
-    text(page, line, M, y, 7, regular);
-    y -= 9;
-  }
-  if (y < M + 70) {
-    page = pdf.addPage(A5);
-    y = H - M - 16;
-  }
   if (t.signatureData && t.signerName && t.signedAt) {
+    text(page, "LEGACY CUSTOMER DISCLAIMER", M, y, 7, bold);
+    y -= 12;
+    const disclaimerLines = wrapText(t.disclaimerText, regular, 7, W - M * 2);
+    for (const line of disclaimerLines) {
+      if (y < M + 105) {
+        page = pdf.addPage(A5);
+        y = H - M;
+        text(page, "CUSTOMER DISCLAIMER (CONTINUED)", M, y, 7, bold);
+        y -= 16;
+      }
+      text(page, line, M, y, 7, regular);
+      y -= 9;
+    }
+    if (y < M + 70) {
+      page = pdf.addPage(A5);
+      y = H - M - 16;
+    }
     const encoded = t.signatureData.split(",")[1];
     if (encoded) {
       const signature = await pdf.embedPng(Buffer.from(encoded, "base64"));
@@ -161,7 +161,12 @@ export async function GET(_request: Request, { params }: { params: Promise<{ tok
     }
     text(page, `Signed by ${t.signerName} · ${formatDateTime(t.signedAt)}`, M, y, 7, regular);
   } else {
-    text(page, "UNSIGNED - customer acknowledgement pending", M, y, 8, bold);
+    text(page, "PARTICIPANT WAIVERS", M, y, 7, bold);
+    y -= 14;
+    text(page, `${t.waiverCount} of ${t.requiredWaivers} participant waivers signed`, M, y, 8, bold);
+    y -= 12;
+    if (t.waiverCount < t.requiredWaivers)
+      text(page, "OUTSTANDING - collect remaining waivers before the activity", M, y, 7, bold);
   }
 
   // Reference and footer at the bottom.

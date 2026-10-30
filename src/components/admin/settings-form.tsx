@@ -75,8 +75,8 @@ export function SettingsForm({ settings }: { settings: EditableSettings }) {
           </Field>
           <Field
             id="ticket_disclaimer_text"
-            label="Customer disclaimer"
-            hint="Shown on tickets and accepted when the customer signs. Replace the marked placeholder with approved wording."
+            label="Participant waiver wording"
+            hint="Saved with every participant's signature. Replace the marked placeholder with company-approved wording; waiver links cannot be issued while the placeholder remains."
           >
             <Textarea
               id="ticket_disclaimer_text"

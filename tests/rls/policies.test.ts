@@ -238,6 +238,43 @@ describe("anonymous", () => {
   it.each(ALL_TABLES)("reads nothing from %s", async (table: TableName) => {
     expectRefused(await anon.from(table).select("*"));
   });
+
+  it("cannot resolve a waiver with a guessed token", async () => {
+    const res = await anon.rpc("get_booking_waiver", { p_token: "A".repeat(43) });
+    expect(res.error).toBeNull();
+    expect(res.data).toEqual({ valid: false });
+  });
+});
+
+describe("booking waivers", () => {
+  it("cannot be inserted, changed, or deleted directly by staff", async () => {
+    expectRefused(
+      await receptionist.client
+        .from("booking_waivers")
+        .insert({
+          booking_id: fx.todayBooking.id,
+          participant_type: "adult",
+          participant_name: "Unauthorised",
+          signer_name: "Unauthorised",
+          signer_relationship: "self",
+          signature_data: "data:image/png;base64,AA==",
+          disclaimer_text: "test",
+        })
+        .select(),
+    );
+    expectRefused(await admin.client.from("booking_waivers").update({ participant_name: "Changed" }).select());
+    expectRefused(await admin.client.from("booking_waivers").delete().select());
+  });
+
+  it("an accountant cannot issue a public waiver link", async () => {
+    expectRaised(
+      await accountant.client.rpc("create_booking_waiver_link", {
+        p_booking_id: fx.todayBooking.id,
+        p_token: "A".repeat(43),
+      }),
+      "Your role does not allow this.",
+    );
+  });
 });
 
 describe("booking references", () => {

@@ -48,14 +48,30 @@ export async function selectBookingOperator(page: Page) {
   await page.getByRole("radio", { name: /Sofitel Merville/ }).check();
 }
 
-export async function signAndAcknowledge(page: Page) {
-  const pad = await page.locator("#customer_signature").boundingBox();
+export async function signPublicWaiver(
+  page: Page,
+  url: string,
+  participantName: string,
+  type: "adult" | "child" | "infant" = "adult",
+) {
+  await page.goto(url);
+  await page.selectOption("#participant_type", type);
+  await page.fill("#participant_name", participantName);
+  if (type === "adult") {
+    await page.selectOption("#signer_relationship", "self");
+  } else {
+    await page.fill("#signer_name", "Guardian Test");
+    await page.getByRole("checkbox", { name: /I confirm I am this participant/ }).check();
+  }
+  await page.getByRole("checkbox", { name: /I have read the waiver above/ }).check();
+  const pad = await page.locator("#waiver_signature").boundingBox();
   expect(pad).not.toBeNull();
   await page.mouse.move(pad!.x + 20, pad!.y + pad!.height / 2);
   await page.mouse.down();
   await page.mouse.move(pad!.x + 160, pad!.y + pad!.height / 2, { steps: 8 });
   await page.mouse.up();
-  await page.getByRole("checkbox", { name: /I have read and agree/ }).check();
+  await page.getByRole("button", { name: "Sign and submit waiver" }).click();
+  await expect(page.getByText("Your waiver has been saved.")).toBeVisible();
 }
 
 /** The live quote total once it has settled. */

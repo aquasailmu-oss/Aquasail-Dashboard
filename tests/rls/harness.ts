@@ -147,6 +147,8 @@ const TABLES: Record<TableName, true> = {
   booking_activities: true,
   booking_items: true,
   booking_participants: true,
+  booking_waiver_links: true,
+  booking_waivers: true,
   booking_sequences: true,
   bookings: true,
   clients: true,

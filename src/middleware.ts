@@ -2,7 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { supabaseAnonKey, supabaseUrl } from "@/lib/supabase/env";
 
-const PUBLIC_PATHS = ["/login", "/auth/", "/api/health"];
+const PUBLIC_PATHS = ["/login", "/auth/", "/api/health", "/waiver/"];
 
 /**
  * Refreshes the Supabase session cookie on every request and sends anyone
@@ -40,6 +40,13 @@ export async function middleware(request: NextRequest) {
     // Keep any cookies the refresh just set (e.g. clearing an expired session).
     response.cookies.getAll().forEach((cookie) => redirect.cookies.set(cookie));
     return redirect;
+  }
+
+  if (pathname.startsWith("/waiver/")) {
+    response.headers.set("Cache-Control", "private, no-store, max-age=0");
+    response.headers.set("Referrer-Policy", "no-referrer");
+    response.headers.set("X-Robots-Tag", "noindex, nofollow, noarchive");
+    response.headers.set("X-Frame-Options", "DENY");
   }
 
   return response;

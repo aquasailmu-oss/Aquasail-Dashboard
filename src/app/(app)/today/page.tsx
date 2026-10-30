@@ -53,7 +53,7 @@ export default async function TodayPage() {
   const { start, end } = businessDayBounds(today);
   const supabase = await createClient();
 
-  const [bookings, cash, entitlements, boats] = await Promise.all([
+  const [bookings, cash, entitlements, boats, waiverRows] = await Promise.all([
     supabase
       .from("booking_register")
       .select(
@@ -75,8 +75,9 @@ export default async function TodayPage() {
       .eq("bookings.service_date", today)
       .neq("bookings.status", "cancelled"),
     supabase.from("resources").select("id, name, capacity").eq("is_active", true).order("sort_order"),
+    supabase.from("bookings").select("id, booking_participants(count), booking_waivers(id)").eq("service_date", today),
   ]);
-  if (bookings.error || cash.error || entitlements.error || boats.error) {
+  if (bookings.error || cash.error || entitlements.error || boats.error || waiverRows.error) {
     return (
       <Alert variant="destructive">Today&rsquo;s figures could not be loaded. Refresh the page to try again.</Alert>
     );
@@ -89,6 +90,15 @@ export default async function TodayPage() {
   const onAccount = live.filter((b) => b.payer === "operator");
   const receivable = onAccount.reduce((s, b) => s + b.charged_total_cents, 0);
   const cashIn = cash.data.reduce((s, p) => s + p.amount_cents, 0);
+  const waiverStatus = new Map(
+    waiverRows.data.map((b) => [
+      b.id,
+      {
+        required: b.booking_participants.reduce((sum, p) => sum + p.count, 0),
+        signed: b.booking_waivers.length,
+      },
+    ]),
+  );
 
   const byActivity = new Map<string, { name: string; order: number; count: number }>();
   for (const e of entitlements.data) {
@@ -152,6 +162,7 @@ export default async function TodayPage() {
                   <TableHead>Client</TableHead>
                   <TableHead>Booked</TableHead>
                   <TableHead className="text-right">People</TableHead>
+                  <TableHead>Waivers</TableHead>
                   <TableHead className="text-right">Total</TableHead>
                   <TableHead>Payment</TableHead>
                   <TableHead>Source</TableHead>
@@ -177,6 +188,22 @@ export default async function TodayPage() {
                     <TableCell>{b.client_name}</TableCell>
                     <TableCell>{b.summary}</TableCell>
                     <TableCell className="text-right tabular-nums">{b.people}</TableCell>
+                    <TableCell>
+                      {(() => {
+                        const status = waiverStatus.get(b.id) ?? { required: b.people, signed: 0 };
+                        const complete = status.signed >= status.required;
+                        return (
+                          <span
+                            className={cn(
+                              "text-sm font-semibold whitespace-nowrap",
+                              complete ? "text-success" : "text-warning",
+                            )}
+                          >
+                            {status.signed}/{status.required} signed
+                          </span>
+                        );
+                      })()}
+                    </TableCell>
                     <TableCell className="text-right whitespace-nowrap tabular-nums">
                       {formatRs(cents(b.charged_total_cents))}
                     </TableCell>

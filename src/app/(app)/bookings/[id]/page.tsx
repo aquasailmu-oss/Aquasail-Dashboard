@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CancelBookingDialog, CorrectPaymentDialog, RecordPaymentDialog } from "@/components/booking/booking-dialogs";
+import { WaiverManager } from "@/components/waivers/waiver-manager";
 import { BookingStatusBadge } from "@/components/shared/booking-status-badge";
 import { PayerBanner } from "@/components/shared/payer-banner";
 import { Alert } from "@/components/ui/alert";
@@ -43,7 +44,7 @@ export default async function BookingPage({
   const { data: b } = await supabase
     .from("bookings")
     .select(
-      "*, clients(id, first_name, last_name, phone_e164, email), tour_operators(name, settlement_model), resources(name), booking_items(*, packages(name), activities(name)), booking_participants(participant_type, count), booking_activities(id, quantity, activities(name, sort_order)), payments(*), tickets(token, printed_count)",
+      "*, clients(id, first_name, last_name, phone_e164, email), tour_operators(name, settlement_model), resources(name), booking_items(*, packages(name), activities(name)), booking_participants(participant_type, count), booking_activities(id, quantity, activities(name, sort_order)), payments(*), tickets(token, printed_count), booking_waivers(id, participant_type, participant_name, signer_name, signer_relationship, signed_at)",
     )
     .eq("id", id)
     .maybeSingle();
@@ -179,6 +180,18 @@ export default async function BookingPage({
           </CardContent>
         </Card>
       </div>
+
+      <WaiverManager
+        bookingId={b.id}
+        serviceDate={b.service_date}
+        required={{
+          adult: b.booking_participants.find((p) => p.participant_type === "adult")?.count ?? 0,
+          child: b.booking_participants.find((p) => p.participant_type === "child")?.count ?? 0,
+          infant: b.booking_participants.find((p) => p.participant_type === "infant")?.count ?? 0,
+        }}
+        signers={b.booking_waivers}
+        canManage={canWrite && !cancelled && (user.role === "admin" || user.role === "receptionist")}
+      />
 
       <h2 className="font-display mt-8 mb-3 text-xl font-semibold">Lines</h2>
       <Card className="overflow-x-auto">

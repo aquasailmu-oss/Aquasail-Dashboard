@@ -6,7 +6,7 @@ import {
   login,
   logout,
   selectBookingOperator,
-  signAndAcknowledge,
+  signPublicWaiver,
   stubPrint,
   tag,
   today,
@@ -27,6 +27,10 @@ const rs = (c: number) => `Rs ${(c / 100).toLocaleString("en-US", { maximumFract
 
 test("signed operator booking: 4 adults, catamaran + lunch, cash, ticket, on Today", async ({ page }) => {
   const name = `Walkin${tag()}`;
+  await db.from("app_settings").upsert({
+    key: "ticket_disclaimer_text",
+    value: "Test waiver wording: I understand the activity risks and agree to participate.",
+  });
   await stubPrint(page);
   await login(page, "receptionist");
   const cashBefore = await cashToday();
@@ -45,9 +49,6 @@ test("signed operator booking: 4 adults, catamaran + lunch, cash, ticket, on Tod
   await page.focus("#adults");
   await page.keyboard.type("4");
   await expectTotal(page, "Rs 12,800");
-  await expect(page.getByRole("checkbox", { name: /I have read and agree/ })).toBeDisabled();
-  await expect(page.getByRole("button", { name: "Create booking" })).toBeDisabled();
-  await signAndAcknowledge(page);
   await expect(page.getByRole("button", { name: "Create booking" })).toBeEnabled();
   await page.focus("input[name=boat]");
   await page.keyboard.press("Space");
@@ -64,22 +65,28 @@ test("signed operator booking: 4 adults, catamaran + lunch, cash, ticket, on Tod
     "LUNCH×4",
     "SNORKEL×4",
   ]);
-  const { data: savedTicket } = await db
-    .from("tickets")
-    .select("signature_data, signer_name, signed_at, disclaimer_text")
-    .eq("booking_id", booking!.id)
-    .single();
-  expect(savedTicket?.signature_data).toMatch(/^data:image\/png;base64,/);
-  expect(savedTicket?.signer_name).toBe(`Anna ${name}`);
-  expect(savedTicket?.signed_at).toBeTruthy();
-  expect(savedTicket?.disclaimer_text).toContain("DISCLAIMER PLACEHOLDER");
+  await page.getByRole("button", { name: /Generate waiver QR/ }).click();
+  const waiverUrl = await page.getByRole("textbox", { name: "Booking waiver link" }).inputValue();
+  expect(waiverUrl).toMatch(/\/waiver\/[A-Za-z0-9_-]{43}$/);
+  await expect(page.getByRole("img", { name: "Booking waiver QR code" })).toBeVisible();
+  const guestContext = await page.context().browser()!.newContext();
+  const guestPage = await guestContext.newPage();
+  for (let i = 1; i <= 4; i++) await signPublicWaiver(guestPage, waiverUrl, `Guest ${i} ${name}`);
+  await expect(guestPage.getByText("All participants on this booking have signed.")).toBeVisible();
+  await guestContext.close();
+  const { data: savedWaivers } = await db
+    .from("booking_waivers")
+    .select("participant_name, signer_name, participant_type, disclaimer_text")
+    .eq("booking_id", booking!.id);
+  expect(savedWaivers).toHaveLength(4);
+  expect(savedWaivers?.every((w) => w.participant_type === "adult" && w.signer_name === w.participant_name)).toBe(true);
+  expect(savedWaivers?.every((w) => w.disclaimer_text.includes("Test waiver wording"))).toBe(true);
 
   await page.getByRole("link", { name: "Print ticket" }).click();
   await page.waitForURL(/\/tickets\/[0-9a-f]{32}\?print=1$/);
   await expect(page.getByText("Printed 1 time")).toBeVisible();
   await expect(page.getByTestId("ticket-reference")).toHaveText(reference);
-  await expect(page.getByTestId("ticket-acknowledgement")).toContainText(`Signed by Anna ${name}`);
-  await expect(page.getByTestId("ticket-acknowledgement")).toContainText("DISCLAIMER PLACEHOLDER");
+  await expect(page.getByTestId("ticket-acknowledgement")).toContainText("4 of 4 participant waivers signed");
   const token = page.url().match(/\/tickets\/([0-9a-f]{32})/)?.[1];
   expect(token).toBeTruthy();
   const ticketPdf = await page.request.get(`/tickets/${token}/pdf`);
@@ -96,7 +103,7 @@ test("signed operator booking: 4 adults, catamaran + lunch, cash, ticket, on Tod
   await logout(page);
 });
 
-test("an unsigned pre-book can be saved and its ticket is clearly marked unsigned", async ({ page }) => {
+test("a pre-book can be saved and its ticket shows the waiver count", async ({ page }) => {
   await login(page, "receptionist");
   await page.goto("/bookings/new");
   await selectBookingOperator(page);
@@ -104,7 +111,6 @@ test("an unsigned pre-book can be saved and its ticket is clearly marked unsigne
   await page.getByText("Sunset Cruise", { exact: true }).click();
   await expectTotal(page, "Rs 2,100");
   await page.selectOption("#method", "pre_book");
-  await expect(page.getByRole("checkbox", { name: /I have read and agree/ })).toBeDisabled();
   await page.getByRole("button", { name: "Create booking" }).click();
   await page.waitForURL(/\/confirmation$/);
 
@@ -112,7 +118,44 @@ test("an unsigned pre-book can be saved and its ticket is clearly marked unsigne
   const booking = await bookingByReference(reference);
   expect(booking?.payments).toEqual([]);
   await page.getByRole("link", { name: "Print ticket" }).click();
-  await expect(page.getByTestId("ticket-acknowledgement")).toContainText("UNSIGNED");
+  await expect(page.getByTestId("ticket-acknowledgement")).toContainText("0 of 1 participant waivers signed");
+  await logout(page);
+});
+
+test("a booking QR records individual adult and guardian signatures and caps the party count", async ({ page }) => {
+  await db
+    .from("app_settings")
+    .upsert({ key: "ticket_disclaimer_text", value: "Test waiver wording for adults and minors." });
+  await login(page, "receptionist");
+  await page.goto("/bookings/new");
+  await selectBookingOperator(page);
+  await page.fill("#first_name", `Group${tag()}`);
+  await page.getByText("Sunset Cruise", { exact: true }).click();
+  await page.fill("#adults", "1");
+  await page.fill("#children", "1");
+  await page.getByRole("button", { name: "Create booking" }).click();
+  await page.waitForURL(/\/confirmation$/);
+  await page.getByRole("button", { name: /Generate waiver QR/ }).click();
+  const waiverUrl = await page.getByRole("textbox", { name: "Booking waiver link" }).inputValue();
+  const guestContext = await page.context().browser()!.newContext();
+  const guestPage = await guestContext.newPage();
+  await signPublicWaiver(guestPage, waiverUrl, `Adult ${tag()}`);
+  await signPublicWaiver(guestPage, waiverUrl, `Child ${tag()}`, "child");
+  await expect(guestPage.getByText("All participants on this booking have signed.")).toBeVisible();
+  await expect(guestPage.getByRole("button", { name: "Sign and submit waiver" })).toHaveCount(0);
+  const reference = (await page.getByTestId("booking-reference").textContent())!.trim();
+  const booking = await bookingByReference(reference);
+  const { data: waivers } = await db
+    .from("booking_waivers")
+    .select("participant_type, signer_relationship, guardian_authority_confirmed")
+    .eq("booking_id", booking!.id);
+  expect(waivers).toHaveLength(2);
+  expect(
+    waivers?.some(
+      (w) => w.participant_type === "child" && w.signer_relationship === "parent" && w.guardian_authority_confirmed,
+    ),
+  ).toBe(true);
+  await guestContext.close();
   await logout(page);
 });
 
@@ -137,7 +180,6 @@ test("discount cap: reception refused at 30%, admin allowed with the reason stor
   await page.fill("#discount_value", "30");
   await page.fill("#discount_reason", "Friend of the owner");
   await expectTotal(page, "Rs 2,380");
-  await signAndAcknowledge(page);
   await page.keyboard.press("Control+Enter");
   await page.waitForURL(/\/confirmation$/);
   const booking = await bookingByReference((await page.getByTestId("booking-reference").textContent())!.trim());
@@ -156,7 +198,6 @@ test("idempotency: submitting twice rapidly creates one booking", async ({ page 
   await page.fill("#last_name", last);
   await page.getByText("Adrenaline Combo", { exact: true }).click();
   await expectTotal(page, "Rs 3,400");
-  await signAndAcknowledge(page);
   await page.keyboard.press("Control+Enter");
   await page.keyboard.press("Control+Enter");
   await page

@@ -68,7 +68,7 @@ select throws_ok(
 select throws_ok(
   $$select public.save_package('{"code":"T_Q","name":"X","pricing_mode":"bundle","activities":[
      {"activity_id":"00000000-0000-0000-0000-00000000ac01","quantity_per_participant":0}]}')$$,
-  'P0001', 'Each activity needs a quantity of at least 1 per participant.', 'quantities are at least 1');
+  'P0001', 'Each included activity needs a quantity of at least 1 per package unit.', 'quantities are at least 1 per package unit');
 
 select throws_ok(
   $$update public.activities set code = 'T_RENAMED' where id = '00000000-0000-0000-0000-00000000ac01'$$,

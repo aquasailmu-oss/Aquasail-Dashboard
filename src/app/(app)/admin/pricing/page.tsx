@@ -45,7 +45,7 @@ export default async function PricingPage({
     supabase.from("activities").select("id, name").eq("is_active", true).order("sort_order").order("name"),
     supabase
       .from("packages")
-      .select("id, name")
+      .select("id, name, sale_unit, participants_per_unit")
       .eq("is_active", true)
       .eq("pricing_mode", "bundle")
       .order("sort_order")
@@ -69,7 +69,13 @@ export default async function PricingPage({
 
   const rows: PricingRow[] = [
     ...activities.data.map((a) => ({ scope: "activity" as const, id: a.id, name: a.name })),
-    ...packages.data.map((p) => ({ scope: "package" as const, id: p.id, name: p.name })),
+    ...packages.data.map((p) => ({
+      scope: "package" as const,
+      id: p.id,
+      name: p.name,
+      saleUnit: p.sale_unit as "participant" | "package",
+      participantsPerUnit: p.participants_per_unit,
+    })),
   ];
   const columns: PricingColumn[] = [
     { operatorId: null, name: "Walk-in", model: null, defaultRate: null },
@@ -107,7 +113,7 @@ export default async function PricingPage({
         description="Prices are never overwritten: a change closes the current price and starts a new one on a date you choose."
       />
       <div className="mb-4 flex flex-wrap items-end justify-between gap-4">
-        <nav aria-label="Participant type" className="bg-secondary flex gap-1 rounded-md p-1">
+        <nav aria-label="Rate category" className="bg-secondary flex gap-1 rounded-md p-1">
           {TYPES.map((t) => (
             <Link
               key={t.value}

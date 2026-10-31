@@ -7,15 +7,16 @@ import { findSimilarClients, type ClientMatch } from "@/actions/clients";
 import { getQuote } from "@/actions/quotes";
 import { BoatPicker, type Boat } from "@/components/booking/boat-picker";
 import { QuotePanel } from "@/components/booking/quote-panel";
+import { PurchasePicker } from "@/components/booking/purchase-picker";
 import {
-  PurchasePicker,
   partySize,
+  minimumPartySize,
   purchaseLines,
   purchaseNeedsBoat,
   type Purchase,
   type WizardActivity,
   type WizardPackage,
-} from "@/components/booking/purchase-picker";
+} from "@/components/booking/purchase-utils";
 import { ClientMatchBanner } from "@/components/clients/client-match-banner";
 import { PayerBanner } from "@/components/shared/payer-banner";
 import { Alert } from "@/components/ui/alert";
@@ -240,6 +241,9 @@ export function BookingWizard({
     if (!chosenClient && !client.first_name.trim()) return "Enter the client's first name.";
     if (!operatorId) return "Choose a tour operator before creating the booking.";
     if (size === 0) return "Add at least one person to the booking.";
+    if (size < minimumPartySize(purchase, packages)) {
+      return `The selected package and activity units cover at least ${minimumPartySize(purchase, packages)} people. Update the booking guest count.`;
+    }
     if (lines.length === 0) return "Choose a package or activity and enter its pax.";
     if (quoteError) return quoteError;
     if (!quote || quoteStale) return "Working out the price…";
@@ -661,6 +665,7 @@ export function BookingWizard({
               stale={quoteStale}
               empty={lines.length === 0}
               changeDue={changeDue}
+              packages={packages}
             />
             {submitError && <Alert variant="destructive">{submitError}</Alert>}
             {blocker && !quoteError && lines.length > 0 && <p className="text-muted-foreground text-sm">{blocker}</p>}

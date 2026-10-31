@@ -57,13 +57,17 @@ export function PriceDialog({
   const newRetail = tryRupees(retail);
   const validFrom = parseDateInput(from);
   const audience = column.operatorId ? column.name : "walk-in";
+  const priceBasis =
+    row.scope === "package" && row.saleUnit === "package"
+      ? `per package unit (covers ${row.participantsPerUnit ?? 1} people)`
+      : "per person";
   const sentence =
     newRetail !== null && validFrom
       ? `${row.name}, ${TYPE_LABEL[participantType]}, ${audience}: ` +
         (open && open.from < validFrom
           ? `${formatRs(open.retail)} until ${formatDateShort(addDays(validFrom, -1))}, then `
           : "") +
-        `${formatRs(cents(newRetail))} from ${formatDateShort(validFrom)}.`
+        `${formatRs(cents(newRetail))} ${priceBasis} from ${formatDateShort(validFrom)}.`
       : null;
 
   function save(event: React.FormEvent) {
@@ -95,8 +99,8 @@ export function PriceDialog({
           </DialogTitle>
           <DialogDescription>
             {open
-              ? `Current price ${formatRs(open.retail)} since ${formatDateShort(open.from)}.`
-              : "No price is set yet."}{" "}
+              ? `Current price ${formatRs(open.retail)} ${priceBasis} since ${formatDateShort(open.from)}.`
+              : `No ${priceBasis} is set yet.`}{" "}
             The current price is closed and a new one starts; nothing is overwritten.
           </DialogDescription>
         </DialogHeader>
@@ -104,7 +108,7 @@ export function PriceDialog({
           {error && <Alert variant="destructive">{error}</Alert>}
           <div className="grid gap-5 sm:grid-cols-2">
             <div className="flex flex-col gap-2">
-              <Label htmlFor="retail">Retail price (Rs)</Label>
+              <Label htmlFor="retail">Retail price (Rs, {priceBasis})</Label>
               <Input
                 id="retail"
                 inputMode="decimal"

@@ -24,7 +24,7 @@ export default async function PackagesPage() {
     supabase
       .from("packages")
       .select(
-        "id, code, name, pricing_mode, is_active, package_activities(activity_id, quantity_per_participant, is_optional, sort_order, activities(name))",
+        "id, code, name, pricing_mode, sale_unit, participants_per_unit, is_active, package_activities(activity_id, quantity_per_participant, is_optional, sort_order, activities(name))",
       )
       .order("is_active", { ascending: false })
       .order("sort_order")
@@ -48,7 +48,7 @@ export default async function PackagesPage() {
     <>
       <PageHeader
         title="Packages"
-        description="What reception sells as a set. Built from activities; priced as a bundle or as the sum of its activities."
+        description="Configure what one package unit covers, what activities it includes, and how its price is calculated."
         actions={
           <Button asChild>
             <Link href="/admin/packages/new">
@@ -69,9 +69,10 @@ export default async function PackagesPage() {
               <TableRow>
                 <TableHead>Code</TableHead>
                 <TableHead>Name</TableHead>
+                <TableHead>Sold as</TableHead>
                 <TableHead>Priced as</TableHead>
                 <TableHead>Includes</TableHead>
-                <TableHead className="text-right">Walk-in adult today</TableHead>
+                <TableHead className="text-right">Walk-in adult rate today</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>
                   <span className="sr-only">Actions</span>
@@ -85,6 +86,9 @@ export default async function PackagesPage() {
                   <TableRow key={p.id} className={p.is_active ? undefined : "text-muted-foreground"}>
                     <TableCell className="font-mono">{p.code}</TableCell>
                     <TableCell className="font-semibold">{p.name}</TableCell>
+                    <TableCell>
+                      {p.sale_unit === "package" ? `1 package unit · ${p.participants_per_unit} people` : "Per person"}
+                    </TableCell>
                     <TableCell>{p.pricing_mode === "bundle" ? "Package price" : "Sum of activities"}</TableCell>
                     <TableCell>
                       <div className="flex flex-wrap gap-1">
@@ -100,7 +104,16 @@ export default async function PackagesPage() {
                       </div>
                     </TableCell>
                     <TableCell className="text-right whitespace-nowrap tabular-nums">
-                      {price === null ? <Badge variant="warning">Not set</Badge> : formatRs(price)}
+                      {price === null ? (
+                        <Badge variant="warning">Not set</Badge>
+                      ) : (
+                        <>
+                          {formatRs(price)}
+                          <span className="text-muted-foreground block text-xs">
+                            per {p.sale_unit === "package" ? "package unit" : "person"}
+                          </span>
+                        </>
+                      )}
                     </TableCell>
                     <TableCell>
                       <Badge variant={p.is_active ? "success" : "secondary"}>

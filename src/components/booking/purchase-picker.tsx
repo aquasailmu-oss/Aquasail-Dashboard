@@ -6,79 +6,58 @@ import { Stepper } from "@/components/booking/stepper";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { formatRs, type Cents } from "@/lib/money";
-import type { QuoteLineInput } from "@/lib/pricing/types";
 import { cn } from "@/lib/utils";
-
-export type WizardPackage = {
-  id: string;
-  name: string;
-  description: string | null;
-  includes: string[];
-  codes: string[];
-};
-export type WizardActivity = { id: string; name: string; code: string; participants_per_unit: number };
-export type Participants = { adult: number; child: number; infant: number };
-export type Purchase = {
-  packageIds: string[];
-  activityIds: string[];
-  packageParticipants: Record<string, Participants>;
-  activityParticipants: Record<string, Participants>;
-  /** Booking headcount for waivers and boat capacity; distinct from purchased line pax. */
-  participants: Participants;
-};
+import { type Participants, type Purchase, type WizardActivity, type WizardPackage } from "./purchase-utils";
 
 const TYPES = ["adult", "child", "infant"] as const;
 const EMPTY_PARTICIPANTS: Participants = { adult: 0, child: 0, infant: 0 };
 
-export function purchaseLines(purchase: Purchase): QuoteLineInput[] {
-  const output: QuoteLineInput[] = [];
-  for (const [target_type, ids, counts] of [
-    ["package", purchase.packageIds, purchase.packageParticipants],
-    ["activity", purchase.activityIds, purchase.activityParticipants],
-  ] as const) {
-    for (const target_id of ids) {
-      for (const participant_type of TYPES) {
-        const quantity = counts[target_id]?.[participant_type] ?? 0;
-        if (quantity > 0) output.push({ target_type, target_id, participant_type, quantity });
-      }
+function growBookingParty(purchase: Purchase, packages: WizardPackage[]): Purchase {
+  const packageCounts = { adult: 0, child: 0, infant: 0 };
+  for (const id of purchase.packageIds) {
+    const pkg = packages.find((item) => item.id === id);
+    if (!pkg) continue;
+    for (const type of TYPES) {
+      packageCounts[type] = Math.max(
+        packageCounts[type],
+        (purchase.packageParticipants[id]?.[type] ?? 0) * pkg.participants_per_unit,
+      );
     }
   }
-  return output;
+  const activityCounts = { adult: 0, child: 0, infant: 0 };
+  for (const id of purchase.activityIds) {
+    for (const type of TYPES) {
+      activityCounts[type] = Math.max(activityCounts[type], purchase.activityParticipants[id]?.[type] ?? 0);
+    }
+  }
+  const participants = { ...purchase.participants };
+  for (const type of TYPES) {
+    participants[type] = Math.max(participants[type], packageCounts[type], activityCounts[type]);
+  }
+  return { ...purchase, participants };
 }
-
-/** Anything including the catamaran (directly or in a package) needs a boat. */
-export function purchaseNeedsBoat(
-  purchase: Purchase,
-  packages: WizardPackage[],
-  activities: WizardActivity[],
-): boolean {
-  return (
-    purchase.packageIds.some((id) => packages.find((p) => p.id === id)?.codes.includes("CATAMARAN")) ||
-    purchase.activityIds.some((id) => activities.find((a) => a.id === id)?.code === "CATAMARAN")
-  );
-}
-
-export const partySize = (p: Participants) => p.adult + p.child + p.infant;
 
 function PaxCounts({
   prefix,
   value,
+  heading,
+  labels,
   onChange,
 }: {
   prefix: string;
   value: Participants;
+  heading: string;
+  labels?: Partial<Record<keyof Participants, string>>;
   onChange: (next: Participants) => void;
 }) {
   return (
     <div className="border-t pt-2">
-      <p className="text-muted-foreground mb-1 text-xs font-semibold tracking-wide uppercase">
-        Participants for this item
-      </p>
+      <p className="text-muted-foreground mb-1 text-xs font-semibold tracking-wide uppercase">{heading}</p>
       {TYPES.map((type) => (
         <Stepper
           key={type}
           id={`${prefix}-${type}`}
-          label={type === "adult" ? "Adults" : type === "child" ? "Children" : "Infants"}
+          label={labels?.[type] ?? (type === "adult" ? "Adults" : type === "child" ? "Children" : "Infants")}
           hint={type === "child" ? "(2–11)" : type === "infant" ? "(under 2)" : undefined}
           value={value[type]}
           onChange={(count) => onChange({ ...value, [type]: count })}
@@ -88,7 +67,7 @@ function PaxCounts({
   );
 }
 
-/** Each purchased line has independent pax quantities; booking headcount remains separate for waivers/capacity. */
+/** Package quantities are sale units; activity quantities are participant entitlements. */
 export function PurchasePicker({
   packages,
   activities,
@@ -109,27 +88,45 @@ export function PurchasePicker({
     const selected = value.packageIds.includes(id);
     const packageParticipants = { ...value.packageParticipants };
     if (selected) delete packageParticipants[id];
-    else packageParticipants[id] = { ...initialPax };
-    onChange({
-      ...value,
-      packageIds: selected ? value.packageIds.filter((x) => x !== id) : [...value.packageIds, id],
-      packageParticipants,
-    });
+    else {
+      const pkg = packages.find((item) => item.id === id);
+      packageParticipants[id] = pkg?.sale_unit === "package" ? { adult: 1, child: 0, infant: 0 } : { ...initialPax };
+    }
+    onChange(
+      growBookingParty(
+        {
+          ...value,
+          packageIds: selected ? value.packageIds.filter((x) => x !== id) : [...value.packageIds, id],
+          packageParticipants,
+        },
+        packages,
+      ),
+    );
   };
   const updatePax = (kind: "package" | "activity", id: string, next: Participants) =>
-    onChange({
-      ...value,
-      [kind === "package" ? "packageParticipants" : "activityParticipants"]: {
-        ...(kind === "package" ? value.packageParticipants : value.activityParticipants),
-        [id]: next,
-      },
-    });
+    onChange(
+      growBookingParty(
+        {
+          ...value,
+          [kind === "package" ? "packageParticipants" : "activityParticipants"]: {
+            ...(kind === "package" ? value.packageParticipants : value.activityParticipants),
+            [id]: next,
+          },
+        },
+        packages,
+      ),
+    );
   const addActivity = (id: string) => {
-    onChange({
-      ...value,
-      activityIds: [...value.activityIds, id],
-      activityParticipants: { ...value.activityParticipants, [id]: { ...initialPax } },
-    });
+    onChange(
+      growBookingParty(
+        {
+          ...value,
+          activityIds: [...value.activityIds, id],
+          activityParticipants: { ...value.activityParticipants, [id]: { ...initialPax } },
+        },
+        packages,
+      ),
+    );
     setAdding("");
   };
   const removeActivity = (id: string) => {
@@ -138,16 +135,9 @@ export function PurchasePicker({
     onChange({ ...value, activityIds: value.activityIds.filter((x) => x !== id), activityParticipants });
   };
   const setBookingCount = (type: keyof Participants) => (count: number) => {
-    const previous = value.participants[type];
-    const followBookingCount = (counts: Record<string, Participants>) =>
-      Object.fromEntries(
-        Object.entries(counts).map(([id, pax]) => [id, pax[type] === previous ? { ...pax, [type]: count } : pax]),
-      );
     onChange({
       ...value,
       participants: { ...value.participants, [type]: count },
-      packageParticipants: followBookingCount(value.packageParticipants),
-      activityParticipants: followBookingCount(value.activityParticipants),
     });
   };
 
@@ -175,17 +165,38 @@ export function PurchasePicker({
                     </kbd>
                   )}
                   <span className="font-semibold">{p.name}</span>
+                  {p.sale_unit === "package" && (
+                    <span className="bg-secondary text-secondary-foreground w-fit rounded px-2 py-0.5 text-xs font-semibold">
+                      1 package unit covers {p.participants_per_unit} people
+                    </span>
+                  )}
                   {p.includes.length > 0 && (
-                    <span className="text-muted-foreground text-sm">{p.includes.join(" · ")}</span>
+                    <span className="text-muted-foreground text-sm">
+                      {p.includes
+                        .map((item) => `${item.quantity > 1 ? `${item.quantity}× ` : ""}${item.name}`)
+                        .join(" · ")}
+                    </span>
                   )}
                   <span className={cn("text-sm font-semibold", price === null ? "text-warning" : "text-primary")}>
-                    {price === undefined ? " " : price === null ? "Price not set" : `${formatRs(price)} / adult`}
+                    {price === undefined
+                      ? " "
+                      : price === null
+                        ? "Price not set"
+                        : `${formatRs(price)} / ${p.sale_unit === "package" ? "package unit" : "adult"}`}
                   </span>
                 </label>
                 {selected && (
                   <PaxCounts
                     prefix={`package-${p.id}`}
                     value={value.packageParticipants[p.id] ?? EMPTY_PARTICIPANTS}
+                    heading={
+                      p.sale_unit === "package" ? "Package units by price category" : "People purchasing this package"
+                    }
+                    labels={
+                      p.sale_unit === "package"
+                        ? { adult: "Adult-rate units", child: "Child-rate units", infant: "Infant-rate units" }
+                        : undefined
+                    }
                     onChange={(next) => updatePax("package", p.id, next)}
                   />
                 )}
@@ -248,6 +259,7 @@ export function PurchasePicker({
                   <PaxCounts
                     prefix={`activity-${id}`}
                     value={value.activityParticipants[id] ?? EMPTY_PARTICIPANTS}
+                    heading="Participants for this activity"
                     onChange={(next) => updatePax("activity", id, next)}
                   />
                 </li>
@@ -264,8 +276,8 @@ export function PurchasePicker({
           People on this booking
         </h3>
         <p className="text-muted-foreground text-sm">
-          This is the guest count for waivers and boat capacity. New items use these counts by default; set pax
-          separately on each purchased item above.
+          This is the unique guest count for waivers and boat capacity. Package units can cover several people; repeated
+          activities do not add the same guests again. Increase this count if additional guests are joining.
         </p>
         {TYPES.map((type) => (
           <Stepper

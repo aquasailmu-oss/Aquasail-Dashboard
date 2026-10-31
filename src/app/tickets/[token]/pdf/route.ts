@@ -127,8 +127,9 @@ export async function GET(_request: Request, { params }: { params: Promise<{ tok
   page.drawLine({ start: { x: M, y }, end: { x: W - M, y }, thickness: 0.75, color: BLACK });
   y -= 16;
   for (const e of t.entitlements) {
-    text(page, e.name, M, y, 11, regular);
-    const q = e.units !== e.quantity ? `x ${e.quantity} pax (${e.units} units)` : `x ${e.quantity} pax`;
+    page.drawRectangle({ x: M, y: y - 2, width: 10, height: 10, borderColor: BLACK, borderWidth: 1.2 });
+    text(page, e.name, M + 16, y, 11, regular);
+    const q = e.units !== e.quantity ? `x ${e.quantity} pax (${e.units} ride units)` : `x ${e.quantity} pax`;
     text(page, q, W - M - bold.widthOfTextAtSize(q, 11), y, 11, bold);
     y -= 18;
   }

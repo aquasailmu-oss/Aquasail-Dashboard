@@ -174,7 +174,9 @@ export default async function NewBookingPage({
   const [packages, activities, boats, settings] = await Promise.all([
     supabase
       .from("packages")
-      .select("id, name, description, package_activities(is_optional, sort_order, activities(name, code))")
+      .select(
+        "id, name, description, sale_unit, participants_per_unit, package_activities(is_optional, sort_order, quantity_per_participant, activities(name, code))",
+      )
       .eq("is_active", true)
       .order("sort_order")
       .order("name"),
@@ -203,7 +205,12 @@ export default async function NewBookingPage({
             id: p.id,
             name: p.name,
             description: p.description,
-            includes: included.map((pa) => pa.activities?.name ?? ""),
+            sale_unit: p.sale_unit as "participant" | "package",
+            participants_per_unit: p.participants_per_unit,
+            includes: included.map((pa) => ({
+              name: pa.activities?.name ?? "",
+              quantity: pa.quantity_per_participant,
+            })),
             codes: included.map((pa) => pa.activities?.code ?? ""),
           };
         })}

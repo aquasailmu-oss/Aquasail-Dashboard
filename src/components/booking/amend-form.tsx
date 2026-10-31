@@ -5,15 +5,16 @@ import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { amendBooking, bookingContext, type BookingContext } from "@/actions/bookings";
 import { getQuote } from "@/actions/quotes";
 import { BoatPicker, type Boat } from "@/components/booking/boat-picker";
+import { PurchasePicker } from "@/components/booking/purchase-picker";
 import {
-  PurchasePicker,
   partySize,
+  minimumPartySize,
   purchaseLines,
   purchaseNeedsBoat,
   type Purchase,
   type WizardActivity,
   type WizardPackage,
-} from "@/components/booking/purchase-picker";
+} from "@/components/booking/purchase-utils";
 import { QuotePanel } from "@/components/booking/quote-panel";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -115,12 +116,14 @@ export function AmendForm({
   const blocker =
     partySize(purchase.participants) === 0
       ? "Keep at least one person on the booking."
-      : lines.length === 0
-        ? "Choose a package or activity and enter its pax."
-        : (quoteError ??
-          (!quote || stale ? "Working out the price…" : null) ??
-          (discountActive && !discount.reason.trim() ? "Give a reason for the discount." : null) ??
-          (needsBoat && !boatId ? "Pick a boat: this booking includes the catamaran." : null));
+      : partySize(purchase.participants) < minimumPartySize(purchase, packages)
+        ? `The selected package and activity units cover at least ${minimumPartySize(purchase, packages)} people. Update the booking guest count.`
+        : lines.length === 0
+          ? "Choose a package or activity and enter its pax."
+          : (quoteError ??
+            (!quote || stale ? "Working out the price…" : null) ??
+            (discountActive && !discount.reason.trim() ? "Give a reason for the discount." : null) ??
+            (needsBoat && !boatId ? "Pick a boat: this booking includes the catamaran." : null));
 
   function save() {
     if (blocker || total === null) return;
@@ -241,7 +244,14 @@ export function AmendForm({
         <Card>
           <CardContent className="flex flex-col gap-4 pt-6">
             <h2 className="font-display text-lg font-semibold">New quote</h2>
-            <QuotePanel quote={quote} error={quoteError} stale={stale} empty={lines.length === 0} changeDue={null} />
+            <QuotePanel
+              quote={quote}
+              error={quoteError}
+              stale={stale}
+              empty={lines.length === 0}
+              changeDue={null}
+              packages={packages}
+            />
             {total !== null && (
               <Alert data-testid="before-after">
                 Total was {formatRs(booking.charged_total)}, now {formatRs(total)}.{" "}

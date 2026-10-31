@@ -9,7 +9,7 @@ test("amend updates the balance and the audit trail; cancel strikes through, nev
   await page.fill("#first_name", "Change");
   await page.fill("#last_name", last);
   await page.getByText("Adrenaline Combo", { exact: true }).click();
-  await page.fill("#adults", "2");
+  await page.locator('input[id^="package-"][id$="-adult"]').fill("2");
   await expectTotal(page, "Rs 6,800");
   await page.getByRole("button", { name: "Create booking" }).click();
   await page.waitForURL(/\/confirmation$/);
@@ -19,7 +19,7 @@ test("amend updates the balance and the audit trail; cancel strikes through, nev
   await expect(page.locator("tfoot tr").filter({ hasText: "Balance due" })).toContainText("Rs 0");
 
   await page.getByRole("link", { name: "Amend", exact: true }).click();
-  await page.fill("#children", "1");
+  await page.locator('input[id^="package-"][id$="-child"]').fill("1");
   await expect(page.getByTestId("before-after")).toHaveText("Total was Rs 6,800, now Rs 9,300. Balance due Rs 2,500.");
   await page.getByRole("button", { name: "Save changes" }).click();
   await page.waitForURL(/\/bookings\/[0-9a-f-]{36}\?amended=/);

@@ -24,6 +24,8 @@ type ExistingPackage = {
   name: string;
   description: string | null;
   pricing_mode: "bundle" | "components";
+  sale_unit: "participant" | "package";
+  participants_per_unit: number;
   is_active: boolean;
   lines: Line[];
 };
@@ -32,12 +34,12 @@ const MODES = [
   {
     value: "bundle",
     title: "One package price",
-    body: "The package has its own price per participant type, set in Pricing. Use for deals like Island Explorer.",
+    body: "The package has its own price for each rate category, set in Pricing. The sale unit above determines whether that price is per person or per complete package unit.",
   },
   {
     value: "components",
     title: "Sum of its activities",
-    body: "The price is the activities' own prices added up. Nothing extra to maintain in Pricing.",
+    body: "The included activities' own prices are added up for one sale unit. Nothing extra to maintain in Pricing.",
   },
 ] as const;
 
@@ -47,6 +49,8 @@ export function PackageBuilder({ pkg, activities }: { pkg?: ExistingPackage; act
   const [name, setName] = useState(pkg?.name ?? "");
   const [description, setDescription] = useState(pkg?.description ?? "");
   const [mode, setMode] = useState<"bundle" | "components">(pkg?.pricing_mode ?? "bundle");
+  const [saleUnit, setSaleUnit] = useState<"participant" | "package">(pkg?.sale_unit ?? "participant");
+  const [participantsPerUnit, setParticipantsPerUnit] = useState(pkg?.participants_per_unit ?? 1);
   const [isActive, setIsActive] = useState(pkg?.is_active ?? true);
   const [lines, setLines] = useState<Line[]>(pkg?.lines ?? []);
   const [search, setSearch] = useState("");
@@ -96,6 +100,8 @@ export function PackageBuilder({ pkg, activities }: { pkg?: ExistingPackage; act
         name,
         description,
         pricing_mode: mode,
+        sale_unit: saleUnit,
+        participants_per_unit: saleUnit === "participant" ? 1 : participantsPerUnit,
         is_active: isActive,
         activities: lines,
       });
@@ -158,11 +164,86 @@ export function PackageBuilder({ pkg, activities }: { pkg?: ExistingPackage; act
 
         <Card>
           <CardHeader>
+            <CardTitle>How reception sells it</CardTitle>
+            <CardDescription>
+              Set whether the quantity is people or complete package units. A package unit’s price is charged once, and
+              its activity inclusions are counted separately.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_12rem]">
+            <div className="flex flex-col gap-3">
+              <label
+                className={cn(
+                  "flex cursor-pointer gap-3 rounded-md border-2 p-3",
+                  saleUnit === "participant" && "border-primary bg-accent",
+                )}
+              >
+                <input
+                  type="radio"
+                  name="sale_unit"
+                  value="participant"
+                  checked={saleUnit === "participant"}
+                  onChange={() => {
+                    setSaleUnit("participant");
+                    setParticipantsPerUnit(1);
+                  }}
+                  className="accent-primary mt-1 size-5 shrink-0"
+                />
+                <span>
+                  <span className="block font-semibold">Per person</span>
+                  <span className="text-muted-foreground text-sm">Enter how many people buy this package.</span>
+                </span>
+              </label>
+              <label
+                className={cn(
+                  "flex cursor-pointer gap-3 rounded-md border-2 p-3",
+                  saleUnit === "package" && "border-primary bg-accent",
+                )}
+              >
+                <input
+                  type="radio"
+                  name="sale_unit"
+                  value="package"
+                  checked={saleUnit === "package"}
+                  onChange={() => setSaleUnit("package")}
+                  className="accent-primary mt-1 size-5 shrink-0"
+                />
+                <span>
+                  <span className="block font-semibold">Per package unit</span>
+                  <span className="text-muted-foreground text-sm">
+                    Enter how many complete package units are sold. The package price applies once to each unit.
+                  </span>
+                </span>
+              </label>
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="participants_per_unit">People covered per unit</Label>
+              <Input
+                id="participants_per_unit"
+                type="number"
+                inputMode="numeric"
+                min={1}
+                max={20}
+                disabled={saleUnit === "participant"}
+                value={saleUnit === "participant" ? 1 : participantsPerUnit}
+                onChange={(e) => setParticipantsPerUnit(Math.max(2, Number.parseInt(e.target.value, 10) || 2))}
+              />
+              <p className="text-muted-foreground text-sm">
+                {saleUnit === "participant"
+                  ? "One package quantity equals one person."
+                  : "One selected unit covers this many guests."}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
             <CardTitle>What’s included</CardTitle>
             <CardDescription>
-              Included participant entitlements for each package participant. Parasailing Double, for example, is one
-              participant entitlement per person and groups into two-person rides on the ticket. Optional activities are
-              not included unless chosen.
+              Quantities here are activity entitlements in one sold package unit. For a two-person package, enter two
+              single-person activity entitlements or one two-person activity unit. Optional activities are not included
+              unless chosen.
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
@@ -179,7 +260,7 @@ export function PackageBuilder({ pkg, activities }: { pkg?: ExistingPackage; act
                         {a && !a.is_active && <span className="text-warning ml-2 text-sm">deactivated</span>}
                       </span>
                       <label className="flex items-center gap-2 text-sm">
-                        Participants per package participant
+                        Activity units per package unit
                         <Input
                           type="number"
                           inputMode="numeric"
@@ -346,6 +427,9 @@ export function PackageBuilder({ pkg, activities }: { pkg?: ExistingPackage; act
                 {preview.total_cents !== null ? (
                   <div className="font-display text-3xl font-semibold tabular-nums">
                     {formatRs(preview.total_cents)}
+                    <span className="text-muted-foreground ml-2 text-base font-normal">
+                      / {saleUnit === "package" ? "package unit" : "person"}
+                    </span>
                   </div>
                 ) : (
                   <Alert variant="warning">

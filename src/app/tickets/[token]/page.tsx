@@ -111,9 +111,16 @@ export default async function TicketPage({
           <ul className="mt-2 grid gap-1">
             {t.entitlements.map((e) => (
               <li key={e.activityId} className="flex justify-between border-b border-dotted border-black/40 pb-1">
-                <span>{e.name}</span>
+                <span className="flex items-center gap-2">
+                  <span
+                    aria-hidden="true"
+                    data-testid="activity-check-box"
+                    className="inline-block size-4 shrink-0 border-2 border-black print:size-[4mm]"
+                  />
+                  <span>{e.name}</span>
+                </span>
                 <span className="font-semibold tabular-nums">
-                  × {e.quantity} pax{e.units !== e.quantity ? ` · ${e.units} units` : ""}
+                  ×{e.quantity} pax{e.units !== e.quantity ? ` · ${e.units} ride units` : ""}
                 </span>
               </li>
             ))}

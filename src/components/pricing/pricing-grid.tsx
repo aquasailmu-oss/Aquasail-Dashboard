@@ -176,6 +176,13 @@ function SectionRows({
         <TableRow key={row.id}>
           <TableCell className="bg-card sticky left-0 z-10 min-w-48">
             <div className="font-semibold">{row.name}</div>
+            {row.scope === "package" && (
+              <div className="text-muted-foreground text-xs">
+                {row.saleUnit === "package"
+                  ? `rate per package unit · ${row.participantsPerUnit ?? 1} people`
+                  : "rate per person"}
+              </div>
+            )}
             <div className="flex gap-1">
               <Button asChild variant="ghost" size="sm">
                 <Link

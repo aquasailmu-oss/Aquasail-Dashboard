@@ -25,7 +25,7 @@ test("price history: a new price from tomorrow leaves today unchanged and prices
   await page.getByRole("button", { name: `Set ${name} price for Walk-in`, exact: true }).click();
   await expect(page.locator("#effective_from")).toHaveValue(addDays(today(), 1));
   await page.fill("#retail", "1250");
-  await expect(page.getByRole("dialog")).toContainText(`then Rs 1,250 from`);
+  await expect(page.getByRole("dialog")).toContainText(`then Rs 1,250 per person from`);
   await page.getByRole("dialog").getByRole("button", { name: "Save price" }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
 

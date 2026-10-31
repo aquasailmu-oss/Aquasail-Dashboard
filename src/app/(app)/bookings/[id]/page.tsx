@@ -201,7 +201,7 @@ export default async function BookingPage({
           <TableHeader>
             <TableRow>
               <TableHead>Item</TableHead>
-              <TableHead>Participant</TableHead>
+              <TableHead>Rate category</TableHead>
               <TableHead className="text-right">Qty</TableHead>
               <TableHead className="text-right">Unit price</TableHead>
               <TableHead className="text-right">Line total</TableHead>
@@ -213,10 +213,23 @@ export default async function BookingPage({
             {items.map((i) => (
               <TableRow key={i.id}>
                 <TableCell className="font-semibold">{i.packages?.name ?? i.activities?.name}</TableCell>
-                <TableCell>{TYPE[i.participant_type]}</TableCell>
-                <TableCell className="text-right tabular-nums">{i.quantity}</TableCell>
+                <TableCell>
+                  {TYPE[i.participant_type]}
+                  {i.line_type === "package" && i.sale_unit_snapshot === "package" ? " unit price" : ""}
+                </TableCell>
+                <TableCell className="text-right tabular-nums">
+                  {i.quantity}
+                  {i.line_type === "package" && i.sale_unit_snapshot === "package" && (
+                    <span className="text-muted-foreground block text-xs">
+                      package unit{i.quantity === 1 ? "" : "s"} · {i.quantity * i.participants_per_unit_snapshot} people
+                    </span>
+                  )}
+                </TableCell>
                 <TableCell className="text-right tabular-nums">
                   {formatRs(cents(i.unit_charged_cents))}
+                  <div className="text-muted-foreground text-xs">
+                    per {i.line_type === "package" && i.sale_unit_snapshot === "package" ? "package unit" : "person"}
+                  </div>
                   {i.unit_retail_cents !== i.unit_charged_cents && seesMoneyBehind && (
                     <div className="text-muted-foreground text-sm">retail {formatRs(cents(i.unit_retail_cents))}</div>
                   )}

@@ -3,6 +3,7 @@
 import { Alert } from "@/components/ui/alert";
 import { cents, formatRs, type Cents } from "@/lib/money";
 import type { Quote } from "@/lib/pricing/types";
+import type { WizardPackage } from "@/components/booking/purchase-utils";
 import { cn } from "@/lib/utils";
 
 const TYPE = { adult: "adult", child: "child", infant: "infant" } as const;
@@ -14,12 +15,14 @@ export function QuotePanel({
   stale,
   empty,
   changeDue,
+  packages,
 }: {
   quote: Quote | null;
   error: string | null;
   stale: boolean;
   empty: boolean;
   changeDue: Cents | null;
+  packages: WizardPackage[];
 }) {
   if (empty) {
     return <p className="text-muted-foreground py-6 text-center">Pick a package or activity to see the price.</p>;
@@ -40,21 +43,36 @@ export function QuotePanel({
       aria-busy={stale}
     >
       <ul className="flex flex-col gap-2">
-        {quote.lines.map((l, i) => (
-          <li key={i} className="flex justify-between gap-3">
-            <span>
-              <span className="font-semibold">{l.name}</span>
-              <span className="text-muted-foreground text-sm">
-                {" "}
-                × {l.quantity} {TYPE[l.participant_type]}
+        {quote.lines.map((l, i) => {
+          const pkg = l.package_id ? packages.find((item) => item.id === l.package_id) : undefined;
+          return (
+            <li key={i} className="flex justify-between gap-3">
+              <span>
+                <span className="font-semibold">{l.name}</span>
+                <span className="text-muted-foreground text-sm">
+                  {" "}
+                  × {l.quantity}{" "}
+                  {l.line_type === "package" && pkg?.sale_unit === "package"
+                    ? "package unit(s)"
+                    : TYPE[l.participant_type]}
+                  {l.line_type === "package" && pkg?.sale_unit === "package" && (
+                    <span> · covers {l.quantity * pkg.participants_per_unit} people</span>
+                  )}
+                </span>
+                {l.line_type === "package" && pkg?.includes.length ? (
+                  <span className="text-muted-foreground block text-sm">
+                    {pkg.includes
+                      .map((item) => `${item.quantity > 1 ? `${item.quantity}× ` : ""}${item.name}`)
+                      .join(" · ")}
+                  </span>
+                ) : l.line_type === "package" && l.includes.length > 0 ? (
+                  <span className="text-muted-foreground block text-sm">{l.includes.join(" · ")}</span>
+                ) : null}
               </span>
-              {l.line_type === "package" && l.includes.length > 0 && (
-                <span className="text-muted-foreground block text-sm">{l.includes.join(" · ")}</span>
-              )}
-            </span>
-            <span className="tabular-nums">{formatRs(cents(l.unit_charged_cents * l.quantity))}</span>
-          </li>
-        ))}
+              <span className="tabular-nums">{formatRs(cents(l.unit_charged_cents * l.quantity))}</span>
+            </li>
+          );
+        })}
       </ul>
       {quote.discount_total_cents > 0 && (
         <div className="text-destructive flex justify-between border-t pt-2">

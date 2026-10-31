@@ -3,7 +3,13 @@ import type { SettlementModel } from "@/lib/operators";
 
 export type ParticipantType = "adult" | "child" | "infant";
 
-export type PricingRow = { scope: "activity" | "package"; id: string; name: string };
+export type PricingRow = {
+  scope: "activity" | "package";
+  id: string;
+  name: string;
+  saleUnit?: "participant" | "package";
+  participantsPerUnit?: number;
+};
 
 export type PricingColumn = {
   operatorId: string | null;

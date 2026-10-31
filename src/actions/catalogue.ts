@@ -142,14 +142,27 @@ const packageLineSchema = z.object({
   is_optional: z.boolean(),
 });
 
-const packageSchema = z.object({
+const packageSchema = z
+  .object({
+    id: z.uuid().optional(),
+    code: z.string().optional(),
+    name: z.string().trim().min(1, "Give the package a name.").max(80, "Keep the name under 80 characters."),
+    description: z.string().trim().max(500, "Keep the description under 500 characters."),
+    pricing_mode: z.enum(["bundle", "components"], { error: "Choose how the package is priced." }),
+    sale_unit: z.enum(["participant", "package"], { error: "Choose how this package is sold." }),
+    participants_per_unit: z.number().int().min(1).max(20),
+    is_active: z.boolean(),
+    activities: z.array(packageLineSchema).min(1, "Add at least one activity to the package.").max(20),
+  })
+  .refine((input) => input.sale_unit === "package" || input.participants_per_unit === 1, {
+    message: "A per-person package must cover exactly one person per unit.",
+    path: ["participants_per_unit"],
+  });
+
+const packagePreviewSchema = z.object({
   id: z.uuid().optional(),
-  code: z.string().optional(),
-  name: z.string().trim().min(1, "Give the package a name.").max(80, "Keep the name under 80 characters."),
-  description: z.string().trim().max(500, "Keep the description under 500 characters."),
-  pricing_mode: z.enum(["bundle", "components"], { error: "Choose how the package is priced." }),
-  is_active: z.boolean(),
-  activities: z.array(packageLineSchema).min(1, "Add at least one activity to the package.").max(20),
+  pricing_mode: z.enum(["bundle", "components"]),
+  activities: z.array(packageLineSchema).min(1).max(20),
 });
 
 export type PackageInput = z.input<typeof packageSchema>;
@@ -184,7 +197,7 @@ export async function previewPackage(
 ): Promise<Result<PackagePreview>> {
   const auth = await authorize(ADMIN);
   if (!auth.ok) return auth;
-  const parsed = packageSchema.pick({ id: true, pricing_mode: true, activities: true }).safeParse(input);
+  const parsed = packagePreviewSchema.safeParse(input);
   if (!parsed.success) return ok({ lines: [], total_cents: null, missing: true });
   return ok(await preview(parsed.data));
 }
@@ -245,7 +258,7 @@ export async function duplicatePackage(formData: FormData): Promise<Result<{ id:
   const { data: source } = await supabase
     .from("packages")
     .select(
-      "code, name, description, pricing_mode, package_activities(activity_id, quantity_per_participant, is_optional, sort_order)",
+      "code, name, description, pricing_mode, sale_unit, participants_per_unit, package_activities(activity_id, quantity_per_participant, is_optional, sort_order)",
     )
     .eq("id", id.data)
     .single();
@@ -263,6 +276,8 @@ export async function duplicatePackage(formData: FormData): Promise<Result<{ id:
       name: `${source.name} (copy)`,
       description: source.description,
       pricing_mode: source.pricing_mode,
+      sale_unit: source.sale_unit,
+      participants_per_unit: source.participants_per_unit,
       is_active: false,
       activities: [...source.package_activities]
         .sort((a, b) => a.sort_order - b.sort_order)

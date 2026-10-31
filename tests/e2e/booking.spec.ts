@@ -46,7 +46,8 @@ test("signed operator booking: 4 adults, catamaran + lunch, cash, ticket, on Tod
   await page.keyboard.type(name);
   await page.getByText("Island Explorer", { exact: true }).click();
   await expect(page.getByText("Assign a boat")).toBeVisible();
-  await page.focus("#adults");
+  await page.locator('input[id^="package-"][id$="-adult"]').focus();
+  await page.keyboard.press("Control+A");
   await page.keyboard.type("4");
   await expectTotal(page, "Rs 12,800");
   await page.focus("input[name=boat]");
@@ -135,6 +136,8 @@ test("a booking QR records individual adult and guardian signatures and caps the
   await page.getByText("Sunset Cruise", { exact: true }).click();
   await page.fill("#adults", "1");
   await page.fill("#children", "1");
+  await page.locator('input[id^="package-"][id$="-child"]').fill("1");
+  await expectTotal(page, "Rs 3,200");
   await page.getByRole("radio", { name: /Catamaran B/ }).check();
   await page.getByRole("button", { name: "Create booking" }).click();
   await page.waitForURL(/\/confirmation$/);

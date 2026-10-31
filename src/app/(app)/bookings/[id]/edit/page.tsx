@@ -19,7 +19,7 @@ export default async function AmendBookingPage({ params }: { params: Promise<{ i
   const { data: b } = await supabase
     .from("bookings")
     .select(
-      "id, reference, service_date, operator_id, departure_time, meeting_point, notes, resource_id, status, payer, charged_total_cents, discount_total_cents, booking_items(line_type, package_id, activity_id, participant_type, quantity, discount_reason), booking_participants(participant_type, count), payments(amount_cents)",
+      "id, reference, service_date, operator_id, departure_time, meeting_point, notes, resource_id, status, payer, charged_total_cents, discount_total_cents, booking_items(line_type, package_id, activity_id, participant_type, quantity, discount_reason, sale_unit_snapshot, participants_per_unit_snapshot), booking_participants(participant_type, count), payments(amount_cents)",
     )
     .eq("id", id)
     .maybeSingle();
@@ -53,7 +53,9 @@ export default async function AmendBookingPage({ params }: { params: Promise<{ i
   const [packages, activities, boats] = await Promise.all([
     supabase
       .from("packages")
-      .select("id, name, description, package_activities(is_optional, sort_order, activities(name, code))")
+      .select(
+        "id, name, description, sale_unit, participants_per_unit, package_activities(is_optional, sort_order, quantity_per_participant, activities(name, code))",
+      )
       .eq("is_active", true)
       .order("sort_order")
       .order("name"),
@@ -82,6 +84,17 @@ export default async function AmendBookingPage({ params }: { params: Promise<{ i
         }, new Map<string, { adult: number; child: number; infant: number }>())
         .entries(),
     );
+  const packageUnitSnapshots = new Map(
+    b.booking_items
+      .filter((item) => item.line_type === "package" && item.package_id)
+      .map((item) => [
+        item.package_id!,
+        {
+          sale_unit: item.sale_unit_snapshot as "participant" | "package",
+          participants_per_unit: item.participants_per_unit_snapshot,
+        },
+      ]),
+  );
 
   return (
     <>
@@ -118,11 +131,17 @@ export default async function AmendBookingPage({ params }: { params: Promise<{ i
           const included = [...p.package_activities]
             .filter((pa) => !pa.is_optional)
             .sort((a, c) => a.sort_order - c.sort_order);
+          const unitSnapshot = packageUnitSnapshots.get(p.id);
           return {
             id: p.id,
             name: p.name,
             description: p.description,
-            includes: included.map((pa) => pa.activities?.name ?? ""),
+            sale_unit: unitSnapshot?.sale_unit ?? (p.sale_unit as "participant" | "package"),
+            participants_per_unit: unitSnapshot?.participants_per_unit ?? p.participants_per_unit,
+            includes: included.map((pa) => ({
+              name: pa.activities?.name ?? "",
+              quantity: pa.quantity_per_participant,
+            })),
             codes: included.map((pa) => pa.activities?.code ?? ""),
           };
         })}

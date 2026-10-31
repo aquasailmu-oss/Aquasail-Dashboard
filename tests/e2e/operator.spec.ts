@@ -29,7 +29,7 @@ test("operator pays: DO NOT COLLECT, unpaid, receivable on the booking", async (
   await page.fill("#first_name", `Beach${tag()}`);
   await expect(page.locator("main [role=alert]", { hasText: "Do not collect payment" }).first()).toBeVisible();
   await page.getByText("Sunset Cruise", { exact: true }).click();
-  await page.fill("#adults", "2");
+  await page.locator('input[id^="package-"][id$="-adult"]').fill("2");
   await expectTotal(page, "Rs 3,000");
   await expect(page.locator("#received")).toHaveCount(0);
   await expect(page.getByText("becomes a receivable from Beachcomber Hotel")).toBeVisible();

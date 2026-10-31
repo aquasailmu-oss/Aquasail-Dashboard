@@ -15,7 +15,7 @@ export default async function EditPackagePage({ params }: { params: Promise<{ id
     supabase
       .from("packages")
       .select(
-        "id, code, name, description, pricing_mode, is_active, package_activities(activity_id, quantity_per_participant, is_optional, sort_order)",
+        "id, code, name, description, pricing_mode, sale_unit, participants_per_unit, is_active, package_activities(activity_id, quantity_per_participant, is_optional, sort_order)",
       )
       .eq("id", id)
       .maybeSingle(),
@@ -39,7 +39,12 @@ export default async function EditPackagePage({ params }: { params: Promise<{ id
     <>
       <PageHeader title={`Edit ${pkg.name}`} />
       <PackageBuilder
-        pkg={{ ...pkg, pricing_mode: pkg.pricing_mode as "bundle" | "components", lines }}
+        pkg={{
+          ...pkg,
+          pricing_mode: pkg.pricing_mode as "bundle" | "components",
+          sale_unit: pkg.sale_unit as "participant" | "package",
+          lines,
+        }}
         activities={activities ?? []}
       />
     </>

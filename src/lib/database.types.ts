@@ -210,8 +210,8 @@ export type Database = {
           line_type: string
           package_id: string | null
           participant_type: Database["public"]["Enums"]["participant_type"]
-          price_rule_id: string | null
           participants_per_unit_snapshot: number
+          price_rule_id: string | null
           quantity: number
           sale_unit_snapshot: string
           sort_order: number
@@ -232,8 +232,8 @@ export type Database = {
           line_type: string
           package_id?: string | null
           participant_type: Database["public"]["Enums"]["participant_type"]
-          price_rule_id?: string | null
           participants_per_unit_snapshot?: number
+          price_rule_id?: string | null
           quantity: number
           sale_unit_snapshot?: string
           sort_order?: number
@@ -254,8 +254,8 @@ export type Database = {
           line_type?: string
           package_id?: string | null
           participant_type?: Database["public"]["Enums"]["participant_type"]
-          price_rule_id?: string | null
           participants_per_unit_snapshot?: number
+          price_rule_id?: string | null
           quantity?: number
           sale_unit_snapshot?: string
           sort_order?: number
@@ -947,8 +947,8 @@ export type Database = {
           id: string
           is_active: boolean
           name: string
-          pricing_mode: string
           participants_per_unit: number
+          pricing_mode: string
           sale_unit: string
           sort_order: number
           updated_at: string
@@ -960,8 +960,8 @@ export type Database = {
           id?: string
           is_active?: boolean
           name: string
-          pricing_mode: string
           participants_per_unit?: number
+          pricing_mode: string
           sale_unit?: string
           sort_order?: number
           updated_at?: string
@@ -973,8 +973,8 @@ export type Database = {
           id?: string
           is_active?: boolean
           name?: string
-          pricing_mode?: string
           participants_per_unit?: number
+          pricing_mode?: string
           sale_unit?: string
           sort_order?: number
           updated_at?: string

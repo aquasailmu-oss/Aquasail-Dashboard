@@ -10,17 +10,20 @@ export function Stepper({
   hint,
   value,
   onChange,
+  compact = false,
 }: {
   id: string;
   label: string;
   hint?: string;
   value: number;
   onChange: (value: number) => void;
+  /** Stacks the label above the controls for dense, multi-column layouts. */
+  compact?: boolean;
 }) {
   const set = (v: number) => onChange(Math.max(0, Math.min(500, v)));
   return (
-    <div className="flex items-center justify-between gap-3 py-1">
-      <label htmlFor={id} className="font-semibold">
+    <div className={compact ? "flex flex-col items-start gap-1" : "flex items-center justify-between gap-3 py-1"}>
+      <label htmlFor={id} className={compact ? "text-sm font-semibold" : "font-semibold"}>
         {label}
         {hint && <span className="text-muted-foreground ml-1 text-sm font-normal">{hint}</span>}
       </label>

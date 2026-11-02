@@ -43,16 +43,25 @@ function PaxCounts({
   heading,
   labels,
   onChange,
+  compact = false,
 }: {
   prefix: string;
   value: Participants;
   heading: string;
   labels?: Partial<Record<keyof Participants, string>>;
   onChange: (next: Participants) => void;
+  compact?: boolean;
 }) {
   return (
-    <div className="border-t pt-2">
-      <p className="text-muted-foreground mb-1 text-xs font-semibold tracking-wide uppercase">{heading}</p>
+    <div className={compact ? "grid gap-2 border-t pt-2 sm:grid-cols-3" : "border-t pt-2"}>
+      <p
+        className={cn(
+          "text-muted-foreground mb-1 text-xs font-semibold tracking-wide uppercase",
+          compact && "sm:col-span-3",
+        )}
+      >
+        {heading}
+      </p>
       {TYPES.map((type) => (
         <Stepper
           key={type}
@@ -61,6 +70,7 @@ function PaxCounts({
           hint={type === "child" ? "(2–11)" : type === "infant" ? "(under 2)" : undefined}
           value={value[type]}
           onChange={(count) => onChange({ ...value, [type]: count })}
+          compact={compact}
         />
       ))}
     </div>
@@ -212,7 +222,9 @@ export function PurchasePicker({
         </h3>
         <div className="flex items-end gap-2">
           <div className="flex flex-1 flex-col gap-2">
-            <Label htmlFor="add-activity">Choose an activity or variant</Label>
+            <Label htmlFor="add-activity">
+              {value.activityIds.length > 0 ? "Add another standalone activity" : "Add a standalone activity"}
+            </Label>
             <select
               id="add-activity"
               className="border-input bg-card min-h-11 rounded-md border px-3"
@@ -230,7 +242,7 @@ export function PurchasePicker({
             </select>
           </div>
           <Button type="button" variant="outline" disabled={!adding} onClick={() => addActivity(adding)}>
-            <PlusIcon /> Add
+            <PlusIcon /> Add activity
           </Button>
         </div>
         {value.activityIds.length > 0 ? (
@@ -261,6 +273,7 @@ export function PurchasePicker({
                     value={value.activityParticipants[id] ?? EMPTY_PARTICIPANTS}
                     heading="Participants for this activity"
                     onChange={(next) => updatePax("activity", id, next)}
+                    compact
                   />
                 </li>
               );

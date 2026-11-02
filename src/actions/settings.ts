@@ -17,7 +17,11 @@ const settingsSchema = z.object({
   company_email: z.union([z.literal(""), z.email("Enter a valid company email, or leave it empty.")]),
   default_meeting_point: optionalText(200),
   ticket_footer_text: optionalText(500),
-  ticket_disclaimer_text: z.string().trim().min(1, "Enter the customer disclaimer text.").max(5000),
+  ticket_disclaimer_text: z
+    .string()
+    .trim()
+    .min(1, "Enter the customer disclaimer text.")
+    .max(5000, "Keep the waiver wording under 5,000 characters."),
   currency_label: z.string().trim().min(1, "Enter a currency label, e.g. Rs.").max(8, "Keep the label short, e.g. Rs."),
   max_discount_percent_receptionist: z.coerce
     .number({ error: "Enter the discount limit as a whole number." })
@@ -32,6 +36,7 @@ async function writeSettings(changes: Partial<Settings>, userId: string): Promis
   const supabase = await createClient();
   const { error } = await supabase.from("app_settings").upsert(rows, { onConflict: "key" });
   if (error) return fail(friendlyDbError(error, "The settings could not be saved. Try again."));
+  revalidatePath("/admin/settings");
   revalidatePath("/", "layout");
   return ok(null);
 }

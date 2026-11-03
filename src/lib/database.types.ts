@@ -1675,7 +1675,6 @@ export type Database = {
         Returns: undefined
       }
       create_booking: { Args: { payload: Json }; Returns: Json }
-      create_booking_with_hotel: { Args: { payload: Json }; Returns: Json }
       create_booking_pre_registration: {
         Args: {
           p_client_id?: string
@@ -1694,6 +1693,7 @@ export type Database = {
         Args: { p_booking_id: string; p_token: string }
         Returns: string
       }
+      create_booking_with_hotel: { Args: { payload: Json }; Returns: Json }
       custom_access_token_hook: { Args: { event: Json }; Returns: Json }
       daily_register: { Args: { p_date: string }; Returns: Json }
       day_manifest: {

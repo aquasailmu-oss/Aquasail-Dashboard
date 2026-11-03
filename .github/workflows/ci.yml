@@ -13,7 +13,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  checks:
+  quality:
     runs-on: ubuntu-latest
     timeout-minutes: 40
     env:
@@ -58,19 +58,63 @@ jobs:
           npm run db:types
           git diff --exit-code src/lib/database.types.ts
 
-      - name: End-to-end tests (production build)
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
+    env:
+      CI: "true"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Start local Supabase (migrations + seed)
+        run: npx supabase start
+
+      - name: Write .env.local from the local stack
+        run: |
+          eval "$(npx supabase status -o env)"
+          {
+            echo "NEXT_PUBLIC_SUPABASE_URL=$API_URL"
+            echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$ANON_KEY"
+            echo "SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY"
+          } > .env.local
+
+      - name: End-to-end tests (production build, shard ${{ matrix.shard }}/2)
         env:
           APP_BASE_URL: http://localhost:3000
         run: |
           npx playwright install --with-deps chromium
-          npm run test:e2e
+          npx playwright test --shard=${{ matrix.shard }}/2
 
       - name: Keep the Playwright report
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report
+          name: playwright-report-${{ matrix.shard }}
           path: |
             playwright-report/
             test-results/
           retention-days: 14
+
+  checks:
+    if: always()
+    needs: [quality, e2e]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require quality checks and both E2E shards to pass
+        env:
+          QUALITY_RESULT: ${{ needs.quality.result }}
+          E2E_RESULT: ${{ needs.e2e.result }}
+        run: |
+          test "$QUALITY_RESULT" = success
+          test "$E2E_RESULT" = success

@@ -15,8 +15,10 @@ test("the Excel export ties to the register's totals", async ({ page }) => {
   await book.xlsx.readFile((await download.path())!);
   const sheet = book.getWorksheet("Bookings")!;
   const totals = sheet.getRow(sheet.rowCount);
+  const chargedColumn = sheet.getRow(1).values.findIndex((value) => value === "Charged (Rs)");
   expect(String(totals.getCell(1).value)).toMatch(/^Totals/);
-  const excelCharged = `Rs ${Number(totals.getCell(11).value).toLocaleString("en-US", { maximumFractionDigits: 2 })}`;
+  expect(chargedColumn, "export should have a Charged (Rs) column").toBeGreaterThan(0);
+  const excelCharged = `Rs ${Number(totals.getCell(chargedColumn).value).toLocaleString("en-US", { maximumFractionDigits: 2 })}`;
   expect(excelCharged).toBe(pageCharged);
   expect(book.getWorksheet("Lines")!.rowCount).toBeGreaterThan(1);
   await logout(page);

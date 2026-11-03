@@ -6,8 +6,9 @@ if (existsSync(".env.local")) process.loadEnvFile(".env.local");
 
 /**
  * End-to-end tests (WP-20) against the seeded local stack: `npm run db:demo`
- * first. One worker: the tests share one database. Locally a running
- * `npm run dev` is reused; CI builds and starts the app.
+ * first. One worker per stack: tests share one database. CI shards the suite
+ * across two runners, each with its own seeded Supabase stack. Locally a
+ * running `npm run dev` is reused; CI builds and starts the app.
  */
 export default defineConfig({
   testDir: "tests/e2e",

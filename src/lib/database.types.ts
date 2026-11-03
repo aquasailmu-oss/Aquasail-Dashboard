@@ -573,9 +573,9 @@ export type Database = {
           created_by: string | null
           departure_time: string | null
           discount_total_cents: number
+          hotel_name: string | null
           id: string
           idempotency_key: string | null
-          hotel_name: string | null
           meeting_point: string | null
           notes: string | null
           operator_id: string | null
@@ -605,9 +605,9 @@ export type Database = {
           created_by?: string | null
           departure_time?: string | null
           discount_total_cents?: number
+          hotel_name?: string | null
           id?: string
           idempotency_key?: string | null
-          hotel_name?: string | null
           meeting_point?: string | null
           notes?: string | null
           operator_id?: string | null
@@ -637,9 +637,9 @@ export type Database = {
           created_by?: string | null
           departure_time?: string | null
           discount_total_cents?: number
+          hotel_name?: string | null
           id?: string
           idempotency_key?: string | null
-          hotel_name?: string | null
           meeting_point?: string | null
           notes?: string | null
           operator_id?: string | null
@@ -1537,8 +1537,8 @@ export type Database = {
           created_by: string | null
           departure_time: string | null
           discount_total_cents: number | null
-          id: string | null
           hotel_name: string | null
+          id: string | null
           operator_id: string | null
           operator_name: string | null
           operator_net_total_cents: number | null

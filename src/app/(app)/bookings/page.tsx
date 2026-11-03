@@ -34,6 +34,7 @@ type ListRow = Pick<
   | "service_date"
   | "client_name"
   | "operator_name"
+  | "hotel_name"
   | "summary"
   | "people"
   | "charged_total_cents"
@@ -60,7 +61,12 @@ function Select({
   return (
     <div className="flex flex-col gap-1">
       <Label htmlFor={id}>{label}</Label>
-      <select id={id} name={name} defaultValue={value} className="border-input bg-card min-h-11 rounded-md border px-3">
+      <select
+        id={id}
+        name={name}
+        defaultValue={value}
+        className="booking-filter-select border-input bg-card min-h-11 rounded-md border px-3"
+      >
         {children}
       </select>
     </div>
@@ -109,7 +115,7 @@ export default async function BookingsPage({
     registerQuery(
       supabase,
       f,
-      "id, reference, service_date, client_name, operator_name, summary, people, charged_total_cents, paid_cents, balance_cents, payment_status, status",
+      "id, reference, service_date, client_name, operator_name, hotel_name, summary, people, charged_total_cents, paid_cents, balance_cents, payment_status, status",
       "exact",
     )
       .order(f.sort, { ascending: f.dir === "asc" })
@@ -168,14 +174,14 @@ export default async function BookingsPage({
         }
       />
 
-      <form className="bg-card mb-4 grid gap-3 rounded-lg border p-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8">
+      <form className="bg-card mb-4 grid gap-3 rounded-lg border p-4 sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-8">
         <div className="flex flex-col gap-1">
           <Label htmlFor="from">From</Label>
-          <Input id="from" name="from" type="date" defaultValue={f.from} />
+          <Input id="from" name="from" type="date" defaultValue={f.from} className="booking-filter-date" />
         </div>
         <div className="flex flex-col gap-1">
           <Label htmlFor="to">To</Label>
-          <Input id="to" name="to" type="date" defaultValue={f.to} />
+          <Input id="to" name="to" type="date" defaultValue={f.to} className="booking-filter-date" />
         </div>
         <Select id="source" name="source" label="Source" value={f.source}>
           <option value="all">All sources</option>
@@ -249,6 +255,7 @@ export default async function BookingsPage({
                 <SortHeader f={f} col="service_date" label="Date" />
                 <SortHeader f={f} col="client_name" label="Client" />
                 <TableHead>Source</TableHead>
+                <TableHead>Hotel</TableHead>
                 <TableHead>Booked</TableHead>
                 <SortHeader f={f} col="people" label="People" align="right" />
                 <SortHeader f={f} col="charged_total_cents" label="Charged" align="right" />
@@ -274,6 +281,7 @@ export default async function BookingsPage({
                   <TableCell className="whitespace-nowrap">{formatDateShort(b.service_date)}</TableCell>
                   <TableCell>{b.client_name}</TableCell>
                   <TableCell>{b.operator_name ?? "Walk-in"}</TableCell>
+                  <TableCell>{b.hotel_name || "—"}</TableCell>
                   <TableCell>{b.summary}</TableCell>
                   <TableCell className="text-right tabular-nums">{b.people}</TableCell>
                   <TableCell className="text-right tabular-nums">{formatRs(cents(b.charged_total_cents))}</TableCell>
@@ -291,7 +299,7 @@ export default async function BookingsPage({
             </TableBody>
             <TableFooter>
               <TableRow>
-                <TableCell colSpan={5} className="font-semibold">
+                <TableCell colSpan={6} className="font-semibold">
                   Totals: {live.length} booking{live.length === 1 ? "" : "s"}
                   {cancelledCount > 0 && (
                     <span className="text-muted-foreground font-normal"> (excluding {cancelledCount} cancelled)</span>

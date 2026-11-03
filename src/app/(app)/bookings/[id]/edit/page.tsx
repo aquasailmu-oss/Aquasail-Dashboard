@@ -19,7 +19,7 @@ export default async function AmendBookingPage({ params }: { params: Promise<{ i
   const { data: b } = await supabase
     .from("bookings")
     .select(
-      "id, reference, service_date, operator_id, departure_time, meeting_point, notes, resource_id, status, payer, charged_total_cents, discount_total_cents, booking_items(line_type, package_id, activity_id, participant_type, quantity, discount_reason, sale_unit_snapshot, participants_per_unit_snapshot), booking_participants(participant_type, count), payments(amount_cents)",
+      "id, reference, service_date, operator_id, hotel_name, departure_time, meeting_point, notes, resource_id, status, payer, charged_total_cents, discount_total_cents, booking_items(line_type, package_id, activity_id, participant_type, quantity, discount_reason, sale_unit_snapshot, participants_per_unit_snapshot), booking_participants(participant_type, count), payments(amount_cents)",
     )
     .eq("id", id)
     .maybeSingle();
@@ -109,6 +109,7 @@ export default async function AmendBookingPage({ params }: { params: Promise<{ i
           reference: b.reference,
           service_date: b.service_date,
           operator_id: b.operator_id,
+          hotel_name: b.hotel_name ?? "",
           departure_time: b.departure_time ? formatTime(b.departure_time) : "",
           meeting_point: b.meeting_point ?? "",
           notes: b.notes ?? "",

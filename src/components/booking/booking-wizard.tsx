@@ -121,6 +121,7 @@ export function BookingWizard({
   // 2. Source
   const [operatorId, setOperatorId] = useState(initialOperatorId);
   const [changingOperator, setChangingOperator] = useState(false);
+  const [hotelName, setHotelName] = useState("");
   // 3. What they bought
   const [purchase, setPurchase] = useState<Purchase>({
     packageIds: [],
@@ -263,6 +264,7 @@ export function BookingWizard({
         client,
         service_date: serviceDate,
         operator_id: operatorId,
+        hotel_name: hotelName,
         lines,
         participants: purchase.participants,
         discount: discountActive ? discount : null,
@@ -286,6 +288,7 @@ export function BookingWizard({
     client,
     serviceDate,
     operatorId,
+    hotelName,
     lines,
     purchase.participants,
     discountActive,
@@ -428,6 +431,22 @@ export function BookingWizard({
               />
             </>
           )}
+          <div className="border-t pt-4">
+            <h3 className="font-semibold">Hotel</h3>
+            <p className="text-muted-foreground mt-1 text-sm">Record the hotel the client came from.</p>
+            <div className="mt-3 flex max-w-xl flex-col gap-2">
+              <Label htmlFor="hotel_name">
+                Hotel name <span className="text-muted-foreground font-normal">(optional)</span>
+              </Label>
+              <Input
+                id="hotel_name"
+                value={hotelName}
+                maxLength={120}
+                onChange={(event) => setHotelName(event.target.value)}
+                placeholder="e.g. Hotel or resort name"
+              />
+            </div>
+          </div>
         </Section>
 
         {/* 2. SOURCE */}

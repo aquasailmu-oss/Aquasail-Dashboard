@@ -56,6 +56,7 @@ export type RegisterRow = {
   source_type: "walk_in" | "operator";
   operator_id: string | null;
   operator_name: string | null;
+  hotel_name: string | null;
   payer: "client" | "operator";
   client_id: string;
   client_name: string;

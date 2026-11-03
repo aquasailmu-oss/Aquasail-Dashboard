@@ -179,6 +179,10 @@ export default async function BookingPage({
             ) : (
               <div className="font-semibold">Walk-in</div>
             )}
+            <div>
+              <span className="text-muted-foreground">Hotel: </span>
+              <span>{b.hotel_name || "—"}</span>
+            </div>
           </CardContent>
         </Card>
       </div>

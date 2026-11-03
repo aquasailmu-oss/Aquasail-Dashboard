@@ -30,6 +30,7 @@ export type AmendableBooking = {
   reference: string;
   service_date: string;
   operator_id: string | null;
+  hotel_name: string;
   departure_time: string;
   meeting_point: string;
   notes: string;
@@ -59,6 +60,7 @@ export function AmendForm({
   const router = useRouter();
   const [purchase, setPurchase] = useState(initial);
   const [departureTime, setDepartureTime] = useState(booking.departure_time);
+  const [hotelName, setHotelName] = useState(booking.hotel_name);
   const [meetingPoint, setMeetingPoint] = useState(booking.meeting_point);
   const [notes, setNotes] = useState(booking.notes);
   const [boatId, setBoatId] = useState(booking.resource_id);
@@ -131,6 +133,7 @@ export function AmendForm({
     startSaving(async () => {
       const r = await amendBooking({
         booking_id: booking.id,
+        hotel_name: hotelName,
         lines,
         participants: purchase.participants,
         discount: discountActive ? discount : null,
@@ -172,6 +175,15 @@ export function AmendForm({
               onChange={setPurchase}
             />
             <div className="grid gap-4 sm:grid-cols-2">
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="hotel_name">Hotel the client came from (optional)</Label>
+                <Input
+                  id="hotel_name"
+                  value={hotelName}
+                  maxLength={120}
+                  onChange={(event) => setHotelName(event.target.value)}
+                />
+              </div>
               <div className="flex flex-col gap-2">
                 <Label htmlFor="departure_time">Departure time</Label>
                 <Input

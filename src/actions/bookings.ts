@@ -85,6 +85,7 @@ const createSchema = z.object({
   }),
   service_date: z.string(),
   operator_id: z.uuid().nullable(),
+  hotel_name: z.string().trim().max(120),
   lines: z
     .array(
       z.object({
@@ -172,13 +173,14 @@ export async function createBooking(input: CreateBookingInput): Promise<Result<{
   }
 
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("create_booking", {
+  const { data, error } = await supabase.rpc("create_booking_with_hotel", {
     payload: {
       idempotency_key: d.idempotency_key,
       client_id: d.client_id,
       client,
       service_date: date,
       operator_id: d.operator_id,
+      hotel_name: d.hotel_name,
       lines: d.lines,
       discount: discount.data,
       participants: (["adult", "child", "infant"] as const)
@@ -225,6 +227,7 @@ const lineSchema = z.object({
 
 const amendSchema = z.object({
   booking_id: z.uuid(),
+  hotel_name: z.string().trim().max(120),
   lines: z.array(lineSchema).min(1, "Choose a package or add an activity."),
   participants: createSchema.shape.participants,
   discount: createSchema.shape.discount,
@@ -248,9 +251,10 @@ export async function amendBooking(input: AmendBookingInput): Promise<Result<{ p
   if (!discount.ok) return discount;
 
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("amend_booking", {
+  const { data, error } = await supabase.rpc("amend_booking_with_hotel", {
     p_booking_id: d.booking_id,
     payload: {
+      hotel_name: d.hotel_name,
       lines: d.lines,
       discount: discount.data,
       participants: (["adult", "child", "infant"] as const)

@@ -575,6 +575,7 @@ export type Database = {
           discount_total_cents: number
           id: string
           idempotency_key: string | null
+          hotel_name: string | null
           meeting_point: string | null
           notes: string | null
           operator_id: string | null
@@ -606,6 +607,7 @@ export type Database = {
           discount_total_cents?: number
           id?: string
           idempotency_key?: string | null
+          hotel_name?: string | null
           meeting_point?: string | null
           notes?: string | null
           operator_id?: string | null
@@ -637,6 +639,7 @@ export type Database = {
           discount_total_cents?: number
           id?: string
           idempotency_key?: string | null
+          hotel_name?: string | null
           meeting_point?: string | null
           notes?: string | null
           operator_id?: string | null
@@ -1535,6 +1538,7 @@ export type Database = {
           departure_time: string | null
           discount_total_cents: number | null
           id: string | null
+          hotel_name: string | null
           operator_id: string | null
           operator_name: string | null
           operator_net_total_cents: number | null
@@ -1624,6 +1628,10 @@ export type Database = {
         Args: { p_booking_id: string; payload: Json }
         Returns: Json
       }
+      amend_booking_with_hotel: {
+        Args: { p_booking_id: string; payload: Json }
+        Returns: Json
+      }
       append_client_note: {
         Args: { p_client_id: string; p_note: string }
         Returns: string
@@ -1667,6 +1675,7 @@ export type Database = {
         Returns: undefined
       }
       create_booking: { Args: { payload: Json }; Returns: Json }
+      create_booking_with_hotel: { Args: { payload: Json }; Returns: Json }
       create_booking_pre_registration: {
         Args: {
           p_client_id?: string

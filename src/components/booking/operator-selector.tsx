@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRightIcon, Building2Icon, CheckIcon } from "lucide-react";
+import { ArrowRightIcon, Building2Icon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -85,17 +85,6 @@ export function OperatorSelector({ operators }: { operators: BookingOperatorOpti
                         {operator.payer === "operator" ? "Operator pays" : "Customer pays"}
                       </span>
                     </div>
-                    <span
-                      className={cn(
-                        "absolute top-3 right-3 flex size-6 items-center justify-center rounded-full border",
-                        selected
-                          ? "border-primary bg-primary text-primary-foreground"
-                          : "border-border bg-background text-transparent",
-                      )}
-                      aria-hidden
-                    >
-                      <CheckIcon className="size-4" />
-                    </span>
                   </label>
                 );
               })}

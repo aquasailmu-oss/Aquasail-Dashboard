@@ -208,7 +208,20 @@ test("staff can pre-register a client, then complete and link their booking on a
   await page.fill("#pre-date", today());
   await page.fill("#pre-notes", note);
   await page.getByRole("button", { name: "Save pre-registration" }).click();
-  await page.waitForURL(/\/pre-registrations\?saved=/);
+  await expect
+    .poll(
+      async () => {
+        const url = new URL(page.url());
+        if (url.pathname === "/pre-registrations" && url.searchParams.has("saved")) return "saved";
+        const error = await page
+          .getByRole("alert")
+          .textContent()
+          .catch(() => null);
+        return error ? `save failed: ${error.trim()}` : "still saving";
+      },
+      { timeout: 20_000, message: "pre-registration should save or show its validation error" },
+    )
+    .toBe("saved");
   const registrationId = new URL(page.url()).searchParams.get("saved");
   expect(registrationId).toBeTruthy();
   await expect(page.getByText("Pre-registration saved.")).toBeVisible();

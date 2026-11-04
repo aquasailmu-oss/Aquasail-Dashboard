@@ -19,6 +19,7 @@ const schema = z.object({
   operator_id: z.uuid(),
   service_date: z.string(),
   notes: z.string().trim().max(1000),
+  hotel_name: z.string().trim().max(120),
 });
 
 export type CreatePreRegistrationInput = z.input<typeof schema>;
@@ -50,6 +51,7 @@ export async function createPreRegistration(input: CreatePreRegistrationInput): 
     p_email: d.email || undefined,
     p_country: d.country || undefined,
     p_notes: d.notes || undefined,
+    p_hotel_name: d.hotel_name || undefined,
   });
   if (error || !data || typeof data !== "object" || Array.isArray(data) || typeof data.id !== "string") {
     const message = error?.message ?? "The pre-registration could not be saved.";

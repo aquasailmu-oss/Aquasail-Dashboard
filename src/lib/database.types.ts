@@ -352,6 +352,7 @@ export type Database = {
           created_by: string
           id: string
           idempotency_key: string
+          hotel_name: string | null
           notes: string | null
           operator_id: string
           service_date: string
@@ -365,6 +366,7 @@ export type Database = {
           created_by?: string
           id?: string
           idempotency_key?: string
+          hotel_name?: string | null
           notes?: string | null
           operator_id: string
           service_date: string
@@ -378,6 +380,7 @@ export type Database = {
           created_by?: string
           id?: string
           idempotency_key?: string
+          hotel_name?: string | null
           notes?: string | null
           operator_id?: string
           service_date?: string
@@ -1681,6 +1684,7 @@ export type Database = {
           p_country?: string
           p_email?: string
           p_first_name: string
+          p_hotel_name?: string
           p_last_name: string
           p_notes?: string
           p_operator_id: string

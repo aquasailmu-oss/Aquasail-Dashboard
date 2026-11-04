@@ -31,13 +31,14 @@ export default async function NewBookingPage({
     serviceDate: string;
     operatorId: string;
     notes: string | null;
+    hotelName: string | null;
     client: ClientMatch;
   } | null = null;
   if (preRegistrationId) {
     const { data: registration, error } = await supabase
       .from("booking_pre_registrations")
       .select(
-        "id, idempotency_key, service_date, operator_id, status, notes, booking_id, clients(id, first_name, last_name, phone_e164, email, country)",
+        "id, idempotency_key, service_date, operator_id, status, notes, hotel_name, booking_id, clients(id, first_name, last_name, phone_e164, email, country)",
       )
       .eq("id", preRegistrationId)
       .maybeSingle();
@@ -110,6 +111,7 @@ export default async function NewBookingPage({
       serviceDate: registration.service_date,
       operatorId: registration.operator_id,
       notes: registration.notes,
+      hotelName: registration.hotel_name,
       client: {
         id: registration.clients.id,
         first_name: registration.clients.first_name,
@@ -227,6 +229,7 @@ export default async function NewBookingPage({
                 idempotencyKey: preRegistration.idempotencyKey,
                 serviceDate: preRegistration.serviceDate,
                 notes: preRegistration.notes,
+                hotelName: preRegistration.hotelName,
                 client: preRegistration.client,
               }
             : undefined

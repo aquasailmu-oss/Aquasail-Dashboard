@@ -19,6 +19,7 @@ export function PreRegistrationForm({ operators, today }: { operators: Operator[
   const [chosenClient, setChosenClient] = useState<ClientMatch | null>(null);
   const [matches, setMatches] = useState<ClientMatch[]>([]);
   const [operatorId, setOperatorId] = useState("");
+  const [hotelName, setHotelName] = useState("");
   const [serviceDate, setServiceDate] = useState(today);
   const [notes, setNotes] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -71,6 +72,7 @@ export function PreRegistrationForm({ operators, today }: { operators: Operator[
         operator_id: operatorId,
         service_date: serviceDate,
         notes,
+        hotel_name: hotelName,
       });
       if (!result.ok) {
         setError(result.error);
@@ -144,6 +146,18 @@ export function PreRegistrationForm({ operators, today }: { operators: Operator[
             <ClientMatchBanner matches={matches} onUse={selectClient} />
           </>
         )}
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="pre-hotel-name">
+            Hotel <span className="text-muted-foreground font-normal">(optional)</span>
+          </Label>
+          <Input
+            id="pre-hotel-name"
+            value={hotelName}
+            maxLength={120}
+            onChange={(event) => setHotelName(event.target.value)}
+            placeholder="Hotel the client came from"
+          />
+        </div>
       </section>
 
       <section className="bg-card flex flex-col gap-4 rounded-lg border p-5">

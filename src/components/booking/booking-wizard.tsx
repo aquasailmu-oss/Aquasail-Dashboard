@@ -37,6 +37,7 @@ type PreRegistration = {
   idempotencyKey: string;
   serviceDate: string;
   notes: string | null;
+  hotelName: string | null;
   client: ClientMatch;
 };
 
@@ -121,7 +122,7 @@ export function BookingWizard({
   // 2. Source
   const [operatorId, setOperatorId] = useState(initialOperatorId);
   const [changingOperator, setChangingOperator] = useState(false);
-  const [hotelName, setHotelName] = useState("");
+  const [hotelName, setHotelName] = useState(preRegistration?.hotelName ?? "");
   // 3. What they bought
   const [purchase, setPurchase] = useState<Purchase>({
     packageIds: [],

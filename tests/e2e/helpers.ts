@@ -50,6 +50,36 @@ export async function selectBookingOperator(page: Page, name: RegExp = /Sofitel 
   await expect(page.locator("#first_name")).toBeVisible();
 }
 
+/** Open a collapsed package/activity count control before editing its value. */
+export async function fillCount(page: Page, selector: string, value: string) {
+  const input = page.locator(selector);
+  const details = input.locator("xpath=ancestor::details[1]");
+  if ((await details.count()) > 0 && !(await details.evaluate((node) => (node as HTMLDetailsElement).open))) {
+    await details.locator("summary").click();
+  }
+  await input.fill(value);
+}
+
+export async function saveBooking(page: Page) {
+  await page.getByRole("button", { name: "Save booking" }).click();
+  await expectBookingSaved(page);
+}
+
+export async function expectBookingSaved(page: Page) {
+  await expect(page.getByText(/Booking and attendance are saved\./)).toBeVisible();
+}
+
+export async function openBookingDetails(page: Page) {
+  await page.getByRole("link", { name: "Open booking details" }).click();
+  await page.waitForURL(/\/bookings\/[0-9a-f-]{36}$/);
+}
+
+export async function getBookingReference(page: Page) {
+  const confirmationReference = page.getByTestId("booking-reference");
+  if ((await confirmationReference.count()) > 0) return (await confirmationReference.textContent())!.trim();
+  return (await page.locator("main h1").textContent())!.trim();
+}
+
 export async function signPublicWaiver(
   page: Page,
   url: string,

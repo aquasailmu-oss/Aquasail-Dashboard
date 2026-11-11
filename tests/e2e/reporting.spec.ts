@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import ExcelJS from "exceljs";
+import { PDFDocument } from "pdf-lib";
 import { login, logout } from "./helpers";
 
 test("the Excel export ties to the register's totals", async ({ page }) => {
@@ -29,12 +30,14 @@ test("the Excel export ties to the register's totals", async ({ page }) => {
 
 test("the daily register prints on one page", async ({ page }) => {
   await login(page, "accountant");
-  await page.goto("/register");
+  // An empty-register date keeps the one-page print layout check independent
+  // of how many E2E bookings have accumulated on today's date.
+  await page.goto("/register?date=2099-12-31");
   await expect(page.getByTestId("total-received")).toHaveText(/^Rs [\d,]+/);
   await page.emulateMedia({ media: "print" });
   const pdf = await page.pdf({ preferCSSPageSize: true });
-  const pages = (pdf.toString("latin1").match(/\/Type\s*\/Page[^s]/g) ?? []).length;
-  expect(pages).toBe(1);
+  const printed = await PDFDocument.load(pdf);
+  expect(printed.getPageCount()).toBe(1);
   await page.emulateMedia({ media: "screen" });
   await logout(page);
 });

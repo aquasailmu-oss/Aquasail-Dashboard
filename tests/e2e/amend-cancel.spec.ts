@@ -1,5 +1,15 @@
 import { expect, test } from "@playwright/test";
-import { expectTotal, login, logout, selectBookingOperator, tag } from "./helpers";
+import {
+  expectTotal,
+  fillCount,
+  getBookingReference,
+  login,
+  logout,
+  openBookingDetails,
+  saveBooking,
+  selectBookingOperator,
+  tag,
+} from "./helpers";
 
 test("amend updates the balance and the audit trail; cancel strikes through, never deletes", async ({ page }) => {
   const last = `Amend${tag()}`;
@@ -9,17 +19,16 @@ test("amend updates the balance and the audit trail; cancel strikes through, nev
   await page.fill("#first_name", "Change");
   await page.fill("#last_name", last);
   await page.getByText("Adrenaline Combo", { exact: true }).click();
-  await page.locator('input[id^="package-"][id$="-adult"]').fill("2");
+  await page.locator("#expected-adult").fill("2");
   await expectTotal(page, "Rs 6,800");
-  await page.getByRole("button", { name: "Create booking" }).click();
-  await page.waitForURL(/\/confirmation$/);
-  const reference = (await page.getByTestId("booking-reference").textContent())!.trim();
-  await page.getByRole("link", { name: "View booking" }).click();
-  await expect(page).toHaveURL(/\/bookings\/[0-9a-f-]{36}$/);
+  await saveBooking(page);
+  await openBookingDetails(page);
+  const reference = await getBookingReference(page);
   await expect(page.locator("tfoot tr").filter({ hasText: "Balance due" })).toContainText("Rs 0");
 
   await page.getByRole("link", { name: "Amend", exact: true }).click();
-  await page.locator('input[id^="package-"][id$="-child"]').fill("1");
+  await page.locator("#amend-booking-child").fill("1");
+  await fillCount(page, 'input[id^="package-"][id$="-child"]', "1");
   await expect(page.getByTestId("before-after")).toHaveText("Total was Rs 6,800, now Rs 9,300. Balance due Rs 2,500.");
   await page.getByRole("button", { name: "Save changes" }).click();
   await page.waitForURL(/\/bookings\/[0-9a-f-]{36}\?amended=/);

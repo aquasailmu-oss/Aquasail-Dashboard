@@ -695,9 +695,9 @@ export function BookingWizard({
               ).map(({ key, label, hint }) => (
                 <div
                   key={key}
-                  className="grid gap-3 rounded-md border p-3 sm:grid-cols-[minmax(7rem,1fr)_minmax(10rem,1fr)_minmax(10rem,1fr)_5rem] sm:items-end"
+                  className="grid gap-3 rounded-md border p-3 xl:grid-cols-[minmax(7rem,1fr)_minmax(10rem,1fr)_minmax(10rem,1fr)_5rem] xl:items-end"
                 >
-                  <p className="font-semibold sm:pb-3">
+                  <p className="font-semibold xl:pb-3">
                     {label} {hint && <span className="text-muted-foreground font-normal">{hint}</span>}
                   </p>
                   <Stepper
@@ -719,7 +719,7 @@ export function BookingWizard({
                     onChange={(count) => updatePresentCount(key, count)}
                     compact
                   />
-                  <div className="text-sm sm:pb-2">
+                  <div className="text-sm xl:pb-2">
                     <span className="text-muted-foreground">Absent</span>
                     <p className="font-semibold tabular-nums">{absent[key]}</p>
                   </div>

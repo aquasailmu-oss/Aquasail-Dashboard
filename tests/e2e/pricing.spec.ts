@@ -1,5 +1,16 @@
 import { expect, test } from "@playwright/test";
-import { addDays, db, expectTotal, login, logout, selectBookingOperator, tag, today } from "./helpers";
+import {
+  addDays,
+  db,
+  expectTotal,
+  login,
+  logout,
+  openBookingDetails,
+  saveBooking,
+  selectBookingOperator,
+  tag,
+  today,
+} from "./helpers";
 
 test("price history: a new price from tomorrow leaves today unchanged and prices tomorrow's booking", async ({
   page,
@@ -41,9 +52,9 @@ test("price history: a new price from tomorrow leaves today unchanged and prices
   await expectTotal(page, "Rs 1,000");
   await book(addDays(today(), 1));
   await expectTotal(page, "Rs 1,250");
-  await page.getByRole("button", { name: "Create booking" }).click();
-  await page.waitForURL(/\/confirmation$/);
-  await expect(page.getByText("Rs 1,250")).toBeVisible();
+  await saveBooking(page);
+  await openBookingDetails(page);
+  await expect(page.locator("tbody tr").filter({ hasText: name }).getByText("Rs 1,250", { exact: true })).toBeVisible();
 
   await page.goto(`/admin/pricing/history/activity/${activity!.id}`);
   await expect(page.locator("[data-slot=table-body] tr")).toHaveCount(2);

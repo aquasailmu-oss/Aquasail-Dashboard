@@ -48,8 +48,10 @@ export default async function RegisterPage({ searchParams }: { searchParams: Pro
         @page { size: A4 portrait; margin: 12mm; }
         @media print {
           html, body { background: #fff !important; }
-          .register-sheet { font-size: 12px; }
-          .register-sheet th, .register-sheet td { padding-top: 3px; padding-bottom: 3px; height: auto; }
+          body > div { min-height: 0 !important; }
+          .register-sheet { font-size: 10px; line-height: 1.2; }
+          .register-sheet tr { height: auto !important; }
+          .register-sheet th, .register-sheet td { padding: 1px 4px !important; height: auto !important; line-height: 1.2; }
         }
       `}</style>
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4 print:hidden">

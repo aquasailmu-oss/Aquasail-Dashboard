@@ -4,8 +4,12 @@ import {
   bookingByReference,
   db,
   expectTotal,
+  openBookingDetails,
+  fillCount,
+  getBookingReference,
   login,
   logout,
+  saveBooking,
   selectBookingOperator,
   tag,
   today,
@@ -18,17 +22,17 @@ test("a standalone activity can be booked without a package with its own partici
   await selectBookingOperator(page);
   await page.fill("#first_name", "Alex");
   await page.fill("#last_name", lastName);
+  await page.locator("#expected-adult").fill("2");
   await page.selectOption("#add-activity", { label: "Tube Ride" });
   await page.getByRole("button", { name: "Add" }).click();
   const activityAdults = page.locator('input[id^="activity-"][id$="-adult"]');
-  await expect(activityAdults).toHaveValue("1");
-  await page.fill("#adults", "2");
+  await fillCount(page, 'input[id^="activity-"][id$="-adult"]', "1");
   await expect(activityAdults).toHaveValue("1");
   await expectTotal(page, "Rs 1,200");
 
-  await page.getByRole("button", { name: "Create booking" }).click();
-  await page.waitForURL(/\/confirmation$/);
-  const reference = (await page.getByTestId("booking-reference").textContent())!.trim();
+  await saveBooking(page);
+  await openBookingDetails(page);
+  const reference = await getBookingReference(page);
   const booking = await bookingByReference(reference);
   expect(booking?.booking_activities.map((activity) => `${activity.activities?.code}×${activity.quantity}`)).toEqual([
     "TUBE×1",
@@ -107,21 +111,21 @@ test("one double package unit is charged once and combines its inclusions with s
   await page.fill("#service_date", addDays(today(), 1));
   await page.fill("#first_name", "Double");
   await page.fill("#last_name", `Unit${suffix}`);
+  await page.locator("#expected-adult").fill("2");
   await page.getByText(packageName, { exact: true }).click();
-  await expect(page.getByText("1 package unit covers 2 people").first()).toBeVisible();
-  await expect(page.locator("#adults")).toHaveValue("2");
+  await expect(page.getByText("1 unit · covers 2 guests").first()).toBeVisible();
+  await expect(page.locator("#expected-adult")).toHaveValue("2");
   await expectTotal(page, "Rs 8,300");
 
   await page.selectOption("#add-activity", { label: activityName });
   await page.getByRole("button", { name: "Add" }).click();
-  const standalonePax = page.locator('input[id^="activity-"][id$="-adult"]');
-  await standalonePax.fill("1");
-  await expect(page.locator("#adults")).toHaveValue("2");
+  await fillCount(page, 'input[id^="activity-"][id$="-adult"]', "1");
+  await expect(page.locator("#expected-adult")).toHaveValue("2");
   await expectTotal(page, "Rs 9,500");
-  await page.getByRole("button", { name: "Create booking" }).click();
-  await page.waitForURL(/\/confirmation$/);
+  await saveBooking(page);
+  await openBookingDetails(page);
 
-  const reference = (await page.getByTestId("booking-reference").textContent())!.trim();
+  const reference = await getBookingReference(page);
   const booking = await bookingByReference(reference);
   expect(booking?.booking_activities).toHaveLength(2);
   expect(booking?.booking_activities.reduce((total, item) => total + item.quantity, 0)).toBe(3);
@@ -159,20 +163,18 @@ test("a package and standalone activity remain separate purchases but consolidat
   await selectBookingOperator(page);
   await page.fill("#first_name", "Sam");
   await page.fill("#last_name", lastName);
+  await page.locator("#expected-adult").fill("2");
   await page.getByText("Island Explorer", { exact: true }).click();
   await page.selectOption("#add-activity", { label: "Snorkelling" });
   await page.getByRole("button", { name: "Add" }).click();
 
-  await page.locator('input[id^="package-"][id$="-adult"]').fill("2");
-  await page.locator('input[id^="activity-"][id$="-adult"]').fill("2");
-  await page.fill("#adults", "2");
   await expectTotal(page, "Rs 8,600");
   await page.getByRole("radio", { name: /Catamaran A/ }).check();
-  await page.selectOption("#method", "pre_book");
-  await page.getByRole("button", { name: "Create booking" }).click();
-  await page.waitForURL(/\/confirmation$/);
+  await page.locator("#received").fill("");
+  await saveBooking(page);
+  await openBookingDetails(page);
 
-  const reference = (await page.getByTestId("booking-reference").textContent())!.trim();
+  const reference = await getBookingReference(page);
   const booking = await bookingByReference(reference);
   const { data: purchases } = await db
     .from("booking_items")
@@ -239,11 +241,11 @@ test("staff can pre-register a client, then complete and link their booking on a
   await page.getByText("Sunset Cruise", { exact: true }).click();
   await expectTotal(page, "Rs 2,100");
   await page.getByRole("radio", { name: /Catamaran A/ }).check();
-  await page.selectOption("#method", "pre_book");
-  await page.getByRole("button", { name: "Create booking" }).click();
-  await page.waitForURL(/\/confirmation$/);
+  await page.locator("#received").fill("");
+  await saveBooking(page);
+  await openBookingDetails(page);
 
-  const reference = (await page.getByTestId("booking-reference").textContent())!.trim();
+  const reference = await getBookingReference(page);
   const booking = await bookingByReference(reference);
   const { data: registration } = await db
     .from("booking_pre_registrations")

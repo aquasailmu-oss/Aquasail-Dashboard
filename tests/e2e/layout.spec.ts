@@ -31,8 +31,22 @@ for (const width of [768, 1024]) {
         await expect(page.getByTestId("ticket-acknowledgement")).toContainText(/\d+ of \d+ participant waivers signed/);
         await page.goBack();
       }
-      const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
-      expect(overflow, `${path} scrolls sideways at ${width}px`).toBeLessThanOrEqual(0);
+      const overflow = await page.evaluate(() => ({
+        amount: document.documentElement.scrollWidth - window.innerWidth,
+        offenders: [...document.querySelectorAll("body *")]
+          .map((element) => ({
+            tag: element.tagName.toLowerCase(),
+            text: element.textContent?.trim().slice(0, 50),
+            right: Math.round(element.getBoundingClientRect().right),
+            className: typeof element.className === "string" ? element.className : "",
+          }))
+          .filter((element) => element.right > window.innerWidth + 2)
+          .slice(0, 8),
+      }));
+      expect(
+        overflow.amount,
+        `${path} scrolls sideways at ${width}px: ${JSON.stringify(overflow.offenders)}`,
+      ).toBeLessThanOrEqual(0);
     }
   });
 }

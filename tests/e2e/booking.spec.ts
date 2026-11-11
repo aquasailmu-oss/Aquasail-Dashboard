@@ -2,9 +2,13 @@ import { expect, test } from "@playwright/test";
 import {
   bookingByReference,
   db,
+  expectBookingSaved,
   expectTotal,
+  getBookingReference,
   login,
   logout,
+  openBookingDetails,
+  saveBooking,
   selectBookingOperator,
   signPublicWaiver,
   stubPrint,
@@ -37,7 +41,8 @@ test("signed operator booking: 4 adults, catamaran + lunch, cash, ticket, on Tod
 
   await page.goto("/bookings/new");
   await selectBookingOperator(page);
-  await expect(page.getByText("Rs 3,200 / adult")).toBeVisible();
+  await page.getByText("Package details and pricing").first().click();
+  await expect(page.getByText("Adult price: Rs 3,200 per guest", { exact: true })).toBeVisible();
   await page.locator("#first_name").focus();
   await expect(page.locator("#first_name")).toBeFocused();
   const started = Date.now();
@@ -46,27 +51,16 @@ test("signed operator booking: 4 adults, catamaran + lunch, cash, ticket, on Tod
   await page.keyboard.type(name);
   await page.getByText("Island Explorer", { exact: true }).click();
   await expect(page.getByText("Assign a boat")).toBeVisible();
-  await page.locator('input[id^="package-"][id$="-adult"]').focus();
+  await page.locator("#expected-adult").focus();
   await page.keyboard.press("Control+A");
   await page.keyboard.type("4");
   await expectTotal(page, "Rs 12,800");
   await page.focus("input[name=boat]");
   await page.keyboard.press("Space");
-  await expect(page.getByRole("button", { name: "Create booking" })).toBeEnabled();
-  await page.keyboard.press("Control+Enter");
-  await page.waitForURL(/\/confirmation$/);
-  expect(Date.now() - started, "a keyboard-only booking well under the 45 s target").toBeLessThan(45_000);
+  await expect(page.getByRole("button", { name: "Save booking" })).toBeEnabled();
+  await saveBooking(page);
+  expect(Date.now() - started, "a booking well under the 45 s target").toBeLessThan(45_000);
 
-  const reference = (await page.getByTestId("booking-reference").textContent())!.trim();
-  const booking = await bookingByReference(reference);
-  expect(booking?.charged_total_cents).toBe(1280000);
-  expect(booking?.payments).toEqual([{ amount_cents: 1280000, method: "cash" }]);
-  expect(booking?.booking_activities.map((a) => `${a.activities?.code}×${a.quantity}`).sort()).toEqual([
-    "CATAMARAN×4",
-    "LUNCH×4",
-    "SNORKEL×4",
-  ]);
-  await page.getByRole("button", { name: /Generate waiver QR/ }).click();
   const waiverUrl = await page.getByRole("textbox", { name: "Booking waiver link" }).inputValue();
   expect(waiverUrl).toMatch(/\/waiver\/[A-Za-z0-9_-]{43}$/);
   await expect(page.getByRole("img", { name: "Booking waiver QR code" })).toBeVisible();
@@ -75,6 +69,16 @@ test("signed operator booking: 4 adults, catamaran + lunch, cash, ticket, on Tod
   for (let i = 1; i <= 4; i++) await signPublicWaiver(guestPage, waiverUrl, `Guest ${i} ${name}`);
   await expect(guestPage.getByText("All participants on this booking have signed.")).toBeVisible();
   await guestContext.close();
+  await openBookingDetails(page);
+  const reference = await getBookingReference(page);
+  const booking = await bookingByReference(reference);
+  expect(booking?.charged_total_cents).toBe(1280000);
+  expect(booking?.payments).toEqual([{ amount_cents: 1280000, method: "cash" }]);
+  expect(booking?.booking_activities.map((a) => `${a.activities?.code}×${a.quantity}`).sort()).toEqual([
+    "CATAMARAN×4",
+    "LUNCH×4",
+    "SNORKEL×4",
+  ]);
   const { data: savedWaivers } = await db
     .from("booking_waivers")
     .select("participant_name, signer_name, participant_type, disclaimer_text")
@@ -111,12 +115,12 @@ test("a pre-book can be saved and its ticket shows the waiver count", async ({ p
   await page.fill("#first_name", `Prebook${tag()}`);
   await page.getByText("Sunset Cruise", { exact: true }).click();
   await expectTotal(page, "Rs 2,100");
+  await page.locator("#received").fill("");
   await page.getByRole("radio", { name: /Catamaran B/ }).check();
-  await page.selectOption("#method", "pre_book");
-  await page.getByRole("button", { name: "Create booking" }).click();
-  await page.waitForURL(/\/confirmation$/);
+  await saveBooking(page);
+  await openBookingDetails(page);
 
-  const reference = (await page.getByTestId("booking-reference").textContent())!.trim();
+  const reference = await getBookingReference(page);
   const booking = await bookingByReference(reference);
   expect(booking?.payments).toEqual([]);
   await page.getByRole("link", { name: "Print ticket" }).click();
@@ -134,14 +138,11 @@ test("a booking QR records individual adult and guardian signatures and caps the
   await selectBookingOperator(page);
   await page.fill("#first_name", `Group${tag()}`);
   await page.getByText("Sunset Cruise", { exact: true }).click();
-  await page.fill("#adults", "1");
-  await page.fill("#children", "1");
-  await page.locator('input[id^="package-"][id$="-child"]').fill("1");
+  await page.locator("#expected-adult").fill("1");
+  await page.locator("#expected-child").fill("1");
   await expectTotal(page, "Rs 3,200");
   await page.getByRole("radio", { name: /Catamaran B/ }).check();
-  await page.getByRole("button", { name: "Create booking" }).click();
-  await page.waitForURL(/\/confirmation$/);
-  await page.getByRole("button", { name: /Generate waiver QR/ }).click();
+  await saveBooking(page);
   const waiverUrl = await page.getByRole("textbox", { name: "Booking waiver link" }).inputValue();
   const guestContext = await page.context().browser()!.newContext();
   const guestPage = await guestContext.newPage();
@@ -149,7 +150,8 @@ test("a booking QR records individual adult and guardian signatures and caps the
   await signPublicWaiver(guestPage, waiverUrl, `Child ${tag()}`, "child");
   await expect(guestPage.getByText("All participants on this booking have signed.")).toBeVisible();
   await expect(guestPage.getByRole("button", { name: "Sign and submit waiver" })).toHaveCount(0);
-  const reference = (await page.getByTestId("booking-reference").textContent())!.trim();
+  await openBookingDetails(page);
+  const reference = await getBookingReference(page);
   const booking = await bookingByReference(reference);
   const { data: waivers } = await db
     .from("booking_waivers")
@@ -175,7 +177,7 @@ test("discount cap: reception refused at 30%, admin allowed with the reason stor
   await page.fill("#discount_value", "30");
   await page.fill("#discount_reason", "Friend of the owner");
   await expect(page.getByText(/Reception can give at most 10% discount/)).toBeVisible();
-  await expect(page.getByRole("button", { name: "Create booking" })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Save booking" })).toBeDisabled();
   await logout(page);
 
   await login(page, "admin");
@@ -186,9 +188,9 @@ test("discount cap: reception refused at 30%, admin allowed with the reason stor
   await page.fill("#discount_value", "30");
   await page.fill("#discount_reason", "Friend of the owner");
   await expectTotal(page, "Rs 2,380");
-  await page.keyboard.press("Control+Enter");
-  await page.waitForURL(/\/confirmation$/);
-  const booking = await bookingByReference((await page.getByTestId("booking-reference").textContent())!.trim());
+  await saveBooking(page);
+  await openBookingDetails(page);
+  const booking = await bookingByReference(await getBookingReference(page));
   expect(booking?.discount_total_cents).toBe(102000);
   const { data: lines } = await db.from("booking_items").select("discount_reason").eq("booking_id", booking!.id);
   expect(lines?.every((l) => l.discount_reason === "Friend of the owner")).toBe(true);
@@ -204,13 +206,13 @@ test("idempotency: submitting twice rapidly creates one booking", async ({ page 
   await page.fill("#last_name", last);
   await page.getByText("Adrenaline Combo", { exact: true }).click();
   await expectTotal(page, "Rs 3,400");
-  await page.keyboard.press("Control+Enter");
-  await page.keyboard.press("Control+Enter");
-  await page
-    .getByRole("button", { name: /Create booking|Creating/ })
-    .click({ force: true, noWaitAfter: true })
-    .catch(() => {});
-  await page.waitForURL(/\/confirmation$/);
+  const saveButton = page.getByRole("button", { name: "Save booking" });
+  await saveButton.evaluate((button: HTMLButtonElement) => {
+    button.form?.requestSubmit(button);
+    button.form?.requestSubmit(button);
+  });
+  await expectBookingSaved(page);
+  await openBookingDetails(page);
   const { data: client } = await db.from("clients").select("id").eq("last_name", last).single();
   const { count } = await db.from("bookings").select("id", { count: "exact", head: true }).eq("client_id", client!.id);
   expect(count).toBe(1);

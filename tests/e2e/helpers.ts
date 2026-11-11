@@ -71,7 +71,8 @@ export async function expectBookingSaved(page: Page) {
 
 export async function openBookingDetails(page: Page) {
   await page.getByRole("link", { name: "Open booking details" }).click();
-  await page.waitForURL(/\/bookings\/[0-9a-f-]{36}$/);
+  await expect(page).toHaveURL(/\/bookings\/[0-9a-f-]{36}$/);
+  await expect(page.locator("main h1")).toBeVisible();
 }
 
 export async function getBookingReference(page: Page) {

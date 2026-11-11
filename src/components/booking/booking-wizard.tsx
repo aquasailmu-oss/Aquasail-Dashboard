@@ -472,7 +472,7 @@ export function BookingWizard({
         />
         <div className="flex flex-wrap gap-3">
           <Button asChild variant="outline">
-            <Link href={`/bookings/${savedBookingId}`}>Open booking details</Link>
+            <a href={`/bookings/${savedBookingId}`}>Open booking details</a>
           </Button>
           <Button asChild>
             <Link href="/bookings/new">New booking</Link>

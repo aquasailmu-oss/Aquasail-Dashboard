@@ -415,14 +415,14 @@ export type Database = {
         Row: {
           adults_expected_count: number | null
           booking_id: string | null
-          client_id: string
           children_expected_count: number | null
+          client_id: string
           created_at: string
           created_by: string
           hotel_name: string | null
           id: string
-          infants_expected_count: number | null
           idempotency_key: string
+          infants_expected_count: number | null
           notes: string | null
           operator_id: string
           service_date: string
@@ -432,14 +432,14 @@ export type Database = {
         Insert: {
           adults_expected_count?: number | null
           booking_id?: string | null
-          client_id: string
           children_expected_count?: number | null
+          client_id: string
           created_at?: string
           created_by?: string
           hotel_name?: string | null
           id?: string
-          infants_expected_count?: number | null
           idempotency_key?: string
+          infants_expected_count?: number | null
           notes?: string | null
           operator_id: string
           service_date: string
@@ -449,14 +449,14 @@ export type Database = {
         Update: {
           adults_expected_count?: number | null
           booking_id?: string | null
-          client_id?: string
           children_expected_count?: number | null
+          client_id?: string
           created_at?: string
           created_by?: string
           hotel_name?: string | null
           id?: string
-          infants_expected_count?: number | null
           idempotency_key?: string
+          infants_expected_count?: number | null
           notes?: string | null
           operator_id?: string
           service_date?: string
@@ -1738,7 +1738,10 @@ export type Database = {
       }
       booking_entitlements: { Args: { p_booking_id: string }; Returns: Json }
       booking_waiver_required_count: {
-        Args: { p_booking_id: string; p_participant_type: Database["public"]["Enums"]["participant_type"] }
+        Args: {
+          p_booking_id: string
+          p_participant_type: Database["public"]["Enums"]["participant_type"]
+        }
         Returns: number
       }
       build_quote: { Args: { input: Json }; Returns: Json }

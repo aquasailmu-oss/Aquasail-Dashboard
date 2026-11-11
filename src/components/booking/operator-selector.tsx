@@ -82,7 +82,7 @@ export function OperatorSelector({ operators }: { operators: BookingOperatorOpti
                             : "bg-secondary text-secondary-foreground",
                         )}
                       >
-                        {operator.payer === "operator" ? "Operator pays" : "Customer pays"}
+                        {operator.payer === "operator" ? "Operator owes AquaSail" : "Customer pays at reception"}
                       </span>
                     </div>
                   </label>

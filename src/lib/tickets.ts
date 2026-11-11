@@ -51,16 +51,31 @@ export async function getTicket(token: string): Promise<TicketData | null> {
   ]);
   const b = t?.bookings;
   if (!t || !b) return null;
-
   const order = ["adult", "child", "infant"] as const;
+
+  const { data: attendance } = await supabase
+    .from("booking_attendance")
+    .select("adults_present_count, children_present_count, infants_present_count")
+    .eq("booking_id", b.id)
+    .maybeSingle();
+  const attended: Record<(typeof order)[number], number> | null = attendance
+    ? {
+        adult: attendance.adults_present_count,
+        child: attendance.children_present_count,
+        infant: attendance.infants_present_count,
+      }
+    : null;
+
   const participants = order
     .map((type) => {
-      const n = b.booking_participants.find((p) => p.participant_type === type)?.count ?? 0;
+      const n = attended?.[type] ?? b.booking_participants.find((p) => p.participant_type === type)?.count ?? 0;
       return n > 0 ? `${n} ${TYPE[type][n === 1 ? 0 : 1]}` : null;
     })
     .filter(Boolean)
     .join(", ");
-  const requiredWaivers = b.booking_participants.reduce((sum, p) => sum + p.count, 0);
+  const requiredWaivers = attended
+    ? attended.adult + attended.child + attended.infant
+    : b.booking_participants.reduce((sum, p) => sum + p.count, 0);
 
   const entitlements = summarizeActivityParticipants(b.booking_activities);
 

@@ -146,6 +146,7 @@ const TABLES: Record<TableName, true> = {
   app_settings: true,
   audit_logs: true,
   booking_activities: true,
+  booking_attendance: true,
   booking_items: true,
   booking_participants: true,
   booking_waiver_links: true,

@@ -32,13 +32,14 @@ export default async function NewBookingPage({
     operatorId: string;
     notes: string | null;
     hotelName: string | null;
+    expectedPax: { adult: number; child: number; infant: number } | null;
     client: ClientMatch;
   } | null = null;
   if (preRegistrationId) {
     const { data: registration, error } = await supabase
       .from("booking_pre_registrations")
       .select(
-        "id, idempotency_key, service_date, operator_id, status, notes, hotel_name, booking_id, clients(id, first_name, last_name, phone_e164, email, country)",
+        "id, idempotency_key, service_date, operator_id, status, notes, hotel_name, adults_expected_count, children_expected_count, infants_expected_count, booking_id, clients(id, first_name, last_name, phone_e164, email, country)",
       )
       .eq("id", preRegistrationId)
       .maybeSingle();
@@ -112,6 +113,16 @@ export default async function NewBookingPage({
       operatorId: registration.operator_id,
       notes: registration.notes,
       hotelName: registration.hotel_name,
+      expectedPax:
+        registration.adults_expected_count === null ||
+        registration.children_expected_count === null ||
+        registration.infants_expected_count === null
+          ? null
+          : {
+              adult: registration.adults_expected_count,
+              child: registration.children_expected_count,
+              infant: registration.infants_expected_count,
+            },
       client: {
         id: registration.clients.id,
         first_name: registration.clients.first_name,
@@ -230,6 +241,7 @@ export default async function NewBookingPage({
                 serviceDate: preRegistration.serviceDate,
                 notes: preRegistration.notes,
                 hotelName: preRegistration.hotelName,
+                expectedPax: preRegistration.expectedPax,
                 client: preRegistration.client,
               }
             : undefined

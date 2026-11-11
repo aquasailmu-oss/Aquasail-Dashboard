@@ -43,6 +43,22 @@ export async function createWaiverLink(bookingId: string): Promise<Result<{ url:
 
   const token = randomBytes(32).toString("base64url");
   const supabase = await createClient();
+  const [{ data: participants, error: participantsError }, { data: attendance, error: attendanceError }] =
+    await Promise.all([
+      supabase.from("booking_participants").select("participant_type, count").eq("booking_id", id.data),
+      supabase
+        .from("booking_attendance")
+        .select("adults_present_count, children_present_count, infants_present_count")
+        .eq("booking_id", id.data)
+        .maybeSingle(),
+    ]);
+  if (participantsError || attendanceError)
+    return fail("Could not check the guest count. Refresh the booking and try again.");
+  const required = attendance
+    ? attendance.adults_present_count + attendance.children_present_count + attendance.infants_present_count
+    : (participants ?? []).reduce((sum, participant) => sum + participant.count, 0);
+  if (required === 0) return fail("Record at least one attendee before creating a waiver QR code.");
+
   const { data, error } = await supabase.rpc("create_booking_waiver_link", {
     p_booking_id: id.data,
     p_token: token,

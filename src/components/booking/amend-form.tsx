@@ -121,7 +121,7 @@ export function AmendForm({
       : partySize(purchase.participants) < minimumPartySize(purchase, packages)
         ? `The selected package and activity units cover at least ${minimumPartySize(purchase, packages)} people. Update the booking guest count.`
         : lines.length === 0
-          ? "Choose a package or activity and enter its pax."
+          ? "Choose a package or activity and set its guest count."
           : (quoteError ??
             (!quote || stale ? "Working out the price…" : null) ??
             (discountActive && !discount.reason.trim() ? "Give a reason for the discount." : null) ??
@@ -171,6 +171,7 @@ export function AmendForm({
               packages={packages}
               activities={activities}
               tilePrices={context.tilePrices}
+              showBookingGuests
               value={purchase}
               onChange={setPurchase}
             />

@@ -27,7 +27,7 @@ export default async function PreRegistrationsPage({
   const { data, error } = await supabase
     .from("booking_pre_registrations")
     .select(
-      "id, service_date, notes, created_at, clients(first_name, last_name, phone_e164, email), tour_operators(name)",
+      "id, service_date, notes, created_at, adults_expected_count, children_expected_count, infants_expected_count, clients(first_name, last_name, phone_e164, email), tour_operators(name)",
     )
     .eq("status", "open")
     .order("service_date")
@@ -86,6 +86,7 @@ export default async function PreRegistrationsPage({
                   <TableRow>
                     <TableHead>Client</TableHead>
                     <TableHead>Visit date</TableHead>
+                    <TableHead>Expected guests</TableHead>
                     <TableHead>Tour operator</TableHead>
                     <TableHead>Contact</TableHead>
                     <TableHead>Staff note</TableHead>
@@ -101,6 +102,22 @@ export default async function PreRegistrationsPage({
                         {row.clients?.first_name} {row.clients?.last_name}
                       </TableCell>
                       <TableCell>{formatDateShort(row.service_date)}</TableCell>
+                      <TableCell>
+                        {row.adults_expected_count === null ||
+                        row.children_expected_count === null ||
+                        row.infants_expected_count === null
+                          ? "Not recorded"
+                          : [
+                              row.adults_expected_count > 0 &&
+                                `${row.adults_expected_count} adult${row.adults_expected_count === 1 ? "" : "s"}`,
+                              row.children_expected_count > 0 &&
+                                `${row.children_expected_count} child${row.children_expected_count === 1 ? "" : "ren"}`,
+                              row.infants_expected_count > 0 &&
+                                `${row.infants_expected_count} infant${row.infants_expected_count === 1 ? "" : "s"}`,
+                            ]
+                              .filter(Boolean)
+                              .join(", ")}
+                      </TableCell>
                       <TableCell>{row.tour_operators?.name}</TableCell>
                       <TableCell>
                         {[formatPhone(row.clients?.phone_e164), row.clients?.email].filter(Boolean).join(" · ") || "—"}

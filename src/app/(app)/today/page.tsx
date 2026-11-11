@@ -83,6 +83,21 @@ export default async function TodayPage() {
     );
   }
 
+  const { data: attendanceRows, error: attendanceError } = waiverRows.data.length
+    ? await supabase
+        .from("booking_attendance")
+        .select("booking_id, adults_present_count, children_present_count, infants_present_count")
+        .in(
+          "booking_id",
+          waiverRows.data.map((booking) => booking.id),
+        )
+    : { data: [], error: null };
+  if (attendanceError) {
+    return (
+      <Alert variant="destructive">Today&rsquo;s attendance could not be loaded. Refresh the page to try again.</Alert>
+    );
+  }
+
   const live = bookings.data.filter((b) => b.status !== "cancelled");
   const people = live.reduce((s, b) => s + b.people, 0);
   const charged = live.reduce((s, b) => s + b.charged_total_cents, 0);
@@ -91,13 +106,18 @@ export default async function TodayPage() {
   const receivable = onAccount.reduce((s, b) => s + b.charged_total_cents, 0);
   const cashIn = cash.data.reduce((s, p) => s + p.amount_cents, 0);
   const waiverStatus = new Map(
-    waiverRows.data.map((b) => [
-      b.id,
-      {
-        required: b.booking_participants.reduce((sum, p) => sum + p.count, 0),
-        signed: b.booking_waivers.length,
-      },
-    ]),
+    waiverRows.data.map((b) => {
+      const attendance = attendanceRows.find((row) => row.booking_id === b.id);
+      return [
+        b.id,
+        {
+          required: attendance
+            ? attendance.adults_present_count + attendance.children_present_count + attendance.infants_present_count
+            : b.booking_participants.reduce((sum, p) => sum + p.count, 0),
+          signed: b.booking_waivers.length,
+        },
+      ];
+    }),
   );
 
   const byActivity = new Map<string, { name: string; order: number; count: number }>();

@@ -1,6 +1,7 @@
 "use client";
 
 import { UserCheckIcon } from "lucide-react";
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { bookingContext, createBooking, type BookingContext } from "@/actions/bookings";
 import { findSimilarClients, type ClientMatch } from "@/actions/clients";
@@ -8,6 +9,8 @@ import { getQuote } from "@/actions/quotes";
 import { BoatPicker, type Boat } from "@/components/booking/boat-picker";
 import { QuotePanel } from "@/components/booking/quote-panel";
 import { PurchasePicker } from "@/components/booking/purchase-picker";
+import { Stepper } from "@/components/booking/stepper";
+import { WaiverManager } from "@/components/waivers/waiver-manager";
 import {
   partySize,
   minimumPartySize,
@@ -25,10 +28,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { formatDateShort } from "@/lib/dates";
+import { unitsForParticipants } from "@/lib/activity-units";
 import { cents, formatRs, fromCents, toCents, type Cents } from "@/lib/money";
 import { formatPhone } from "@/lib/phone";
 import type { Quote } from "@/lib/pricing/types";
-import { openAfterSave } from "@/lib/navigate";
 import { cn } from "@/lib/utils";
 
 type WizardOperator = { id: string; name: string; payer: "client" | "operator"; logoUrl: string | null };
@@ -38,25 +41,18 @@ type PreRegistration = {
   serviceDate: string;
   notes: string | null;
   hotelName: string | null;
+  expectedPax: { adult: number; child: number; infant: number } | null;
   client: ClientMatch;
 };
 
-type PaymentMethod = "cash" | "card" | "bank_transfer" | "other" | "pre_book";
+type PaymentMethod = "cash" | "card" | "bank_transfer" | "other";
 
 const PAYMENT_METHODS: { value: PaymentMethod; label: string }[] = [
   { value: "cash", label: "Cash" },
   { value: "card", label: "Card" },
   { value: "bank_transfer", label: "Bank transfer" },
   { value: "other", label: "Other" },
-  { value: "pre_book", label: "Pre-book" },
 ];
-
-/** Number keys pick packages unless the user is typing into a field. */
-function isTyping(el: Element | null): boolean {
-  if (!el) return false;
-  if (el.tagName === "TEXTAREA" || el.tagName === "SELECT") return true;
-  return el.tagName === "INPUT" && !["radio", "checkbox", "button", "submit"].includes((el as HTMLInputElement).type);
-}
 
 function Section({ n, title, children }: { n: number; title: string; children: React.ReactNode }) {
   return (
@@ -84,9 +80,8 @@ function tryCents(value: string): Cents | null {
 
 /**
  * The booking form (WP-15): one page, four or five sections, a live quote.
- * Keyboard first: focus starts in First name, tab order follows the page,
- * 1–9 pick a package tile, Ctrl/Cmd+Enter submits. Prices come from the
- * engine; this component never computes one.
+ * Inputs follow the booking flow from client through payment. Prices come
+ * from the pricing engine; this component never computes one.
  */
 export function BookingWizard({
   packages,
@@ -123,14 +118,24 @@ export function BookingWizard({
   const [operatorId, setOperatorId] = useState(initialOperatorId);
   const [changingOperator, setChangingOperator] = useState(false);
   const [hotelName, setHotelName] = useState(preRegistration?.hotelName ?? "");
-  // 3. What they bought
+  // 3. Visit, guests and activities
   const [purchase, setPurchase] = useState<Purchase>({
     packageIds: [],
     activityIds: [],
     packageParticipants: {},
     activityParticipants: {},
-    participants: { adult: 1, child: 0, infant: 0 },
+    participants:
+      preRegistration?.expectedPax ??
+      (preRegistration ? { adult: 0, child: 0, infant: 0 } : { adult: 1, child: 0, infant: 0 }),
   });
+  const [attendancePresent, setAttendancePresent] = useState(
+    preRegistration?.expectedPax ??
+      (preRegistration ? { adult: 0, child: 0, infant: 0 } : { adult: 1, child: 0, infant: 0 }),
+  );
+  const [attendanceTouched, setAttendanceTouched] = useState({ adult: false, child: false, infant: false });
+  const [legacyExpectedPaxConfirmed, setLegacyExpectedPaxConfirmed] = useState(
+    !preRegistration || preRegistration.expectedPax !== null,
+  );
   const [serviceDate, setServiceDate] = useState(preRegistration?.serviceDate ?? today);
   const [departureTime, setDepartureTime] = useState("");
   const [meetingPoint, setMeetingPoint] = useState(defaultMeetingPoint);
@@ -143,6 +148,9 @@ export function BookingWizard({
   const [received, setReceived] = useState("");
   const [receivedTouched, setReceivedTouched] = useState(false);
   const [paymentRef, setPaymentRef] = useState("");
+  const [prebookReduction, setPrebookReduction] = useState("");
+  const [prebookReductionReason, setPrebookReductionReason] = useState("");
+  const [savedBookingId, setSavedBookingId] = useState<string | null>(null);
 
   const [quote, setQuote] = useState<Quote | null>(null);
   const [quoteError, setQuoteError] = useState<string | null>(null);
@@ -156,6 +164,7 @@ export function BookingWizard({
 
   const operator = operators.find((o) => o.id === operatorId) ?? null;
   const size = partySize(purchase.participants);
+  const requiredPartySize = minimumPartySize(purchase, packages);
   const lines = useMemo(() => purchaseLines(purchase), [purchase]);
   const needsBoat = purchaseNeedsBoat(purchase, packages, activities);
   const discountActive = discount.value.trim() !== "";
@@ -218,8 +227,7 @@ export function BookingWizard({
   // Amount received is the total until reception types their own. Derived,
   // not copied in an effect, so an instant Ctrl+Enter still records payment.
   const total = quote && !quoteError ? quote.charged_total_cents : null;
-  const receivedValue =
-    method === "pre_book" ? "" : receivedTouched ? received : total !== null ? String(fromCents(total)) : "";
+  const receivedValue = receivedTouched ? received : total !== null ? String(fromCents(total)) : "";
 
   const receivedCents = tryCents(receivedValue);
   const changeDue =
@@ -227,26 +235,113 @@ export function BookingWizard({
       ? cents(receivedCents - total)
       : null;
   const payerIsOperator = operator?.payer === "operator";
-  const togglePackage = useCallback(
-    (id: string) =>
-      setPurchase((p) => ({
-        ...p,
-        packageIds: p.packageIds.includes(id) ? p.packageIds.filter((x) => x !== id) : [...p.packageIds, id],
-        packageParticipants: p.packageIds.includes(id)
-          ? Object.fromEntries(Object.entries(p.packageParticipants).filter(([key]) => key !== id))
-          : { ...p.packageParticipants, [id]: { ...p.participants } },
-      })),
-    [],
+  const absent = {
+    adult: purchase.participants.adult - attendancePresent.adult,
+    child: purchase.participants.child - attendancePresent.child,
+    infant: purchase.participants.infant - attendancePresent.infant,
+  };
+  const totalAbsent = absent.adult + absent.child + absent.infant;
+  const totalPresent = attendancePresent.adult + attendancePresent.child + attendancePresent.infant;
+  const reductionValue = tryCents(prebookReduction);
+  const productWithoutQuantity =
+    purchase.packageIds
+      .map((id) => ({
+        name: packages.find((item) => item.id === id)?.name ?? "Selected package",
+        quantity:
+          (purchase.packageParticipants[id]?.adult ?? 0) +
+          (purchase.packageParticipants[id]?.child ?? 0) +
+          (purchase.packageParticipants[id]?.infant ?? 0),
+      }))
+      .find((item) => item.quantity === 0) ??
+    purchase.activityIds
+      .map((id) => ({
+        name: activities.find((item) => item.id === id)?.name ?? "Selected activity",
+        quantity:
+          (purchase.activityParticipants[id]?.adult ?? 0) +
+          (purchase.activityParticipants[id]?.child ?? 0) +
+          (purchase.activityParticipants[id]?.infant ?? 0),
+      }))
+      .find((item) => item.quantity === 0);
+  const updatePurchase = useCallback(
+    (next: Purchase) => {
+      const guestCountChanged =
+        next.participants.adult !== purchase.participants.adult ||
+        next.participants.child !== purchase.participants.child ||
+        next.participants.infant !== purchase.participants.infant;
+      if (preRegistration?.expectedPax === null && guestCountChanged) {
+        setLegacyExpectedPaxConfirmed(false);
+      }
+      setPurchase(next);
+      const nextAttendancePresent = {
+        adult: attendanceTouched.adult
+          ? Math.min(attendancePresent.adult, next.participants.adult)
+          : next.participants.adult,
+        child: attendanceTouched.child
+          ? Math.min(attendancePresent.child, next.participants.child)
+          : next.participants.child,
+        infant: attendanceTouched.infant
+          ? Math.min(attendancePresent.infant, next.participants.infant)
+          : next.participants.infant,
+      };
+      setAttendancePresent(nextAttendancePresent);
+      if (partySize(next.participants) === partySize(nextAttendancePresent)) {
+        setPrebookReduction("");
+        setPrebookReductionReason("");
+      }
+    },
+    [attendancePresent, attendanceTouched, preRegistration?.expectedPax, purchase.participants],
   );
+
+  const updatePresentCount = (key: keyof typeof attendancePresent, count: number) => {
+    setAttendanceTouched((touched) => ({ ...touched, [key]: true }));
+    const nextPresent = {
+      ...attendancePresent,
+      [key]: Math.min(count, purchase.participants[key]),
+    };
+    setAttendancePresent(nextPresent);
+    if (partySize(purchase.participants) === partySize(nextPresent)) {
+      setPrebookReduction("");
+      setPrebookReductionReason("");
+    }
+  };
 
   const blocker = (() => {
     if (!chosenClient && !client.first_name.trim()) return "Enter the client's first name.";
     if (!operatorId) return "Choose a tour operator before creating the booking.";
-    if (size === 0) return "Add at least one person to the booking.";
-    if (size < minimumPartySize(purchase, packages)) {
-      return `The selected package and activity units cover at least ${minimumPartySize(purchase, packages)} people. Update the booking guest count.`;
+    if (preRegistration?.expectedPax === null && !legacyExpectedPaxConfirmed) {
+      return "Confirm the expected guest count for this older pre-registration.";
     }
-    if (lines.length === 0) return "Choose a package or activity and enter its pax.";
+    if (size === 0) return "Add at least one person to the booking.";
+    if (size < requiredPartySize) {
+      return (
+        "Selected items need at least " +
+        requiredPartySize +
+        " guests, but " +
+        size +
+        " are expected. Increase the expected count above or reduce item quantities."
+      );
+    }
+    if (payerIsOperator && prebookReduction.trim() && (reductionValue === null || reductionValue < 0)) {
+      return "Enter a non-negative operator balance reduction with no more than two decimal places.";
+    }
+    if (payerIsOperator && reductionValue !== null && reductionValue > 0 && totalAbsent === 0) {
+      return "A balance reduction can only be entered when someone did not attend.";
+    }
+    if (payerIsOperator && reductionValue !== null && reductionValue > 0 && !prebookReductionReason.trim()) {
+      return "Add a short reason for the balance reduction.";
+    }
+    if (
+      payerIsOperator &&
+      reductionValue !== null &&
+      quote?.operator_net_total_cents != null &&
+      reductionValue > quote.operator_net_total_cents
+    ) {
+      return "The reduction cannot be greater than the amount the operator owes AquaSail.";
+    }
+    if (productWithoutQuantity) {
+      return `Set the guest count or package units for ${productWithoutQuantity.name}.`;
+    }
+    if (lines.length === 0) return "Choose a package or activity and set its guest count.";
     if (quoteError) return quoteError;
     if (!quote || quoteStale) return "Working out the price…";
     if (discountActive && !discount.reason.trim()) return "Give a reason for the discount.";
@@ -266,6 +361,13 @@ export function BookingWizard({
         service_date: serviceDate,
         operator_id: operatorId,
         hotel_name: hotelName,
+        attendance: {
+          adults_present: attendancePresent.adult,
+          children_present: attendancePresent.child,
+          infants_present: attendancePresent.infant,
+          prebook_reduction: prebookReduction,
+          prebook_reduction_reason: prebookReductionReason,
+        },
         lines,
         participants: purchase.participants,
         discount: discountActive ? discount : null,
@@ -273,11 +375,13 @@ export function BookingWizard({
         meeting_point: meetingPoint,
         notes,
         resource_id: needsBoat ? boatId : null,
-        payment:
-          payerIsOperator || method === "pre_book" ? null : { method, received: receivedValue, reference: paymentRef },
+        payment: payerIsOperator ? null : { method, received: receivedValue, reference: paymentRef },
         expected_total_cents: quote.charged_total_cents,
       });
-      if (result.ok) return openAfterSave(`/bookings/${result.data.id}/confirmation`);
+      if (result.ok) {
+        setSavedBookingId(result.data.id);
+        return;
+      }
       setSubmitError(result.error);
       if (/Prices changed/.test(result.error)) setRequote((n) => n + 1); // show the new price
     });
@@ -290,6 +394,9 @@ export function BookingWizard({
     serviceDate,
     operatorId,
     hotelName,
+    attendancePresent,
+    prebookReduction,
+    prebookReductionReason,
     lines,
     purchase.participants,
     discountActive,
@@ -306,29 +413,74 @@ export function BookingWizard({
     preRegistration?.id,
   ]);
 
-  // Keyboard: Ctrl/Cmd+Enter submits anywhere; 1–9 pick a package tile when not typing.
-  useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
-        e.preventDefault();
-        submit();
-        return;
-      }
-      if (isTyping(e.target as Element | null)) return;
-      if (e.ctrlKey || e.metaKey || e.altKey) return;
-      const n = Number.parseInt(e.key, 10);
-      if (n >= 1 && n <= 9 && packages[n - 1]) {
-        e.preventDefault();
-        togglePackage(packages[n - 1].id);
-      }
-    }
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [submit, packages, togglePackage]);
-
   const setField = (name: keyof typeof client) => (e: React.ChangeEvent<HTMLInputElement>) => {
     setClient((c) => ({ ...c, [name]: e.target.value }));
   };
+
+  const selectedProductSummary = [
+    ...purchase.packageIds.map((id) => {
+      const pkg = packages.find((item) => item.id === id);
+      const counts = purchase.packageParticipants[id] ?? { adult: 0, child: 0, infant: 0 };
+      const quantity = counts.adult + counts.child + counts.infant;
+      if (!pkg) return { id, name: "Package no longer available", quantity: "Review package" };
+      return {
+        id,
+        name: pkg.name,
+        quantity:
+          pkg.sale_unit === "package"
+            ? quantity === 0
+              ? "Set units"
+              : `${quantity} ${quantity === 1 ? "unit" : "units"} · covers ${quantity * pkg.participants_per_unit} guests`
+            : `${quantity} ${quantity === 1 ? "guest" : "guests"}`,
+      };
+    }),
+    ...purchase.activityIds.map((id) => {
+      const activity = activities.find((item) => item.id === id);
+      const counts = purchase.activityParticipants[id] ?? { adult: 0, child: 0, infant: 0 };
+      const guests = counts.adult + counts.child + counts.infant;
+      const units = activity ? unitsForParticipants(guests, activity.participants_per_unit) : guests;
+      return {
+        id,
+        name: activity?.name ?? "Activity no longer available",
+        quantity:
+          activity && activity.participants_per_unit > 1
+            ? `${guests} ${guests === 1 ? "guest" : "guests"} · ${units} ${units === 1 ? "unit" : "units"}`
+            : `${guests} ${guests === 1 ? "guest" : "guests"}`,
+      };
+    }),
+  ];
+  const adjustedOperatorBalance =
+    quote?.operator_net_total_cents == null
+      ? null
+      : cents(Math.max(0, quote.operator_net_total_cents - (reductionValue ?? 0)));
+
+  if (savedBookingId) {
+    return (
+      <div className="mx-auto flex w-full max-w-3xl flex-col gap-5">
+        <Alert variant="success">
+          {totalPresent > 0
+            ? "Booking and attendance are saved. The waiver QR below is for guests present. If QR generation fails, the booking remains saved and you can retry here or from booking details."
+            : "Booking and attendance are saved. No guests were marked present, so no waiver QR was generated."}
+        </Alert>
+        <WaiverManager
+          bookingId={savedBookingId}
+          serviceDate={serviceDate}
+          required={attendancePresent}
+          signers={[]}
+          canManage
+          autoGenerate
+        />
+        <div className="flex flex-wrap gap-3">
+          <Button asChild variant="outline">
+            <Link href={`/bookings/${savedBookingId}`}>Open booking details</Link>
+          </Button>
+          <Button asChild>
+            <Link href="/bookings/new">New booking</Link>
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <form
@@ -339,19 +491,17 @@ export function BookingWizard({
         submit();
       }}
       onKeyDown={(e) => {
-        // Plain Enter in a field must not create a booking; Ctrl/Cmd+Enter does.
-        if (e.key === "Enter" && !e.ctrlKey && !e.metaKey && (e.target as HTMLElement).tagName === "INPUT") {
-          e.preventDefault();
-        }
+        // Enter in a text field must not create a booking accidentally.
+        if (e.key === "Enter" && (e.target as HTMLElement).tagName === "INPUT") e.preventDefault();
       }}
     >
       <div className="flex min-w-0 flex-col gap-6">
         {/* 1. CLIENT */}
-        <Section n={1} title="Client">
+        <Section n={1} title="Client and hotel">
           <p className="text-muted-foreground text-sm">
             {preRegistration
-              ? "Confirm the pre-registered client, choose their activities and participant counts, then finish the booking and waiver."
-              : "Enter the main booking contact here. After saving, create a booking QR code so every participant can sign their own waiver."}
+              ? "Confirm the client and record who arrived. The waiver QR will be for guests present."
+              : "Enter the main booking contact. After saving, the waiver QR will be for guests present."}
           </p>
           {chosenClient ? (
             <div className="bg-success-surface flex flex-wrap items-center justify-between gap-3 rounded-md px-4 py-3">
@@ -451,7 +601,7 @@ export function BookingWizard({
         </Section>
 
         {/* 2. SOURCE */}
-        <Section n={2} title="Tour operator">
+        <Section n={2} title="Tour operator and who pays">
           {changingOperator ? (
             <div className="flex flex-col gap-4">
               <fieldset className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
@@ -470,7 +620,11 @@ export function BookingWizard({
                         type="radio"
                         name="booking_operator"
                         checked={selected}
-                        onChange={() => setOperatorId(option.id)}
+                        onChange={() => {
+                          setOperatorId(option.id);
+                          setPrebookReduction("");
+                          setPrebookReductionReason("");
+                        }}
                         className="accent-primary size-5 shrink-0"
                       />
                       <div className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-md border bg-white p-1">
@@ -484,7 +638,7 @@ export function BookingWizard({
                       <span className="min-w-0">
                         <span className="block font-semibold">{option.name}</span>
                         <span className="text-muted-foreground text-sm">
-                          {option.payer === "operator" ? "Operator pays" : "Customer pays"}
+                          {option.payer === "operator" ? "Operator owes AquaSail" : "Customer pays at reception"}
                         </span>
                       </span>
                     </label>
@@ -511,7 +665,7 @@ export function BookingWizard({
                 <div className="min-w-0">
                   <p className="truncate font-semibold">{operator.name}</p>
                   <p className="text-muted-foreground text-sm">
-                    {operator.payer === "operator" ? "Operator pays" : "Customer pays"}
+                    {operator.payer === "operator" ? "Operator owes AquaSail" : "Customer pays at reception"}
                   </p>
                 </div>
               </div>
@@ -523,15 +677,95 @@ export function BookingWizard({
           {operator && <PayerBanner operatorName={operator.name} payer={operator.payer} />}
         </Section>
 
-        {/* 3. WHAT THEY BOUGHT */}
-        <Section n={3} title="What they bought">
+        {/* 3. GUESTS AND ACTIVITIES */}
+        <Section n={3} title="Guests and activities">
+          <div>
+            <h3 className="font-semibold">Expected guests and guests present</h3>
+            <p className="text-muted-foreground text-sm">
+              Record who arrived. Individual activity counts start from guests present; package units are confirmed
+              separately. The waiver QR uses the present count.
+            </p>
+            <div className="mt-3 flex flex-col gap-3">
+              {(
+                [
+                  { key: "adult", label: "Adults", hint: null },
+                  { key: "child", label: "Children", hint: "(2–11)" },
+                  { key: "infant", label: "Infants", hint: "(under 2)" },
+                ] as const
+              ).map(({ key, label, hint }) => (
+                <div
+                  key={key}
+                  className="grid gap-3 rounded-md border p-3 sm:grid-cols-[minmax(7rem,1fr)_minmax(10rem,1fr)_minmax(10rem,1fr)_5rem] sm:items-end"
+                >
+                  <p className="font-semibold sm:pb-3">
+                    {label} {hint && <span className="text-muted-foreground font-normal">{hint}</span>}
+                  </p>
+                  <Stepper
+                    id={"expected-" + key}
+                    label="Expected guests"
+                    value={purchase.participants[key]}
+                    onChange={(count) =>
+                      updatePurchase({
+                        ...purchase,
+                        participants: { ...purchase.participants, [key]: count },
+                      })
+                    }
+                    compact
+                  />
+                  <Stepper
+                    id={"present-" + key}
+                    label="Guests present"
+                    value={attendancePresent[key]}
+                    onChange={(count) => updatePresentCount(key, count)}
+                    compact
+                  />
+                  <div className="text-sm sm:pb-2">
+                    <span className="text-muted-foreground">Absent</span>
+                    <p className="font-semibold tabular-nums">{absent[key]}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <p className="bg-muted mt-3 rounded-md px-3 py-2 text-sm font-semibold">
+              Expected guests: {size} · Guests present: {totalPresent} · Absent: {totalAbsent}
+            </p>
+          </div>
+
+          {preRegistration?.expectedPax === null && !legacyExpectedPaxConfirmed && (
+            <Alert variant="warning">
+              <p className="font-semibold">Expected guests were not recorded on this older pre-registration.</p>
+              <p className="mt-1 text-sm">
+                Review the expected guest counts above, then confirm them before completing the booking.
+              </p>
+              <Button
+                type="button"
+                size="sm"
+                className="mt-3"
+                disabled={size === 0}
+                onClick={() => setLegacyExpectedPaxConfirmed(true)}
+              >
+                Confirm {size} expected {size === 1 ? "guest" : "guests"}
+              </Button>
+            </Alert>
+          )}
+
+          <p className="text-muted-foreground border-t pt-4 text-sm">
+            Next, choose the packages and activities for this group, then set how many guests will take part in each.
+          </p>
           <PurchasePicker
             packages={packages}
             activities={activities}
             tilePrices={context.tilePrices}
+            presentParticipants={attendancePresent}
             value={purchase}
-            onChange={setPurchase}
+            onChange={updatePurchase}
           />
+          {lines.length > 0 && size < requiredPartySize && (
+            <Alert variant="warning">
+              The selected items need at least {requiredPartySize} guests, but {size} are expected. Increase the
+              expected count above or reduce the item quantities.
+            </Alert>
+          )}
 
           <div className="grid gap-4 sm:grid-cols-3">
             <div className="flex flex-col gap-2">
@@ -623,9 +857,38 @@ export function BookingWizard({
             <div className="flex flex-col gap-3">
               <PayerBanner operatorName={operator.name} payer="operator" />
               <p>
-                Nothing is collected here. {total !== null ? formatRs(total) : "The total"} becomes a receivable from{" "}
-                {operator.name}.
+                Do not collect from the client here. The final check shows the balance {operator.name} owes AquaSail.
               </p>
+              {totalAbsent > 0 && (
+                <div className="grid gap-3 rounded-md border p-3 sm:grid-cols-2">
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="booking-prebook-reduction">Agreed reduction to operator balance (Rs)</Label>
+                    <Input
+                      id="booking-prebook-reduction"
+                      inputMode="decimal"
+                      maxLength={20}
+                      placeholder="Leave blank if there is no reduction"
+                      value={prebookReduction}
+                      onChange={(event) => setPrebookReduction(event.target.value)}
+                    />
+                  </div>
+                  {prebookReduction.trim() && reductionValue !== null && reductionValue > 0 && (
+                    <div className="flex flex-col gap-2">
+                      <Label htmlFor="booking-prebook-reason">Reason for reduction</Label>
+                      <Input
+                        id="booking-prebook-reason"
+                        maxLength={200}
+                        placeholder="e.g. 2 guests did not attend"
+                        value={prebookReductionReason}
+                        onChange={(event) => setPrebookReductionReason(event.target.value)}
+                      />
+                    </div>
+                  )}
+                  <p className="text-muted-foreground text-sm sm:col-span-2">
+                    Enter only the agreed amount. The system does not calculate a reduction from absent guests.
+                  </p>
+                </div>
+              )}
             </div>
           ) : (
             <div className="grid gap-4 sm:grid-cols-3">
@@ -674,11 +937,65 @@ export function BookingWizard({
         </Section>
       </div>
 
-      {/* QUOTE */}
+      {/* FINAL REVIEW */}
       <aside className="lg:sticky lg:top-4 lg:self-start">
         <Card>
           <CardContent className="flex flex-col gap-4 pt-6">
-            <h2 className="font-display text-lg font-semibold">Quote</h2>
+            <h2 className="font-display text-lg font-semibold">Final check</h2>
+            <section aria-label="Guest and activity summary" className="flex flex-col gap-3 border-b pb-4">
+              <div>
+                <h3 className="text-sm font-semibold">Guests</h3>
+                <p className="text-muted-foreground text-sm">
+                  Expected {size} · Present {totalPresent}
+                </p>
+                <p className="text-muted-foreground text-xs">
+                  Adults {purchase.participants.adult} expected, {attendancePresent.adult} present · Children{" "}
+                  {purchase.participants.child} expected, {attendancePresent.child} present · Infants{" "}
+                  {purchase.participants.infant} expected, {attendancePresent.infant} present
+                </p>
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold">Activities and packages</h3>
+                {selectedProductSummary.length > 0 ? (
+                  <ul className="mt-1 flex flex-col gap-1 text-sm">
+                    {selectedProductSummary.map((item) => (
+                      <li key={`${item.id}-${item.name}`} className="flex justify-between gap-3">
+                        <span className="min-w-0 truncate">{item.name}</span>
+                        <span className="shrink-0 text-right tabular-nums">{item.quantity}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-muted-foreground text-sm">No items selected</p>
+                )}
+              </div>
+              <p className="text-sm">
+                <span className="font-semibold">Waiver QR:</span> for {totalPresent} present{" "}
+                {totalPresent === 1 ? "guest" : "guests"}
+              </p>
+              <div className="border-t pt-3 text-sm">
+                <p className="font-semibold">Operator balance owed to AquaSail</p>
+                {!payerIsOperator ? (
+                  <p className="text-muted-foreground">Not applicable · customer pays at reception</p>
+                ) : adjustedOperatorBalance !== null ? (
+                  <>
+                    <p className="tabular-nums">After adjustment: {formatRs(adjustedOperatorBalance)}</p>
+                    {reductionValue !== null && reductionValue > 0 && (
+                      <p className="text-muted-foreground tabular-nums">
+                        Original {formatRs(quote!.operator_net_total_cents!)} − {formatRs(reductionValue)} agreed
+                        reduction
+                      </p>
+                    )}
+                  </>
+                ) : !quote && !quoteError ? (
+                  <p className="text-muted-foreground">Add items to calculate the balance</p>
+                ) : quoteStale ? (
+                  <p className="text-muted-foreground">Updating balance…</p>
+                ) : (
+                  <p className="text-muted-foreground">Not available for your account</p>
+                )}
+              </div>
+            </section>
             <QuotePanel
               quote={quote}
               error={quoteError}
@@ -690,12 +1007,8 @@ export function BookingWizard({
             {submitError && <Alert variant="destructive">{submitError}</Alert>}
             {blocker && !quoteError && lines.length > 0 && <p className="text-muted-foreground text-sm">{blocker}</p>}
             <Button type="submit" size="lg" disabled={!!blocker || submitting} className="w-full">
-              {submitting ? "Creating…" : "Create booking"}
+              {submitting ? "Saving…" : "Save booking"}
             </Button>
-            <p className="text-muted-foreground text-center text-sm">
-              <kbd className="bg-secondary rounded px-1.5">Ctrl</kbd> +{" "}
-              <kbd className="bg-secondary rounded px-1.5">Enter</kbd> to submit · number keys pick a package
-            </p>
           </CardContent>
         </Card>
       </aside>

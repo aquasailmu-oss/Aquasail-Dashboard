@@ -1,7 +1,7 @@
 "use client";
 
 import QRCode from "qrcode";
-import { useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { createWaiverLink, getWaiverEvidence, revokeWaiverLinks } from "@/actions/waivers";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -25,12 +25,14 @@ export function WaiverManager({
   required,
   signers,
   canManage,
+  autoGenerate = false,
 }: {
   bookingId: string;
   serviceDate: string;
   required: { adult: number; child: number; infant: number };
   signers: Signer[];
   canManage: boolean;
+  autoGenerate?: boolean;
 }) {
   const [link, setLink] = useState<{ url: string; qr: string; expiresOn: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -46,6 +48,7 @@ export function WaiverManager({
   } | null>(null);
   const [evidenceLoading, setEvidenceLoading] = useState<string | null>(null);
   const [busy, startTransition] = useTransition();
+  const autoStarted = useRef(false);
   const signed = {
     adult: signers.filter((s) => s.participant_type === "adult").length,
     child: signers.filter((s) => s.participant_type === "child").length,
@@ -53,9 +56,9 @@ export function WaiverManager({
   };
   const totalRequired = required.adult + required.child + required.infant;
   const totalSigned = signers.length;
-  const complete = totalSigned >= totalRequired;
+  const complete = totalRequired > 0 && totalSigned >= totalRequired;
 
-  function generateLink() {
+  const generateLink = useCallback(() => {
     setError(null);
     setMessage(null);
     startTransition(async () => {
@@ -77,7 +80,13 @@ export function WaiverManager({
         setLink({ ...result.data, qr: "" });
       }
     });
-  }
+  }, [bookingId]);
+
+  useEffect(() => {
+    if (!autoGenerate || !canManage || totalRequired === 0 || autoStarted.current) return;
+    autoStarted.current = true;
+    generateLink();
+  }, [autoGenerate, canManage, generateLink, totalRequired]);
 
   async function copyLink() {
     if (!link) return;
@@ -120,9 +129,11 @@ export function WaiverManager({
       <CardHeader>
         <CardTitle>Participant waivers</CardTitle>
         <p className="text-muted-foreground text-sm">
-          {complete
-            ? `All ${totalRequired} participant${totalRequired === 1 ? " has" : "s have"} signed.`
-            : `${totalSigned} of ${totalRequired} participants signed. Everyone needs an individual waiver.`}
+          {totalRequired === 0
+            ? "No attendees are recorded. Record attendance before preparing waivers."
+            : complete
+              ? `All ${totalRequired} participant${totalRequired === 1 ? " has" : "s have"} signed.`
+              : `${totalSigned} of ${totalRequired} participants signed. Everyone needs an individual waiver.`}
         </p>
         <p className="text-muted-foreground text-sm">
           Adults: {signed.adult}/{required.adult} · Children: {signed.child}/{required.child} · Infants: {signed.infant}
@@ -171,12 +182,27 @@ export function WaiverManager({
             </table>
           </div>
         )}
-        {error && <Alert variant="destructive">{error}</Alert>}
+        {autoGenerate && busy && !link && (
+          <Alert aria-live="polite">Creating a waiver QR for {totalRequired} present guests…</Alert>
+        )}
+        {error && (
+          <Alert variant="destructive">
+            <p>{error}</p>
+            {autoGenerate && (
+              <p className="mt-1 text-sm">
+                The booking and attendance are saved.{" "}
+                {error.toLowerCase().includes("approved waiver wording")
+                  ? "Add the approved wording in Settings, then generate the QR again."
+                  : "Resolve the issue, then generate the QR again here or from booking details."}
+              </p>
+            )}
+          </Alert>
+        )}
         {message && <Alert variant="success">{message}</Alert>}
         {canManage && (
           <div className="flex flex-wrap gap-3">
             {!complete && (
-              <Button type="button" variant="outline" disabled={busy} onClick={generateLink}>
+              <Button type="button" variant="outline" disabled={busy || totalRequired === 0} onClick={generateLink}>
                 {link ? "Replace QR / link" : "Generate waiver QR / link"}
               </Button>
             )}

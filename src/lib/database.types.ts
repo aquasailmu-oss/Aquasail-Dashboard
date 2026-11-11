@@ -197,6 +197,66 @@ export type Database = {
           },
         ]
       }
+      booking_attendance: {
+        Row: {
+          adults_expected_count: number
+          adults_present_count: number
+          booking_id: string
+          children_expected_count: number
+          children_present_count: number
+          infants_expected_count: number
+          infants_present_count: number
+          prebook_reduction_cents: number
+          prebook_reduction_reason: string | null
+          recorded_at: string
+          recorded_by: string
+          updated_at: string
+        }
+        Insert: {
+          adults_expected_count: number
+          adults_present_count: number
+          booking_id: string
+          children_expected_count: number
+          children_present_count: number
+          infants_expected_count: number
+          infants_present_count: number
+          prebook_reduction_cents?: number
+          prebook_reduction_reason?: string | null
+          recorded_at?: string
+          recorded_by?: string
+          updated_at?: string
+        }
+        Update: {
+          adults_expected_count?: number
+          adults_present_count?: number
+          booking_id?: string
+          children_expected_count?: number
+          children_present_count?: number
+          infants_expected_count?: number
+          infants_present_count?: number
+          prebook_reduction_cents?: number
+          prebook_reduction_reason?: string | null
+          recorded_at?: string
+          recorded_by?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_attendance_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: true
+            referencedRelation: "booking_register"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_attendance_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: true
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       booking_items: {
         Row: {
           activity_id: string | null
@@ -346,12 +406,15 @@ export type Database = {
       }
       booking_pre_registrations: {
         Row: {
+          adults_expected_count: number | null
           booking_id: string | null
           client_id: string
+          children_expected_count: number | null
           created_at: string
           created_by: string
           hotel_name: string | null
           id: string
+          infants_expected_count: number | null
           idempotency_key: string
           notes: string | null
           operator_id: string
@@ -360,12 +423,15 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          adults_expected_count?: number | null
           booking_id?: string | null
           client_id: string
+          children_expected_count?: number | null
           created_at?: string
           created_by?: string
           hotel_name?: string | null
           id?: string
+          infants_expected_count?: number | null
           idempotency_key?: string
           notes?: string | null
           operator_id: string
@@ -374,12 +440,15 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          adults_expected_count?: number | null
           booking_id?: string | null
           client_id?: string
+          children_expected_count?: number | null
           created_at?: string
           created_by?: string
           hotel_name?: string | null
           id?: string
+          infants_expected_count?: number | null
           idempotency_key?: string
           notes?: string | null
           operator_id?: string
@@ -1550,6 +1619,7 @@ export type Database = {
           payer: string | null
           payment_status: string | null
           people: number | null
+          prebook_reduction_cents: number | null
           reference: string | null
           reference_digits: string | null
           resource_id: string | null
@@ -1660,6 +1730,10 @@ export type Database = {
         Returns: Database["public"]["Enums"]["app_role"]
       }
       booking_entitlements: { Args: { p_booking_id: string }; Returns: Json }
+      booking_waiver_required_count: {
+        Args: { p_booking_id: string; p_participant_type: Database["public"]["Enums"]["participant_type"] }
+        Returns: number
+      }
       build_quote: { Args: { input: Json }; Returns: Json }
       check_in_booking: {
         Args: {
@@ -1680,11 +1754,14 @@ export type Database = {
       create_booking: { Args: { payload: Json }; Returns: Json }
       create_booking_pre_registration: {
         Args: {
+          p_adults_expected_count?: number
+          p_children_expected_count?: number
           p_client_id?: string
           p_country?: string
           p_email?: string
           p_first_name: string
           p_hotel_name?: string
+          p_infants_expected_count?: number
           p_last_name: string
           p_notes?: string
           p_operator_id: string
@@ -1783,6 +1860,17 @@ export type Database = {
           set_at: string
           set_by: string
         }[]
+      }
+      record_booking_attendance: {
+        Args: {
+          p_adults_present: number
+          p_booking_id: string
+          p_children_present: number
+          p_infants_present: number
+          p_prebook_reduction_cents: number
+          p_prebook_reduction_reason?: string
+        }
+        Returns: undefined
       }
       redeem_activity: {
         Args: {

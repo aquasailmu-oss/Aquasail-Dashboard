@@ -42,59 +42,64 @@ export function QuotePanel({
       aria-live="polite"
       aria-busy={stale}
     >
-      <ul className="flex flex-col gap-2">
-        {quote.lines.map((l, i) => {
-          const pkg = l.package_id ? packages.find((item) => item.id === l.package_id) : undefined;
-          return (
-            <li key={i} className="flex justify-between gap-3">
-              <span>
-                <span className="font-semibold">{l.name}</span>
-                <span className="text-muted-foreground text-sm">
-                  {" "}
-                  × {l.quantity}{" "}
-                  {l.line_type === "package" && pkg?.sale_unit === "package"
-                    ? "package unit(s)"
-                    : TYPE[l.participant_type]}
-                  {l.line_type === "package" && pkg?.sale_unit === "package" && (
-                    <span> · covers {l.quantity * pkg.participants_per_unit} people</span>
-                  )}
-                </span>
-                {l.line_type === "package" && pkg?.includes.length ? (
-                  <span className="text-muted-foreground block text-sm">
-                    {pkg.includes
-                      .map((item) => `${item.quantity > 1 ? `${item.quantity}× ` : ""}${item.name}`)
-                      .join(" · ")}
-                  </span>
-                ) : l.line_type === "package" && l.includes.length > 0 ? (
-                  <span className="text-muted-foreground block text-sm">{l.includes.join(" · ")}</span>
-                ) : null}
-              </span>
-              <span className="tabular-nums">{formatRs(cents(l.unit_charged_cents * l.quantity))}</span>
-            </li>
-          );
-        })}
-      </ul>
-      {quote.discount_total_cents > 0 && (
-        <div className="text-destructive flex justify-between border-t pt-2">
-          <span>Discount</span>
-          <span className="tabular-nums">−{formatRs(quote.discount_total_cents)}</span>
-        </div>
-      )}
-      <div className="flex items-baseline justify-between border-t pt-2">
-        <span className="font-semibold">Total</span>
-        <span className="font-display text-4xl font-semibold tabular-nums" data-testid="quote-total">
+      <div className="flex items-baseline justify-between">
+        <span className="font-semibold">Amount charged</span>
+        <span className="font-display text-3xl font-semibold tabular-nums" data-testid="quote-total">
           {formatRs(quote.charged_total_cents)}
         </span>
       </div>
+      <details className="border-t pt-2">
+        <summary className="w-fit cursor-pointer text-sm font-medium">Price breakdown</summary>
+        <div className="mt-3 flex flex-col gap-2">
+          <ul className="flex flex-col gap-2">
+            {quote.lines.map((l, i) => {
+              const pkg = l.package_id ? packages.find((item) => item.id === l.package_id) : undefined;
+              return (
+                <li key={i} className="flex justify-between gap-3">
+                  <span>
+                    <span className="font-semibold">{l.name}</span>
+                    <span className="text-muted-foreground text-sm">
+                      {" "}
+                      × {l.quantity}{" "}
+                      {l.line_type === "package" && pkg?.sale_unit === "package"
+                        ? "package unit(s)"
+                        : TYPE[l.participant_type]}
+                      {l.line_type === "package" && pkg?.sale_unit === "package" && (
+                        <span> · covers {l.quantity * pkg.participants_per_unit} guests</span>
+                      )}
+                    </span>
+                    {l.line_type === "package" && pkg?.includes.length ? (
+                      <span className="text-muted-foreground block text-sm">
+                        {pkg.includes
+                          .map((item) => `${item.quantity > 1 ? `${item.quantity}× ` : ""}${item.name}`)
+                          .join(" · ")}
+                      </span>
+                    ) : l.line_type === "package" && l.includes.length > 0 ? (
+                      <span className="text-muted-foreground block text-sm">{l.includes.join(" · ")}</span>
+                    ) : null}
+                  </span>
+                  <span className="tabular-nums">{formatRs(cents(l.unit_charged_cents * l.quantity))}</span>
+                </li>
+              );
+            })}
+          </ul>
+          {quote.discount_total_cents > 0 && (
+            <div className="text-destructive flex justify-between border-t pt-2">
+              <span>Discount</span>
+              <span className="tabular-nums">−{formatRs(quote.discount_total_cents)}</span>
+            </div>
+          )}
+          {quote.commission_total_cents !== null && quote.commission_total_cents > 0 && (
+            <div className="text-muted-foreground border-t pt-2 text-sm">
+              Commission owed to {quote.operator_name}: {formatRs(quote.commission_total_cents)}
+            </div>
+          )}
+        </div>
+      </details>
       {changeDue !== null && changeDue > 0 && (
         <div className="bg-success-surface flex justify-between rounded-md px-3 py-2 text-lg font-semibold">
           <span>Change due</span>
           <span className="tabular-nums">{formatRs(changeDue)}</span>
-        </div>
-      )}
-      {quote.commission_total_cents !== null && quote.commission_total_cents > 0 && (
-        <div className="text-muted-foreground text-sm">
-          Commission owed to {quote.operator_name}: {formatRs(quote.commission_total_cents)}
         </div>
       )}
       {quote.warnings.map((w) => (

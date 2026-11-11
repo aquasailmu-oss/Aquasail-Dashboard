@@ -11,8 +11,8 @@ export function PayerBanner({ operatorName, payer }: { operatorName: string; pay
       <div role="alert" className="bg-destructive flex items-center gap-4 rounded-md px-5 py-4 text-white">
         <OctagonAlertIcon className="size-9 shrink-0" aria-hidden />
         <div>
-          <div className="font-display text-xl font-semibold tracking-wide uppercase">Do not collect payment</div>
-          <div className="text-white/90">{operatorName} account. The operator pays AquaSail later.</div>
+          <div className="font-display text-xl font-semibold tracking-wide uppercase">Do not collect from client</div>
+          <div className="text-white/90">{operatorName} owes this amount to AquaSail and pays later.</div>
         </div>
       </div>
     );

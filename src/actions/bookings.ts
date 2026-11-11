@@ -86,6 +86,13 @@ const createSchema = z.object({
   service_date: z.string(),
   operator_id: z.uuid().nullable(),
   hotel_name: z.string().trim().max(120),
+  attendance: z.object({
+    adults_present: z.number().int().min(0).max(500),
+    children_present: z.number().int().min(0).max(500),
+    infants_present: z.number().int().min(0).max(500),
+    prebook_reduction: z.string().trim().max(20),
+    prebook_reduction_reason: z.string().trim().max(200),
+  }),
   lines: z
     .array(
       z.object({
@@ -108,7 +115,7 @@ const createSchema = z.object({
   resource_id: z.uuid().nullable(),
   payment: z
     .object({
-      method: z.enum(["cash", "card", "bank_transfer", "other", "pre_book"]),
+      method: z.enum(["cash", "card", "bank_transfer", "other"]),
       received: z.string(),
       reference: z.string().trim().max(100),
     })
@@ -132,6 +139,13 @@ export async function createBooking(input: CreateBookingInput): Promise<Result<{
   if (d.participants.adult + d.participants.child + d.participants.infant === 0) {
     return fail("Add at least one participant.");
   }
+  if (
+    d.attendance.adults_present > d.participants.adult ||
+    d.attendance.children_present > d.participants.child ||
+    d.attendance.infants_present > d.participants.infant
+  ) {
+    return fail("Present guest counts cannot exceed the expected guest counts.");
+  }
 
   let client: Record<string, string | null> | null = null;
   if (!d.client_id) {
@@ -153,6 +167,27 @@ export async function createBooking(input: CreateBookingInput): Promise<Result<{
 
   const discount = d.discount ? parseDiscount(d.discount) : { ok: true as const, data: null };
   if (!discount.ok) return discount;
+
+  let prebookReductionCents = 0;
+  if (d.attendance.prebook_reduction) {
+    try {
+      prebookReductionCents = toCents(d.attendance.prebook_reduction);
+    } catch {
+      return fail("Enter the operator balance reduction in rupees, for example 1250.00.");
+    }
+  }
+  if (prebookReductionCents < 0) return fail("The operator balance reduction cannot be negative.");
+  const absentCount =
+    d.participants.adult -
+    d.attendance.adults_present +
+    (d.participants.child - d.attendance.children_present) +
+    (d.participants.infant - d.attendance.infants_present);
+  if (prebookReductionCents > 0 && absentCount === 0) {
+    return fail("A balance reduction can only be entered when someone did not attend.");
+  }
+  if (prebookReductionCents > 0 && !d.attendance.prebook_reduction_reason.trim()) {
+    return fail("Add a short reason for the balance reduction.");
+  }
 
   // What was received pays for the booking up to its total; the rest is change.
   let payment: { amount_cents: Cents; method: string; reference: string | null } | null = null;
@@ -181,6 +216,13 @@ export async function createBooking(input: CreateBookingInput): Promise<Result<{
       service_date: date,
       operator_id: d.operator_id,
       hotel_name: d.hotel_name,
+      attendance: {
+        adults_present: d.attendance.adults_present,
+        children_present: d.attendance.children_present,
+        infants_present: d.attendance.infants_present,
+        prebook_reduction_cents: prebookReductionCents,
+        prebook_reduction_reason: d.attendance.prebook_reduction_reason || null,
+      },
       lines: d.lines,
       discount: discount.data,
       participants: (["adult", "child", "infant"] as const)

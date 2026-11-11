@@ -20,6 +20,13 @@ const schema = z.object({
   service_date: z.string(),
   notes: z.string().trim().max(1000),
   hotel_name: z.string().trim().max(120),
+  expected_pax: z
+    .object({
+      adults: z.number().int().min(0).max(500),
+      children: z.number().int().min(0).max(500),
+      infants: z.number().int().min(0).max(500),
+    })
+    .refine((pax) => pax.adults + pax.children + pax.infants > 0, "Enter at least one expected guest."),
 });
 
 export type CreatePreRegistrationInput = z.input<typeof schema>;
@@ -52,6 +59,9 @@ export async function createPreRegistration(input: CreatePreRegistrationInput): 
     p_country: d.country || undefined,
     p_notes: d.notes || undefined,
     p_hotel_name: d.hotel_name || undefined,
+    p_adults_expected_count: d.expected_pax.adults,
+    p_children_expected_count: d.expected_pax.children,
+    p_infants_expected_count: d.expected_pax.infants,
   });
   if (error || !data || typeof data !== "object" || Array.isArray(data) || typeof data.id !== "string") {
     const message = error?.message ?? "The pre-registration could not be saved.";

@@ -27,6 +27,11 @@ export default async function ConfirmationPage({ params }: { params: Promise<{ i
     .eq("id", id)
     .maybeSingle();
   if (!b) notFound();
+  const { data: attendance } = await supabase
+    .from("booking_attendance")
+    .select("adults_present_count, children_present_count, infants_present_count")
+    .eq("booking_id", b.id)
+    .maybeSingle();
   const ticket = latestTicket(b.tickets);
   const paid = b.payments.reduce((sum, p) => sum + p.amount_cents, 0);
   const due = b.charged_total_cents - paid;
@@ -92,9 +97,18 @@ export default async function ConfirmationPage({ params }: { params: Promise<{ i
           bookingId={b.id}
           serviceDate={b.service_date}
           required={{
-            adult: b.booking_participants.find((p) => p.participant_type === "adult")?.count ?? 0,
-            child: b.booking_participants.find((p) => p.participant_type === "child")?.count ?? 0,
-            infant: b.booking_participants.find((p) => p.participant_type === "infant")?.count ?? 0,
+            adult:
+              attendance?.adults_present_count ??
+              b.booking_participants.find((p) => p.participant_type === "adult")?.count ??
+              0,
+            child:
+              attendance?.children_present_count ??
+              b.booking_participants.find((p) => p.participant_type === "child")?.count ??
+              0,
+            infant:
+              attendance?.infants_present_count ??
+              b.booking_participants.find((p) => p.participant_type === "infant")?.count ??
+              0,
           }}
           signers={b.booking_waivers}
           canManage

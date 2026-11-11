@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CancelBookingDialog, CorrectPaymentDialog, RecordPaymentDialog } from "@/components/booking/booking-dialogs";
+import { AttendanceManager } from "@/components/booking/attendance-manager";
 import { WaiverManager } from "@/components/waivers/waiver-manager";
 import { latestTicket } from "@/lib/booking-tickets";
 import { BookingStatusBadge } from "@/components/shared/booking-status-badge";
@@ -50,6 +51,14 @@ export default async function BookingPage({
     .eq("id", id)
     .maybeSingle();
   if (!b) notFound();
+
+  const { data: attendance } = await supabase
+    .from("booking_attendance")
+    .select(
+      "adults_present_count, children_present_count, infants_present_count, prebook_reduction_cents, prebook_reduction_reason",
+    )
+    .eq("booking_id", b.id)
+    .maybeSingle();
 
   const staffIds = [b.created_by, b.cancelled_by, ...b.payments.map((p) => p.recorded_by)].filter(
     (x): x is string => !!x,
@@ -187,13 +196,35 @@ export default async function BookingPage({
         </Card>
       </div>
 
+      <AttendanceManager
+        bookingId={b.id}
+        expected={{
+          adult: b.booking_participants.find((p) => p.participant_type === "adult")?.count ?? 0,
+          child: b.booking_participants.find((p) => p.participant_type === "child")?.count ?? 0,
+          infant: b.booking_participants.find((p) => p.participant_type === "infant")?.count ?? 0,
+        }}
+        attendance={attendance}
+        operatorPayer={b.payer === "operator"}
+        operatorNetTotalCents={b.operator_net_total_cents}
+        canManage={canWrite && !cancelled && (user.role === "admin" || user.role === "receptionist")}
+      />
+
       <WaiverManager
         bookingId={b.id}
         serviceDate={b.service_date}
         required={{
-          adult: b.booking_participants.find((p) => p.participant_type === "adult")?.count ?? 0,
-          child: b.booking_participants.find((p) => p.participant_type === "child")?.count ?? 0,
-          infant: b.booking_participants.find((p) => p.participant_type === "infant")?.count ?? 0,
+          adult:
+            attendance?.adults_present_count ??
+            b.booking_participants.find((p) => p.participant_type === "adult")?.count ??
+            0,
+          child:
+            attendance?.children_present_count ??
+            b.booking_participants.find((p) => p.participant_type === "child")?.count ??
+            0,
+          infant:
+            attendance?.infants_present_count ??
+            b.booking_participants.find((p) => p.participant_type === "infant")?.count ??
+            0,
         }}
         signers={b.booking_waivers}
         canManage={canWrite && !cancelled && (user.role === "admin" || user.role === "receptionist")}

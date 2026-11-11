@@ -9,6 +9,7 @@ import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Stepper } from "@/components/booking/stepper";
 import { formatPhone } from "@/lib/phone";
 
 type Operator = { id: string; name: string };
@@ -20,6 +21,7 @@ export function PreRegistrationForm({ operators, today }: { operators: Operator[
   const [matches, setMatches] = useState<ClientMatch[]>([]);
   const [operatorId, setOperatorId] = useState("");
   const [hotelName, setHotelName] = useState("");
+  const [expectedPax, setExpectedPax] = useState({ adult: 1, child: 0, infant: 0 });
   const [serviceDate, setServiceDate] = useState(today);
   const [notes, setNotes] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -73,6 +75,11 @@ export function PreRegistrationForm({ operators, today }: { operators: Operator[
         service_date: serviceDate,
         notes,
         hotel_name: hotelName,
+        expected_pax: {
+          adults: expectedPax.adult,
+          children: expectedPax.child,
+          infants: expectedPax.infant,
+        },
       });
       if (!result.ok) {
         setError(result.error);
@@ -189,6 +196,38 @@ export function PreRegistrationForm({ operators, today }: { operators: Operator[
               value={serviceDate}
               onChange={(e) => setServiceDate(e.target.value || today)}
               required
+            />
+          </div>
+        </div>
+        <div className="border-t pt-3">
+          <h3 className="font-semibold">Expected guests</h3>
+          <p className="text-muted-foreground mt-1 text-sm">
+            These expected guest counts will prefill the booking. Staff can record guests present when the group
+            arrives.
+          </p>
+          <div className="mt-3 grid gap-3 sm:grid-cols-3">
+            <Stepper
+              id="pre-expected-adults"
+              label="Adults"
+              value={expectedPax.adult}
+              onChange={(adult) => setExpectedPax((pax) => ({ ...pax, adult }))}
+              compact
+            />
+            <Stepper
+              id="pre-expected-children"
+              label="Children"
+              hint="(2–11)"
+              value={expectedPax.child}
+              onChange={(child) => setExpectedPax((pax) => ({ ...pax, child }))}
+              compact
+            />
+            <Stepper
+              id="pre-expected-infants"
+              label="Infants"
+              hint="(under 2)"
+              value={expectedPax.infant}
+              onChange={(infant) => setExpectedPax((pax) => ({ ...pax, infant }))}
+              compact
             />
           </div>
         </div>

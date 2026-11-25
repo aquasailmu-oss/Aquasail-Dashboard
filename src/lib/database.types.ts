@@ -266,6 +266,8 @@ export type Database = {
       }
       booking_items: {
         Row: {
+          settlement_manual: boolean
+          settlement_aquasail_cents: number | null
           activity_id: string | null
           booking_id: string
           commission_cents: number
@@ -288,6 +290,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          settlement_manual?: boolean
+          settlement_aquasail_cents?: number | null
           activity_id?: string | null
           booking_id: string
           commission_cents?: number
@@ -310,6 +314,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          settlement_manual?: boolean
+          settlement_aquasail_cents?: number | null
           activity_id?: string | null
           booking_id?: string
           commission_cents?: number
@@ -406,6 +412,38 @@ export type Database = {
             foreignKeyName: "booking_participants_booking_id_fkey"
             columns: ["booking_id"]
             isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      booking_sheet_sync_queue: {
+        Row: {
+          attempts: number
+          booking_id: string
+          last_error: string | null
+          locked_until: string | null
+          requested_at: string
+        }
+        Insert: {
+          attempts?: number
+          booking_id: string
+          last_error?: string | null
+          locked_until?: string | null
+          requested_at?: string
+        }
+        Update: {
+          attempts?: number
+          booking_id?: string
+          last_error?: string | null
+          locked_until?: string | null
+          requested_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_sheet_sync_queue_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: true
             referencedRelation: "bookings"
             referencedColumns: ["id"]
           },
@@ -637,6 +675,10 @@ export type Database = {
       }
       bookings: {
         Row: {
+          tracks_settlement: boolean
+          agency_adjustment_status: string
+          agency_adjustment_cents: number | null
+          agency_adjustment_reason: string | null
           cancellation_reason: string | null
           cancelled_at: string | null
           cancelled_by: string | null
@@ -669,6 +711,10 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          tracks_settlement?: boolean
+          agency_adjustment_status?: string
+          agency_adjustment_cents?: number | null
+          agency_adjustment_reason?: string | null
           cancellation_reason?: string | null
           cancelled_at?: string | null
           cancelled_by?: string | null
@@ -701,6 +747,10 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          tracks_settlement?: boolean
+          agency_adjustment_status?: string
+          agency_adjustment_cents?: number | null
+          agency_adjustment_reason?: string | null
           cancellation_reason?: string | null
           cancelled_at?: string | null
           cancelled_by?: string | null
@@ -1603,6 +1653,10 @@ export type Database = {
       }
     }
     Views: {
+      booking_settlement_queue: {
+        Row: { id: string; reference: string; service_date: string; operator_name: string; pending_splits: number; adjustment_pending: boolean }
+        Relationships: []
+      }
       booking_register: {
         Row: {
           activity_ids: string[] | null
@@ -1691,6 +1745,14 @@ export type Database = {
       }
     }
     Functions: {
+      claim_booking_sheet_sync_jobs: {
+        Args: { p_limit?: number }
+        Returns: { booking_id: string; requested_at: string }[]
+      }
+      save_booking_settlement: {
+        Args: { p_booking_id: string; p_item_id: string | null; p_manual: boolean; p_aquasail: number | null; p_adjustment_status: string; p_adjustment_cents: number | null; p_reason: string | null }
+        Returns: undefined
+      }
       admin_list_users: {
         Args: never
         Returns: {

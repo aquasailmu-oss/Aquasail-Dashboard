@@ -8,15 +8,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { cents, formatRs, fromCents, toCents } from "@/lib/money";
 
 type Counts = { adult: number; child: number; infant: number };
 type SavedAttendance = {
   adults_present_count: number;
   children_present_count: number;
   infants_present_count: number;
-  prebook_reduction_cents: number;
-  prebook_reduction_reason: string | null;
 };
 
 const LABELS: { key: keyof Counts; label: string }[] = [
@@ -29,15 +26,11 @@ export function AttendanceManager({
   bookingId,
   expected,
   attendance,
-  operatorPayer,
-  operatorNetTotalCents,
   canManage,
 }: {
   bookingId: string;
   expected: Counts;
   attendance: SavedAttendance | null;
-  operatorPayer: boolean;
-  operatorNetTotalCents: number;
   canManage: boolean;
 }) {
   const router = useRouter();
@@ -46,10 +39,6 @@ export function AttendanceManager({
     child: attendance?.children_present_count ?? expected.child,
     infant: attendance?.infants_present_count ?? expected.infant,
   });
-  const [reduction, setReduction] = useState(
-    attendance?.prebook_reduction_cents ? String(fromCents(cents(attendance.prebook_reduction_cents))) : "",
-  );
-  const [reason, setReason] = useState(attendance?.prebook_reduction_reason ?? "");
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [busy, startTransition] = useTransition();
@@ -62,25 +51,9 @@ export function AttendanceManager({
   const totalExpected = expected.adult + expected.child + expected.infant;
   const totalPresent = present.adult + present.child + present.infant;
   const totalAbsent = totalExpected - totalPresent;
-  let reductionCents = 0;
-  let reductionInvalid = false;
-  if (reduction.trim()) {
-    try {
-      reductionCents = toCents(reduction);
-      reductionInvalid = reductionCents < 0;
-    } catch {
-      reductionInvalid = true;
-    }
-  }
   const validAttendance = LABELS.every(
     ({ key }) => Number.isInteger(present[key]) && present[key] >= 0 && present[key] <= expected[key],
   );
-  const reductionExceedsOperatorNet = reductionCents > operatorNetTotalCents;
-  const reductionWithoutAbsence = reductionCents > 0 && totalAbsent === 0;
-  const reductionMissingReason = reductionCents > 0 && !reason.trim();
-  const showPrebookAdjustment = totalAbsent > 0 || (attendance?.prebook_reduction_cents ?? 0) > 0;
-  const adjustedPrebookCents = Math.max(0, operatorNetTotalCents - reductionCents);
-
   function updatePresent(type: keyof Counts, value: string) {
     const next = value === "" ? 0 : Number(value);
     setPresent((current) => ({ ...current, [type]: Number.isFinite(next) ? next : 0 }));
@@ -97,8 +70,6 @@ export function AttendanceManager({
         adults_present: present.adult,
         children_present: present.child,
         infants_present: present.infant,
-        prebook_reduction: reduction,
-        prebook_reduction_reason: reason,
       });
       if (!result.ok) {
         setError(result.error);
@@ -156,88 +127,9 @@ export function AttendanceManager({
           <span>Absent: {totalAbsent}</span>
         </div>
 
-        {operatorPayer && showPrebookAdjustment && (
-          <div className="flex flex-col gap-3 rounded-md border p-4">
-            <div>
-              <h3 className="font-semibold">Operator balance adjustment</h3>
-              <p className="text-muted-foreground text-sm">
-                Enter the agreed amount to subtract from the operator balance. The original and adjusted amounts below
-                help you check the result.
-              </p>
-            </div>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="attendance-prebook-reduction">Amount to subtract from operator balance (Rs)</Label>
-                <Input
-                  id="attendance-prebook-reduction"
-                  inputMode="decimal"
-                  placeholder="Leave blank if there is no reduction"
-                  maxLength={20}
-                  value={reduction}
-                  disabled={!canManage || busy}
-                  onChange={(event) => {
-                    setReduction(event.target.value);
-                    setSaved(false);
-                  }}
-                />
-              </div>
-              {reductionCents > 0 && (
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="attendance-prebook-reason">Reason for reduction</Label>
-                  <Input
-                    id="attendance-prebook-reason"
-                    value={reason}
-                    maxLength={200}
-                    disabled={!canManage || busy}
-                    onChange={(event) => setReason(event.target.value)}
-                    placeholder="e.g. 2 guests did not attend"
-                  />
-                </div>
-              )}
-            </div>
-            <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm">
-              <span>Original operator balance: {formatRs(cents(operatorNetTotalCents))}</span>
-              <span>After this adjustment: {formatRs(cents(adjustedPrebookCents))}</span>
-            </div>
-            {attendance && attendance.prebook_reduction_cents > 0 && (
-              <p className="text-muted-foreground text-sm">
-                Current saved reduction: {formatRs(cents(attendance.prebook_reduction_cents))}
-              </p>
-            )}
-            {canManage && totalAbsent > 0 && reductionCents === 0 && (
-              <Alert variant="warning">
-                Attendance will update the waiver count. Add a balance reduction only if one was agreed.
-              </Alert>
-            )}
-            {canManage && reductionInvalid && (
-              <Alert variant="destructive">Enter a non-negative amount with no more than two decimal places.</Alert>
-            )}
-            {canManage && reductionMissingReason && (
-              <Alert variant="destructive">Add a short reason for the balance reduction.</Alert>
-            )}
-            {canManage && reductionExceedsOperatorNet && (
-              <Alert variant="destructive">The reduction cannot exceed the operator amount owed to AquaSail.</Alert>
-            )}
-            {canManage && reductionWithoutAbsence && (
-              <Alert variant="destructive">A balance reduction can only be entered when someone did not attend.</Alert>
-            )}
-          </div>
-        )}
-
         {canManage && (
           <div className="flex justify-end">
-            <Button
-              type="button"
-              onClick={save}
-              disabled={
-                busy ||
-                !validAttendance ||
-                reductionInvalid ||
-                reductionMissingReason ||
-                reductionExceedsOperatorNet ||
-                reductionWithoutAbsence
-              }
-            >
+            <Button type="button" onClick={save} disabled={busy || !validAttendance}>
               {busy ? "Saving attendance…" : attendance ? "Update attendance" : "Save attendance"}
             </Button>
           </div>

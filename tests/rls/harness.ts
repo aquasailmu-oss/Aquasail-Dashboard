@@ -153,6 +153,7 @@ const TABLES: Record<TableName, true> = {
   booking_waivers: true,
   booking_pre_registrations: true,
   booking_sequences: true,
+  booking_sheet_sync_queue: true,
   bookings: true,
   clients: true,
   locations: true,
@@ -172,6 +173,7 @@ export const ALL_TABLES = Object.keys(TABLES) as TableName[];
 
 const VIEWS: Record<ViewName, true> = {
   booking_register: true,
+  booking_settlement_queue: true,
   client_summaries: true,
 };
 export const ALL_VIEWS = Object.keys(VIEWS) as ViewName[];

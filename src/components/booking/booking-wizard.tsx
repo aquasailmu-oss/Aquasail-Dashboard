@@ -148,8 +148,7 @@ export function BookingWizard({
   const [received, setReceived] = useState("");
   const [receivedTouched, setReceivedTouched] = useState(false);
   const [paymentRef, setPaymentRef] = useState("");
-  const [prebookReduction, setPrebookReduction] = useState("");
-  const [prebookReductionReason, setPrebookReductionReason] = useState("");
+  const [adjustmentPending, setAdjustmentPending] = useState(false);
   const [savedBookingId, setSavedBookingId] = useState<string | null>(null);
 
   const [quote, setQuote] = useState<Quote | null>(null);
@@ -242,7 +241,6 @@ export function BookingWizard({
   };
   const totalAbsent = absent.adult + absent.child + absent.infant;
   const totalPresent = attendancePresent.adult + attendancePresent.child + attendancePresent.infant;
-  const reductionValue = tryCents(prebookReduction);
   const productWithoutQuantity =
     purchase.packageIds
       .map((id) => ({
@@ -284,10 +282,6 @@ export function BookingWizard({
           : next.participants.infant,
       };
       setAttendancePresent(nextAttendancePresent);
-      if (partySize(next.participants) === partySize(nextAttendancePresent)) {
-        setPrebookReduction("");
-        setPrebookReductionReason("");
-      }
     },
     [attendancePresent, attendanceTouched, preRegistration?.expectedPax, purchase.participants],
   );
@@ -299,10 +293,6 @@ export function BookingWizard({
       [key]: Math.min(count, purchase.participants[key]),
     };
     setAttendancePresent(nextPresent);
-    if (partySize(purchase.participants) === partySize(nextPresent)) {
-      setPrebookReduction("");
-      setPrebookReductionReason("");
-    }
   };
 
   const blocker = (() => {
@@ -320,23 +310,6 @@ export function BookingWizard({
         size +
         " are expected. Increase the expected count above or reduce item quantities."
       );
-    }
-    if (payerIsOperator && prebookReduction.trim() && (reductionValue === null || reductionValue < 0)) {
-      return "Enter a non-negative operator balance reduction with no more than two decimal places.";
-    }
-    if (payerIsOperator && reductionValue !== null && reductionValue > 0 && totalAbsent === 0) {
-      return "A balance reduction can only be entered when someone did not attend.";
-    }
-    if (payerIsOperator && reductionValue !== null && reductionValue > 0 && !prebookReductionReason.trim()) {
-      return "Add a short reason for the balance reduction.";
-    }
-    if (
-      payerIsOperator &&
-      reductionValue !== null &&
-      quote?.operator_net_total_cents != null &&
-      reductionValue > quote.operator_net_total_cents
-    ) {
-      return "The reduction cannot be greater than the amount the operator owes AquaSail.";
     }
     if (productWithoutQuantity) {
       return `Set the guest count or package units for ${productWithoutQuantity.name}.`;
@@ -361,12 +334,11 @@ export function BookingWizard({
         service_date: serviceDate,
         operator_id: operatorId,
         hotel_name: hotelName,
+        adjustment_pending: payerIsOperator && adjustmentPending,
         attendance: {
           adults_present: attendancePresent.adult,
           children_present: attendancePresent.child,
           infants_present: attendancePresent.infant,
-          prebook_reduction: prebookReduction,
-          prebook_reduction_reason: prebookReductionReason,
         },
         lines,
         participants: purchase.participants,
@@ -395,8 +367,6 @@ export function BookingWizard({
     operatorId,
     hotelName,
     attendancePresent,
-    prebookReduction,
-    prebookReductionReason,
     lines,
     purchase.participants,
     discountActive,
@@ -407,6 +377,7 @@ export function BookingWizard({
     needsBoat,
     boatId,
     payerIsOperator,
+    adjustmentPending,
     method,
     receivedValue,
     paymentRef,
@@ -449,11 +420,6 @@ export function BookingWizard({
       };
     }),
   ];
-  const adjustedOperatorBalance =
-    quote?.operator_net_total_cents == null
-      ? null
-      : cents(Math.max(0, quote.operator_net_total_cents - (reductionValue ?? 0)));
-
   if (savedBookingId) {
     return (
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-5">
@@ -472,7 +438,7 @@ export function BookingWizard({
         />
         <div className="flex flex-wrap gap-3">
           <Button asChild variant="outline">
-            <a href={`/bookings/${savedBookingId}`}>Open booking details</a>
+            <a href={`/bookings/${savedBookingId}#settlement`}>Open booking, payments and settlement</a>
           </Button>
           <Button asChild>
             <Link href="/bookings/new">New booking</Link>
@@ -622,8 +588,7 @@ export function BookingWizard({
                         checked={selected}
                         onChange={() => {
                           setOperatorId(option.id);
-                          setPrebookReduction("");
-                          setPrebookReductionReason("");
+                          setAdjustmentPending(false);
                         }}
                         className="accent-primary size-5 shrink-0"
                       />
@@ -856,39 +821,18 @@ export function BookingWizard({
           {payerIsOperator && operator ? (
             <div className="flex flex-col gap-3">
               <PayerBanner operatorName={operator.name} payer="operator" />
+              <p className="font-semibold">Pre-book / Operator account</p>
+              <label className="flex min-h-11 items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={adjustmentPending}
+                  onChange={(event) => setAdjustmentPending(event.target.checked)}
+                />
+                Agency adjustment pending
+              </label>
               <p>
                 Do not collect from the client here. The final check shows the balance {operator.name} owes AquaSail.
               </p>
-              {totalAbsent > 0 && (
-                <div className="grid gap-3 rounded-md border p-3 sm:grid-cols-2">
-                  <div className="flex flex-col gap-2">
-                    <Label htmlFor="booking-prebook-reduction">Agreed reduction to operator balance (Rs)</Label>
-                    <Input
-                      id="booking-prebook-reduction"
-                      inputMode="decimal"
-                      maxLength={20}
-                      placeholder="Leave blank if there is no reduction"
-                      value={prebookReduction}
-                      onChange={(event) => setPrebookReduction(event.target.value)}
-                    />
-                  </div>
-                  {prebookReduction.trim() && reductionValue !== null && reductionValue > 0 && (
-                    <div className="flex flex-col gap-2">
-                      <Label htmlFor="booking-prebook-reason">Reason for reduction</Label>
-                      <Input
-                        id="booking-prebook-reason"
-                        maxLength={200}
-                        placeholder="e.g. 2 guests did not attend"
-                        value={prebookReductionReason}
-                        onChange={(event) => setPrebookReductionReason(event.target.value)}
-                      />
-                    </div>
-                  )}
-                  <p className="text-muted-foreground text-sm sm:col-span-2">
-                    Enter only the agreed amount. The system does not calculate a reduction from absent guests.
-                  </p>
-                </div>
-              )}
             </div>
           ) : (
             <div className="grid gap-4 sm:grid-cols-3">
@@ -977,16 +921,8 @@ export function BookingWizard({
                 <p className="font-semibold">Operator balance owed to AquaSail</p>
                 {!payerIsOperator ? (
                   <p className="text-muted-foreground">Not applicable · customer pays at reception</p>
-                ) : adjustedOperatorBalance !== null ? (
-                  <>
-                    <p className="tabular-nums">After adjustment: {formatRs(adjustedOperatorBalance)}</p>
-                    {reductionValue !== null && reductionValue > 0 && (
-                      <p className="text-muted-foreground tabular-nums">
-                        Original {formatRs(quote!.operator_net_total_cents!)} − {formatRs(reductionValue)} agreed
-                        reduction
-                      </p>
-                    )}
-                  </>
+                ) : quote?.operator_net_total_cents != null && !quoteStale ? (
+                  <p>{formatRs(quote.operator_net_total_cents)}</p>
                 ) : !quote && !quoteError ? (
                   <p className="text-muted-foreground">Add items to calculate the balance</p>
                 ) : quoteStale ? (

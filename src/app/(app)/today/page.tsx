@@ -52,6 +52,17 @@ export default async function TodayPage() {
   const today = businessDate();
   const { start, end } = businessDayBounds(today);
   const supabase = await createClient();
+  const {
+    data: settlementQueue,
+    count: settlementCount,
+    error: settlementError,
+  } = await supabase
+    .from("booking_settlement_queue")
+    .select("*", { count: "exact" })
+    .lte("service_date", today)
+    .order("service_date")
+    .order("reference")
+    .limit(100);
 
   const [bookings, cash, entitlements, boats, waiverRows] = await Promise.all([
     supabase
@@ -156,6 +167,31 @@ export default async function TodayPage() {
         <BookingSearch />
       </div>
 
+      <details className="mb-6 rounded-md border p-4">
+        <summary className="cursor-pointer font-semibold">
+          Needs settlement{settlementCount !== null ? ` (${settlementCount})` : ""}
+        </summary>
+        {settlementError ? (
+          <p className="mt-2">Settlement follow-up could not be loaded.</p>
+        ) : settlementQueue?.length ? (
+          <ul className="mt-2 space-y-2">
+            {settlementQueue.map((entry) => (
+              <li key={entry.id}>
+                <Link className="underline" href={`/bookings/${entry.id}#settlement`}>
+                  {entry.reference}
+                </Link>
+                {" · "}
+                {entry.service_date} · {entry.operator_name}
+                {entry.pending_splits > 0 && ` · ${entry.pending_splits} missing split(s)`}
+                {entry.adjustment_pending && " · Adjustment pending"}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mt-2">No bookings need settlement follow-up.</p>
+        )}
+        {(settlementCount ?? 0) > 100 && <p>Showing the oldest 100 bookings.</p>}
+      </details>
       <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-6">
         <Kpi label="Bookings" value={String(live.length)} />
         <Kpi label="People" value={String(people)} />

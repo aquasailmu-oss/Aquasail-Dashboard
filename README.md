@@ -36,6 +36,34 @@ all with the password `demo-password-1`: `admin@aquasail.test`,
 For `.env.local`, use the `API URL`, `anon key` and `service_role key` that
 `npm run db:start` prints.
 
+### Optional Google Sheets booking register
+
+The app can mirror saved bookings to a business-owned Google Sheet. The sync is
+disabled until `GOOGLE_SHEETS_SYNC_ENABLED=true` and all Google settings below
+are configured. Create the spreadsheet in the business Google Workspace account,
+enable the Google Sheets API in its Cloud project, create a service account, and
+share the spreadsheet with that service account as an editor. Store the service
+account JSON only in server-side deployment secrets; never commit it or expose it
+through a `NEXT_PUBLIC_` variable. The sheet owner remains the business account.
+
+Use a tab named `Bookings` with these columns, in order, in row 1:
+
+`Booking ID`, `Booking reference`, `Service date`, `Status`, `Operator`, `Hotel`,
+`Customer`, `Phone`, `Email`, `Country`, `Items`, `Adults`, `Children`, `Infants`,
+`Payer`, `Total charged (Rs)`, `Total paid (Rs)`, `Balance (Rs)`,
+`AquaSail share (Rs)`, `Operator share (Rs)`.
+
+The app writes one row per booking, keyed by the UUID in column A. For operator-
+account prebooks, the two share columns start blank and the sync leaves those
+cells untouched on later updates. Payment, amendment, cancellation, and customer
+detail changes are queued and retried by the scheduled worker. The worker runs
+every five minutes; Google credentials and the spreadsheet ID are provided later
+as `GOOGLE_SHEETS_SERVICE_ACCOUNT_JSON`, `GOOGLE_SHEETS_SPREADSHEET_ID`,
+`GOOGLE_SHEETS_TAB`, and `CRON_SECRET` deployment secrets. `CRON_SECRET` must
+match the Vercel Cron authorization secret. Until all Google settings are present
+and `GOOGLE_SHEETS_SYNC_ENABLED=true`, the worker makes no external calls and
+returns without syncing.
+
 ### Codespaces: Docker networking fix
 
 In this Codespace a leftover legacy iptables table drops traffic on custom Docker

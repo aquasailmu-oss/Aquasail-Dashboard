@@ -86,12 +86,11 @@ const createSchema = z.object({
   service_date: z.string(),
   operator_id: z.uuid().nullable(),
   hotel_name: z.string().trim().max(120),
+  adjustment_pending: z.boolean().optional(),
   attendance: z.object({
     adults_present: z.number().int().min(0).max(500),
     children_present: z.number().int().min(0).max(500),
     infants_present: z.number().int().min(0).max(500),
-    prebook_reduction: z.string().trim().max(20),
-    prebook_reduction_reason: z.string().trim().max(200),
   }),
   lines: z
     .array(
@@ -168,27 +167,6 @@ export async function createBooking(input: CreateBookingInput): Promise<Result<{
   const discount = d.discount ? parseDiscount(d.discount) : { ok: true as const, data: null };
   if (!discount.ok) return discount;
 
-  let prebookReductionCents = 0;
-  if (d.attendance.prebook_reduction) {
-    try {
-      prebookReductionCents = toCents(d.attendance.prebook_reduction);
-    } catch {
-      return fail("Enter the operator balance reduction in rupees, for example 1250.00.");
-    }
-  }
-  if (prebookReductionCents < 0) return fail("The operator balance reduction cannot be negative.");
-  const absentCount =
-    d.participants.adult -
-    d.attendance.adults_present +
-    (d.participants.child - d.attendance.children_present) +
-    (d.participants.infant - d.attendance.infants_present);
-  if (prebookReductionCents > 0 && absentCount === 0) {
-    return fail("A balance reduction can only be entered when someone did not attend.");
-  }
-  if (prebookReductionCents > 0 && !d.attendance.prebook_reduction_reason.trim()) {
-    return fail("Add a short reason for the balance reduction.");
-  }
-
   // What was received pays for the booking up to its total; the rest is change.
   let payment: { amount_cents: Cents; method: string; reference: string | null } | null = null;
   if (d.payment && d.payment.received.trim()) {
@@ -216,12 +194,12 @@ export async function createBooking(input: CreateBookingInput): Promise<Result<{
       service_date: date,
       operator_id: d.operator_id,
       hotel_name: d.hotel_name,
+      adjustment_pending: d.adjustment_pending ?? false,
       attendance: {
         adults_present: d.attendance.adults_present,
         children_present: d.attendance.children_present,
         infants_present: d.attendance.infants_present,
-        prebook_reduction_cents: prebookReductionCents,
-        prebook_reduction_reason: d.attendance.prebook_reduction_reason || null,
+        prebook_reduction_cents: 0,
       },
       lines: d.lines,
       discount: discount.data,
@@ -353,7 +331,7 @@ export async function cancelBooking(formData: FormData): Promise<Result<null>> {
 const paymentSchema = z.object({
   booking_id: z.uuid(),
   amount: z.string(),
-  method: z.enum(["cash", "card", "bank_transfer", "operator_account", "other"], { error: "Choose how it was paid." }),
+  method: z.enum(["cash", "card", "bank_transfer", "other"], { error: "Choose how it was paid." }),
   reference: z.string().trim().max(100),
   note: z.string().trim().max(500),
 });
@@ -395,7 +373,7 @@ export async function recordPayment(formData: FormData): Promise<Result<null>> {
     booking_id: parsed.data.booking_id,
     amount_cents: amount,
     method: parsed.data.method,
-    received_from: parsed.data.method === "operator_account" ? "operator" : "client",
+    received_from: balance.data.payer === "operator" ? "operator" : "client",
     reference: parsed.data.reference || null,
     note: parsed.data.note || null,
   });

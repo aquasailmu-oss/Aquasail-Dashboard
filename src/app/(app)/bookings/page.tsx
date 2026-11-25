@@ -154,7 +154,7 @@ export default async function BookingsPage({
             {canExport && (
               <Button asChild variant="outline">
                 <a href={`/bookings/export?${filtersToParams(f, { page: 1 })}`}>
-                  <FileSpreadsheetIcon /> Export to Excel
+                  <FileSpreadsheetIcon /> Download report
                 </a>
               </Button>
             )}

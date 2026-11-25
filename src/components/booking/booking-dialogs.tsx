@@ -119,13 +119,12 @@ export function RecordPaymentDialog({
           <select
             id="pay_method"
             name="method"
-            defaultValue={payer === "operator" ? "operator_account" : "cash"}
+            defaultValue={payer === "operator" ? "bank_transfer" : "cash"}
             className="border-input bg-card min-h-11 rounded-md border px-3"
           >
             <option value="cash">Cash</option>
             <option value="card">Card</option>
             <option value="bank_transfer">Bank transfer</option>
-            <option value="operator_account">Operator account</option>
             <option value="other">Other</option>
           </select>
         </div>

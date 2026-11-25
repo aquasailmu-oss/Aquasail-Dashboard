@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CancelBookingDialog, CorrectPaymentDialog, RecordPaymentDialog } from "@/components/booking/booking-dialogs";
 import { AttendanceManager } from "@/components/booking/attendance-manager";
+import { SettlementForm } from "@/components/booking/settlement-form";
 import { WaiverManager } from "@/components/waivers/waiver-manager";
 import { latestTicket } from "@/lib/booking-tickets";
 import { BookingStatusBadge } from "@/components/shared/booking-status-badge";
@@ -76,6 +77,10 @@ export default async function BookingPage({
   const payments = [...b.payments].sort((a, c) => a.received_at.localeCompare(c.received_at));
   const paid = payments.reduce((sum, p) => sum + p.amount_cents, 0);
   const due = b.charged_total_cents - paid;
+  const bookingRegisterId = process.env.GOOGLE_SHEETS_SPREADSHEET_ID?.trim();
+  const bookingRegisterUrl = bookingRegisterId
+    ? `https://docs.google.com/spreadsheets/d/${bookingRegisterId}/edit`
+    : null;
   const subtotal = items.reduce((sum, i) => sum + i.unit_charged_cents * i.quantity, 0);
   const people = b.booking_participants.map(
     (p) => `${p.count} ${TYPE[p.participant_type].toLowerCase()}${p.count === 1 ? "" : "s"}`,
@@ -196,6 +201,62 @@ export default async function BookingPage({
         </Card>
       </div>
 
+      {(b.payer === "operator" || (b.operator_id && b.tracks_settlement)) && (
+        <Card id="settlement" className="mt-8">
+          <CardHeader>
+            <CardTitle>{b.payer === "operator" ? "Pre-book split" : "Booking settlement"}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {b.payer === "operator" ? (
+              <div className="space-y-3 text-sm">
+                <p>
+                  Enter the AquaSail and operator shares in the Google Sheets Booking Register after this booking is
+                  paid in full. The split is managed in the sheet, not in this app.
+                </p>
+                <p className="font-medium">
+                  {cancelled
+                    ? "This booking is cancelled. Do not enter a split."
+                    : due > 0
+                    ? `${formatRs(cents(due))} remains to be paid. Leave both split cells blank for now.`
+                    : "Paid in full. Enter both split amounts in the Booking Register."}
+                </p>
+                {bookingRegisterUrl ? (
+                  <a
+                    href={bookingRegisterUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-accent-foreground underline"
+                  >
+                    Open Booking Register
+                  </a>
+                ) : (
+                  <p className="text-muted-foreground">
+                    The Booking Register link is not configured for this environment.
+                  </p>
+                )}
+              </div>
+            ) : (
+              b.tracks_settlement &&
+              items.map((item) => (
+                <details key={item.id} open={item.settlement_manual && item.settlement_aquasail_cents === null}>
+                  <summary className="cursor-pointer py-2 font-medium">
+                    {item.packages?.name ?? item.activities?.name} · {TYPE[item.participant_type]} × {item.quantity}
+                  </summary>
+                  <SettlementForm
+                    booking={b.id}
+                    item={item.id}
+                    status={item.settlement_manual ? "manual" : "automatic"}
+                    amount={item.settlement_aquasail_cents}
+                    total={item.unit_charged_cents * item.quantity - item.discount_cents}
+                    editable={canWrite && !cancelled}
+                  />
+                </details>
+              ))
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       <AttendanceManager
         bookingId={b.id}
         expected={{
@@ -204,8 +265,6 @@ export default async function BookingPage({
           infant: b.booking_participants.find((p) => p.participant_type === "infant")?.count ?? 0,
         }}
         attendance={attendance}
-        operatorPayer={b.payer === "operator"}
-        operatorNetTotalCents={b.operator_net_total_cents}
         canManage={canWrite && !cancelled && (user.role === "admin" || user.role === "receptionist")}
       />
 

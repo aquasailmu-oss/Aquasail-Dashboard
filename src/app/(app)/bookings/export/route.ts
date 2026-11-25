@@ -405,7 +405,6 @@ export async function GET(request: NextRequest) {
   styleSheet(bookingSheet);
   for (const booking of rows) {
     const itemRows = itemsByBooking.get(booking.id) ?? [];
-    const counts = participantsById.get(booking.id) ?? {};
     const isOperatorAccountPrebook = booking.payer === "operator";
     let aquasail = 0;
     let operatorShare = 0;

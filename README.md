@@ -56,13 +56,15 @@ Use a tab named `Bookings` with these columns, in order, in row 1:
 The app writes one row per booking, keyed by the UUID in column A. For operator-
 account prebooks, the two share columns start blank and the sync leaves those
 cells untouched on later updates. Payment, amendment, cancellation, and customer
-detail changes are queued and retried by the scheduled worker. The worker runs
-every five minutes; Google credentials and the spreadsheet ID are provided later
-as `GOOGLE_SHEETS_SERVICE_ACCOUNT_JSON`, `GOOGLE_SHEETS_SPREADSHEET_ID`,
-`GOOGLE_SHEETS_TAB`, and `CRON_SECRET` deployment secrets. `CRON_SECRET` must
-match the Vercel Cron authorization secret. Until all Google settings are present
-and `GOOGLE_SHEETS_SYNC_ENABLED=true`, the worker makes no external calls and
-returns without syncing.
+detail changes are queued and retried by the scheduled worker. Supabase Cron
+calls the worker every five minutes. In Vercel Production, configure
+`GOOGLE_SHEETS_SERVICE_ACCOUNT_JSON`, `GOOGLE_SHEETS_SPREADSHEET_ID`,
+`GOOGLE_SHEETS_TAB`, `CRON_SECRET`, and `GOOGLE_SHEETS_SYNC_ENABLED`. Migration
+0043 stores the production sync URL in Supabase Vault. Add
+`google_sheets_sync_cron_secret` to Vault with the same value as Vercel's
+`CRON_SECRET`. Keep the token out of Git.
+Until all Google settings are present and `GOOGLE_SHEETS_SYNC_ENABLED=true`, the
+worker makes no Google API calls and returns without syncing.
 
 ### Codespaces: Docker networking fix
 
